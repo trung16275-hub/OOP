@@ -1,9 +1,8 @@
+package screens;
 
-import javax.swing.*;
-
-
-
+import game.MainGame;
 import java.awt.*;
+import javax.swing.*;
 
 public class GamePanel extends JPanel implements Runnable {
     private MainGame mainFrame;
@@ -14,7 +13,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.mainFrame = mainFrame;
         setBackground(Color.DARK_GRAY);
         setFocusable(true);
-        
+
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
     }
 
@@ -46,7 +45,7 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        
+
         // Vẽ đồ họa (Tài nguyên từ TV 3, Cốt truyện từ TV 4 hiển thị ra đây)
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 20));

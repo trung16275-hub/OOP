@@ -1,17 +1,15 @@
+package screens;
 
-
-import javax.swing.*;
-
-
-
+import game.MainGame;
 import java.awt.*;
+import javax.swing.*;
 
 public class IntroPanel extends JPanel {
     private MainGame mainFrame;
 
     public IntroPanel(MainGame mainFrame) {
         this.mainFrame = mainFrame;
-        
+
         // Thiết lập layout và màu nền cơ bản
         setLayout(new GridBagLayout());
         setBackground(Color.BLACK);

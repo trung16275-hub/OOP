@@ -1,3 +1,5 @@
+package model;
+
 // File: src/player/Weapon.java
 public class Weapon {
     public String name;

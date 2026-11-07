@@ -1,3 +1,4 @@
+package model;
 
 // File: src/boss/Boss.java (Class gốc - dùng chung)
 public abstract class Boss {
@@ -14,5 +15,5 @@ public abstract class Boss {
     }
 
     // Mỗi người sẽ tự viết logic tấn công riêng cho Boss của mình
-    public abstract void updateBehavior(); 
+    public abstract void updateBehavior();
 }

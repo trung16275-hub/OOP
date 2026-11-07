@@ -1,5 +1,9 @@
+package game;
+
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import screens.GamePanel;
+import screens.IntroPanel;
 
 public class MainGame extends JFrame {
     
