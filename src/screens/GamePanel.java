@@ -1,6 +1,10 @@
 package screens;
 
 import game.MainGame;
+import model.Boss1;
+import model.Enemy;
+import model.Player;
+
 import java.awt.*;
 import javax.swing.*;
 
@@ -9,12 +13,33 @@ public class GamePanel extends JPanel implements Runnable {
     private Thread gameThread;
     private boolean isRunning;
 
+    // Entities
+    private Player player;
+    private Enemy currentEnemy;
+
     public GamePanel(MainGame mainFrame) {
         this.mainFrame = mainFrame;
         setBackground(Color.DARK_GRAY);
         setFocusable(true);
 
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
+        initNewGame();
+    }
+
+    public void initNewGame() {
+        // Khởi tạo Player (vị trí x=180, y=260, kích thước 50x50)
+        this.player = new Player("Hero", 100);
+        this.player.setX(180);
+        this.player.setY(260);
+        this.player.setWidth(50);
+        this.player.setHeight(50);
+
+        // Khởi tạo Boss (vị trí x=680, y=250, kích thước 60x60)
+        this.currentEnemy = new Boss1();
+        this.currentEnemy.setX(680);
+        this.currentEnemy.setY(250);
+        this.currentEnemy.setWidth(60);
+        this.currentEnemy.setHeight(60);
     }
 
     public void startGameLoop() {
@@ -45,10 +70,21 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
 
-        // Vẽ đồ họa (Tài nguyên từ TV 3, Cốt truyện từ TV 4 hiển thị ra đây)
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        g.drawString("Đang ở trong hầm ngục...", 280, 280);
+        //Vẽ Player - xanh
+        if (player != null) {
+            g2.setColor(new Color(52, 152, 219));
+            g2.fillOval((int) player.getX(), (int) player.getY(), player.getWidth(), player.getHeight());
+
+        }
+
+        //Vẽ Boss - đỏ
+        if (currentEnemy != null && !currentEnemy.isDead()) {
+            g2.setColor(new Color(231, 76, 60));
+            g2.fillOval((int) currentEnemy.getX(), (int) currentEnemy.getY(), currentEnemy.getWidth(), currentEnemy.getHeight());
+
+        }
+
     }
 }

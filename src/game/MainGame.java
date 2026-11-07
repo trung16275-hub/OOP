@@ -6,14 +6,16 @@ import screens.GamePanel;
 import screens.IntroPanel;
 
 public class MainGame extends JFrame {
-    
+    public static final int WINDOW_WIDTH = 960;
+    public static final int WINDOW_HEIGHT = 640;
+
     public MainGame() {
         setTitle("Dungeon Crawler Project");
-        setSize(800, 600);
+        setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Căn giữa màn hình
         setResizable(false);
-        
+
         // Mặc định khi bật game lên sẽ nạp màn hình Intro
         showIntro();
     }
@@ -32,12 +34,12 @@ public class MainGame extends JFrame {
         setContentPane(game);
         revalidate();
         repaint();
-        
+
         // Yêu cầu Focus để nhận sự kiện bàn phím
-        game.requestFocusInWindow(); 
-        
+        game.requestFocusInWindow();
+
         // Kích hoạt Game Loop
-        game.startGameLoop(); 
+        game.startGameLoop();
     }
 
     public static void main(String[] args) {
