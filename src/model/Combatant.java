@@ -6,6 +6,7 @@ public abstract class Combatant {
     private String name;
     private int hp;
     private int maxHp;
+    private int speed;
 
     // Tọa độ và kích thước trong không gian game
     protected double x;
@@ -13,18 +14,27 @@ public abstract class Combatant {
     protected int width;
     protected int height;
 
-    public Combatant (String name, int maxHp) {
+    public Combatant (String name, int maxHp, int speed) {
         this.name = name;
         this.maxHp = maxHp;
         this.hp = maxHp;
+        this.speed = speed;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public int getSpeed() {
+        return speed;
+    }
+
+    public int getHp() {
+        return hp;
+    }
+
+    public int getMaxHp() {
+        return maxHp;
     }
 
     public double getX() {
@@ -59,28 +69,9 @@ public abstract class Combatant {
         this.height = height;
     }
 
-    public int getHp() {
-        return hp;
-    }
-
-    public void setHp(int hp) {
-        this.hp = Math.max(0, Math.min(maxHp, hp));
-    }
-
-    public int getMaxHp() {
-        return maxHp;
-    }
-
-    public void setMaxHp(int maxHp) {
-        this.maxHp = maxHp;
-        this.hp = Math.min(this.hp, maxHp);
-    }
-
-    public int takeDamage(int dmg) {
-        if(dmg <= 0) return 0;
-        int actualHpLoss= Math.min(hp, dmg);
-        hp -= actualHpLoss;
-        return actualHpLoss;
+    public void takeDamage(int dmg) {
+        if(dmg <= 0) return ;
+        this.hp = Math.max(0, this.hp - dmg);
     }
 
     public boolean isDead() {

@@ -4,6 +4,7 @@ import game.MainGame;
 import model.Boss1;
 import model.Enemy;
 import model.Player;
+import screens.input.*;
 
 import java.awt.*;
 import javax.swing.*;
@@ -17,9 +18,17 @@ public class GamePanel extends JPanel implements Runnable {
     private Player player;
     private Enemy currentEnemy;
 
+    // Key Handling
+    private KeyHandler keyH = new KeyHandler();
+
+    // Renderer
+    private GameRenderer renderer;
+
     public GamePanel(MainGame mainFrame) {
         this.mainFrame = mainFrame;
-        setBackground(Color.DARK_GRAY);
+        this.renderer = new GameRenderer();
+        this.addKeyListener(keyH);
+
         setFocusable(true);
 
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
@@ -28,7 +37,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void initNewGame() {
         // Khởi tạo Player (vị trí x=180, y=260, kích thước 50x50)
-        this.player = new Player("Hero", 100);
+        this.player = new Player();
         this.player.setX(180);
         this.player.setY(260);
         this.player.setWidth(50);
@@ -65,6 +74,10 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void update() {
         // Cập nhật trạng thái quái vật, nhân vật di chuyển
+        if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
+        if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
+        if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
+        if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
     }
 
     @Override
@@ -72,19 +85,7 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        //Vẽ Player - xanh
-        if (player != null) {
-            g2.setColor(new Color(52, 152, 219));
-            g2.fillOval((int) player.getX(), (int) player.getY(), player.getWidth(), player.getHeight());
-
-        }
-
-        //Vẽ Boss - đỏ
-        if (currentEnemy != null && !currentEnemy.isDead()) {
-            g2.setColor(new Color(231, 76, 60));
-            g2.fillOval((int) currentEnemy.getX(), (int) currentEnemy.getY(), currentEnemy.getWidth(), currentEnemy.getHeight());
-
-        }
+        renderer.render((Graphics2D) g, player, currentEnemy);
 
     }
 }

@@ -7,8 +7,8 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
 
-    public Enemy (String name, int maxHp, int baseDamage) {
-        super(name, maxHp);
+    public Enemy (String name, int maxHp, int speed, int baseDamage) {
+        super(name, maxHp,speed);
         this.baseDamage = baseDamage;
     }
 
