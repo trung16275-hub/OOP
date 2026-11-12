@@ -5,7 +5,7 @@ public class Player extends Combatant {
     private Weapon currentWeapon;
     //default constructor for testing
     public Player() {
-        this("Hero", 100, 2);
+        this("Hero", 100, 10);
     }
 
     public Player (String name, int maxHp, int speed) {

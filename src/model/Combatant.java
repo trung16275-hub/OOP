@@ -78,7 +78,13 @@ public abstract class Combatant {
         return hp<=0;
     }
 
-    public abstract void attack(Combatant target);
+    public abstract void attack(Combatant target) ;
+    public void clampPosition ( int ScreenWidth , int ScreenHeight ) {
+        double maxX = Math.max ( 0 , ScreenWidth - this.width ) ;
+        double maxY = Math.max ( 0 , ScreenHeight - this.height ) ; 
+        x = Math.max ( 0 , Math.min ( x , maxX )) ; 
+        y = Math.max ( 0 , Math.min ( y , maxY)) ;
+    }
 
 
 
