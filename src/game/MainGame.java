@@ -3,6 +3,7 @@ package game;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import screens.GamePanel;
+import screens.GameOverPanel;
 import screens.IntroPanel;
 
 public class MainGame extends JFrame {
@@ -40,6 +41,12 @@ public class MainGame extends JFrame {
 
         // Kích hoạt Game Loop
         game.startGameLoop();
+    }
+
+    public void showGameOver() {
+        setContentPane(new GameOverPanel(this));
+        revalidate();
+        repaint();
     }
 
     public static void main(String[] args) {
