@@ -23,6 +23,27 @@ public class GameRenderer {
         if (player != null && !player.isDead()) {
             renderPlayer(g2, player);
         }
+        if (player != null) {
+            renderPlayerStats(g2, player);
+        }
+    }
+
+    private void renderPlayerStats(Graphics2D g2, Player player) {
+        Graphics2D hud = (Graphics2D) g2.create();
+        try {
+            // A light background keeps dark gray armor readable on the game map.
+            hud.setColor(new Color(235, 235, 240, 230));
+            hud.fillRoundRect(10, 10, 220, 70, 12, 12);
+            hud.setFont(new Font("SansSerif", Font.BOLD, 22));
+
+            hud.setColor(Color.RED);
+            hud.drawString("HP: " + player.getHp() + "/" + player.getMaxHp(), 20, 37);
+
+            hud.setColor(Color.DARK_GRAY);
+            hud.drawString("Armor: " + player.getArmor(), 20, 66);
+        } finally {
+            hud.dispose();
+        }
     }
     private void renderBackground(Graphics2D g2) {
         // Sau này thay bằng vẽ tile map; hiện tại là nền tối
