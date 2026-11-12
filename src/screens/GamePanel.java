@@ -1,6 +1,5 @@
 package screens;
 
-import game.GameConfig ;
 import game.MainGame;
 import model.Boss1;
 import model.Enemy;

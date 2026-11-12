@@ -2,7 +2,7 @@ package model;
 
 public class Boss3 extends Enemy {
     public Boss3() {
-        super("Boss 3", 200,3,2);
+        super("Boss 3", 200,3,2,Double.POSITIVE_INFINITY);
     }
 
     @Override
