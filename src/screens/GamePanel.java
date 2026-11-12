@@ -1,6 +1,5 @@
 package screens;
 
-import game.GameConfig ;
 import game.MainGame;
 import model.Boss1;
 import model.Enemy;
@@ -13,7 +12,7 @@ import javax.swing.*;
 public class GamePanel extends JPanel implements Runnable {
     private MainGame mainFrame;
     private Thread gameThread;
-    private boolean isRunning;
+    private volatile boolean isRunning;
 
     // Entities
     private Player player;
@@ -73,6 +72,10 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        if (player.isDead()) {
+            endGame();
+            return;
+        }
         // Cập nhật trạng thái quái vật, nhân vật di chuyển
         if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
@@ -81,9 +84,29 @@ public class GamePanel extends JPanel implements Runnable {
 
         player.clampPosition ( getWidth() , getHeight( ) ) ;
         if (currentEnemy != null && !currentEnemy.isDead()) {
-        currentEnemy.chase(player);
-        currentEnemy.clampPosition(getWidth(), getHeight());
+            currentEnemy.chase(player);
+            currentEnemy.clampPosition(getWidth(), getHeight());
+            currentEnemy.tryContactAttack(player);
+        }
+        if (player.isDead()) {
+            endGame();
+        }
     }
+
+    private void endGame() {
+        isRunning = false;
+        // Swing screen changes must run on the event dispatch thread.
+        SwingUtilities.invokeLater(() -> {
+            if (mainFrame.getContentPane() == this) {
+                mainFrame.showGameOver();
+            }
+        });
+    }
+
+    @Override
+    public void removeNotify() {
+        isRunning = false;
+        super.removeNotify();
     }
 
     @Override
