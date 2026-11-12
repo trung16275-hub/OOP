@@ -85,15 +85,5 @@ public abstract class Combatant {
         x = Math.max ( 0 , Math.min ( x , maxX )) ; 
         y = Math.max ( 0 , Math.min ( y , maxY)) ;
     }
-    public void takeDamege ( int dmg )
-    {
-        if ( dmg <= 0 )
-        {
-            return ; 
-        }
-        hp = Math.max ( 0 , hp - dmg ) ;
-    }
-
-
 
 }

@@ -7,20 +7,33 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
     private double detectionRange ; 
-    private static final long CONTACT_COOLDOWN_NANOS = 1_000_000_000L ; /// thoi gian giua 2 lan danh lien tiep la 1s
+    // One second between contact attacks, tracked separately for each enemy.
+    private static final long CONTACT_COOLDOWN_NANOS = 100_000_000L;
+    private long lastContactAttackTime;
+    private boolean hasContactAttacked = false;
 
-    private long lastContactAttackTime ; 
-    private boolean hasContactAttacked = false ; /// Chi nen cho quai co kha nang attack vi player se dung weapon de gay sat thuong 
-
-
-    public void tryContactAttack ( Player player )
-    {
-        if ( player == NULL || player.isDead ( ) || isDead ( ) )
-        {
-            return ; 
+    public void tryContactAttack(Player player) {
+        if (player == null || player.isDead() || isDead()) {
+            return;
         }
-        
 
+        // Circular hitboxes match the current square-sized character drawings.
+        double dx = (getX() + getWidth() / 2.0)
+                  - (player.getX() + player.getWidth() / 2.0);
+        double dy = (getY() + getHeight() / 2.0)
+                  - (player.getY() + player.getHeight() / 2.0);
+        double radiusSum = getWidth() / 2.0 + player.getWidth() / 2.0;
+
+        if (dx * dx + dy * dy > radiusSum * radiusSum) {
+            return;
+        }
+
+        long now = System.nanoTime();
+        if (!hasContactAttacked|| now - lastContactAttackTime >= CONTACT_COOLDOWN_NANOS) {
+            attack(player);
+            lastContactAttackTime = now;
+            hasContactAttacked = true;
+        }
     }
 
 
