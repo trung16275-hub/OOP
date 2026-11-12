@@ -1,5 +1,6 @@
 package screens;
 
+import game.GameConfig ;
 import game.MainGame;
 import model.Boss1;
 import model.Enemy;
@@ -30,7 +31,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(keyH);
 
         setFocusable(true);
-
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
         initNewGame();
     }
@@ -78,6 +78,12 @@ public class GamePanel extends JPanel implements Runnable {
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
         if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
         if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
+
+        player.clampPosition ( getWidth() , getHeight( ) ) ;
+        if (currentEnemy != null && !currentEnemy.isDead()) {
+        currentEnemy.chase(player);
+        currentEnemy.clampPosition(getWidth(), getHeight());
+    }
     }
 
     @Override
