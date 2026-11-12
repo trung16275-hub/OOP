@@ -2,6 +2,8 @@ package model;
 
 //Class cho cả Player và Boss/Enemy
 
+import map.Room;
+
 public abstract class Combatant {
     private String name;
     private int hp;
@@ -79,11 +81,12 @@ public abstract class Combatant {
     }
 
     public abstract void attack(Combatant target) ;
+    //Cần fix
     public void clampPosition ( int ScreenWidth , int ScreenHeight ) {
-        double maxX = Math.max ( 0 , ScreenWidth - this.width ) ;
-        double maxY = Math.max ( 0 , ScreenHeight - this.height ) ; 
-        x = Math.max ( 0 , Math.min ( x , maxX )) ; 
-        y = Math.max ( 0 , Math.min ( y , maxY)) ;
+        double maxX = Math.max ( 0 , ScreenWidth - this.width - Room.TILE_SIZE) ;
+        double maxY = Math.max ( 0 , ScreenHeight - this.height -Room.TILE_SIZE) ;
+        x = Math.max ( Room.TILE_SIZE , Math.min ( x , maxX )) ;
+        y = Math.max ( Room.TILE_SIZE , Math.min ( y , maxY)) ;
     }
 
 }

@@ -1,8 +1,5 @@
 package map;
 
-import model.Boss1;
-import model.Enemy;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,16 +18,25 @@ public class Room {
     private RoomType roomType;
     private final TileType[][] tiles;
 
-    private boolean isCleared;
-    private List<Enemy> ememies;
+    private boolean cleared;
 
-    public Room(int width, int height) {
+    //default constructor for fast testing
+    public Room() {
+        this.width = 30;
+        this.height = 20;
+        this.roomType = RoomType.NORMAL;
+        this.cleared = true;
+        this.tiles = new TileType[30][20];
+
+        generateDefaultRoom();
+    }
+
+    public Room(int width, int height, RoomType type) {
         this.width = width;
         this.height = height;
-        this.roomType = RoomType.NORMAL;
-        this.isCleared = false;
+        this.roomType = type;
+        this.cleared = false;
         this.tiles = new TileType[width][height];
-        this.ememies = new ArrayList<>()
     }
 
     public void generateDefaultRoom() {
@@ -40,7 +46,6 @@ public class Room {
                 else tiles[x][y] = TileType.FLOOR;
             }
         }
-        ememies.add(new Boss1());
     }
 
     public int getWidth() { return width; }
@@ -65,5 +70,13 @@ public class Room {
                     String.format("Tile coordinates (%d, %d) out of bounds for grid size (%d, %d)", x, y, width, height));
             };
         tiles[x][y] = tile;
+    }
+
+    public boolean isCleared () {
+        return cleared;
+    }
+
+    public void setCleared (boolean cleared) {
+        this.cleared = cleared;
     }
 }

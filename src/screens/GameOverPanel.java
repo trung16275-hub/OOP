@@ -6,6 +6,8 @@ import javax.swing.*;
 
 public class GameOverPanel extends JPanel {
     public GameOverPanel(MainGame mainFrame) {
+        setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
+
         setLayout(new GridBagLayout());
         setBackground(new Color(25, 25, 30));
 

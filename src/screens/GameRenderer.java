@@ -1,6 +1,7 @@
 package screens;
 
 import map.Room;
+import map.TileType;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
@@ -72,10 +73,17 @@ public class GameRenderer {
         g2.fillOval(x, y, w, h);
     }
 
+    private static final Color WALL_COLOR = new Color(37, 37, 37);
+    private static final Color FLOOR_COLOR = new Color(82, 82, 82);
+
     private void renderRoom(Graphics2D g2, Room room) {
+        int tileSize = Room.TILE_SIZE;
+
         for (int x = 0; x < room.getWidth(); x++) {
-
-
+            for (int y = 0; y < room.getHeight(); y++) {
+                g2.setColor(room.getTile(x, y) == TileType.WALL ? WALL_COLOR : FLOOR_COLOR);
+                g2.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
         }
     }
 

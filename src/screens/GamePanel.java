@@ -1,6 +1,7 @@
 package screens;
 
 import game.MainGame;
+import map.Room;
 import model.Boss1;
 import model.Enemy;
 import model.Player;
@@ -17,6 +18,7 @@ public class GamePanel extends JPanel implements Runnable {
     // Entities
     private Player player;
     private Enemy currentEnemy;
+    private Room room;
 
     // Key Handling
     private KeyHandler keyH = new KeyHandler();
@@ -25,6 +27,7 @@ public class GamePanel extends JPanel implements Runnable {
     private GameRenderer renderer;
 
     public GamePanel(MainGame mainFrame) {
+        setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
         this.mainFrame = mainFrame;
         this.renderer = new GameRenderer();
         this.addKeyListener(keyH);
@@ -48,6 +51,8 @@ public class GamePanel extends JPanel implements Runnable {
         this.currentEnemy.setY(250);
         this.currentEnemy.setWidth(60);
         this.currentEnemy.setHeight(60);
+
+        this.room = new Room();
     }
 
     public void startGameLoop() {
@@ -72,25 +77,27 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        // Cập nhật trạng thái quái vật, nhân vật di chuyển
+
+        //1. Cập nhật nhân vật
         if (player.isDead()) {
             endGame();
             return;
         }
-        // Cập nhật trạng thái quái vật, nhân vật di chuyển
+        //Cần fix sau - Vị trí
         if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
         if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
         if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
+        player.clampPosition ( getWidth() , getHeight()) ;
 
-        player.clampPosition ( getWidth() , getHeight( ) ) ;
+        //2. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
             currentEnemy.chase(player);
             currentEnemy.clampPosition(getWidth(), getHeight());
             currentEnemy.tryContactAttack(player);
         }
-        if (player.isDead()) {
-            endGame();
-        }
+
     }
 
     private void endGame() {
@@ -114,7 +121,7 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        renderer.render((Graphics2D) g, player, currentEnemy);
+        renderer.render((Graphics2D) g, player, currentEnemy, room);
 
     }
 }

@@ -16,12 +16,19 @@ public class MapGenerator {
         this.rand = new Random(seed);
     }
 
-    public Room createRoom(Roomtype type, int width, int height) {
-
+    public Room createRoom(Room.RoomType type, int width, int height) {
+        //fix sau
+        Room room = new Room();
+        room.generateDefaultRoom();
+        return room;
     }
 
     public WorldMap generate() {
+        //fix sau
+        WorldMap map = new WorldMap(1);
+        map.addRoom(4,4, createRoom(Room.RoomType.NORMAL,30,20));
 
+        return map;
     }
 
 

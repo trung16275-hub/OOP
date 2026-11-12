@@ -8,6 +8,7 @@ public class IntroPanel extends JPanel {
     private MainGame mainFrame;
 
     public IntroPanel(MainGame mainFrame) {
+        setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
         this.mainFrame = mainFrame;
 
         // Thiết lập layout và màu nền cơ bản
@@ -25,7 +26,7 @@ public class IntroPanel extends JPanel {
         // --- XỬ LÝ LOGIC CHUYỂN CẢNH (Nhiệm vụ của TV 2) ---
         startBtn.addActionListener(e -> {
             // Khi bấm nút Start, gọi hàm chuyển cảnh từ MainGame
-            mainFrame.startGame(); 
+            mainFrame.startGame();
         });
 
         exitBtn.addActionListener(e -> {
