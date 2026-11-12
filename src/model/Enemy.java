@@ -7,6 +7,21 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
     private double detectionRange ; 
+    private static final long CONTACT_COOLDOWN_NANOS = 1_000_000_000L ; /// thoi gian giua 2 lan danh lien tiep la 1s
+
+    private long lastContactAttackTime ; 
+    private boolean hasContactAttacked = false ; /// Chi nen cho quai co kha nang attack vi player se dung weapon de gay sat thuong 
+
+
+    public void tryContactAttack ( Player player )
+    {
+        if ( player == NULL || player.isDead ( ) || isDead ( ) )
+        {
+            return ; 
+        }
+        
+
+    }
 
 
     public Enemy (String name, int maxHp, int speed, int baseDamage, double detectionRange ) {
