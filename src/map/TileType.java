@@ -3,7 +3,7 @@ package map;
 public enum TileType {
     WALL(true),
     FLOOR(false),
-    DOOR_CLOSED(false),
+    DOOR_CLOSED(true),
     DOOR_OPEN(false),
     PORTAL(false);
 

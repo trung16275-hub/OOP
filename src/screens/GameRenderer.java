@@ -1,5 +1,6 @@
 package screens;
 
+import map.Room;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
@@ -11,11 +12,12 @@ public class GameRenderer {
 
     }
 
-    public void render(Graphics2D g2, Player player, Enemy enemy) {
+    public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
         // 1. Khử răng cưa cho hình vẽ mượt mà
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 2. Vẽ nền / bản đồ
         renderBackground(g2);
+        renderRoom(g2, room);
         // 3. Vẽ các thực thể trong game (Entities)
         if (enemy != null && !enemy.isDead()) {
             renderEnemy(g2, enemy);
@@ -26,6 +28,7 @@ public class GameRenderer {
         if (player != null) {
             renderPlayerStats(g2, player);
         }
+
     }
 
     private void renderPlayerStats(Graphics2D g2, Player player) {
@@ -67,6 +70,13 @@ public class GameRenderer {
         // Vẽ thân Enemy (khối đỏ)
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
+    }
+
+    private void renderRoom(Graphics2D g2, Room room) {
+        for (int x = 0; x < room.getWidth(); x++) {
+
+
+        }
     }
 
 }

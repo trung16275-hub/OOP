@@ -8,12 +8,20 @@ public class MapGenerator {
 
     public MapGenerator() {
         this.seed = System.currentTimeMillis();
-        this.rand = new Random();
+        this.rand = new Random(seed);
     }
 
     public MapGenerator(long seed) {
         this.seed = seed;
         this.rand = new Random(seed);
+    }
+
+    public Room createRoom(Roomtype type, int width, int height) {
+
+    }
+
+    public WorldMap generate() {
+
     }
 
 
