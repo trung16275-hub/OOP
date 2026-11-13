@@ -2,15 +2,21 @@ package model;
 
 // File: src/player/Player.java
 public class Player extends Combatant {
+    private static final double DEFAULT_HITBOX_RADIUS = 50.0;
     private int armor = 30 ; 
     private Weapon currentWeapon;
+    
     //default constructor for testing
     public Player() {
-        this("Hero", 100, 10);
+        this("Hero", 100, 10, DEFAULT_HITBOX_RADIUS);
     }
 
     public Player (String name, int maxHp, int speed) {
-        super(name, maxHp, speed);
+        this(name, maxHp, speed, DEFAULT_HITBOX_RADIUS);
+    }
+
+    public Player(String name, int maxHp, int speed, double hitboxRadius) {
+        super(name, maxHp, speed, hitboxRadius);
     }
 
     public Weapon getCurrentWeapon() {

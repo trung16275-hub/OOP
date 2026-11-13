@@ -1,11 +1,13 @@
 package screens;
 
+import game.MainGame;
 import map.Room;
 import map.TileType;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 
 public class GameRenderer {
     public GameRenderer() {
@@ -21,10 +23,17 @@ public class GameRenderer {
         renderRoom(g2, room);
         // 3. Vẽ các thực thể trong game (Entities)
         if (enemy != null && !enemy.isDead()) {
+            renderEnemyDetectionRange(g2, enemy);
             renderEnemy(g2, enemy);
         }
         if (player != null && !player.isDead()) {
             renderPlayer(g2, player);
+        }
+        if (enemy != null && !enemy.isDead()) {
+            renderHitbox(g2, enemy);
+        }
+        if (player != null && !player.isDead()) {
+            renderHitbox(g2, player);
         }
         if (player != null) {
             renderPlayerStats(g2, player);
@@ -62,6 +71,7 @@ public class GameRenderer {
         // Vẽ thân Player (khối xanh)
         g2.setColor(new Color(52, 152, 219));
         g2.fillOval(x, y, w, h);
+        renderFacingMarker(g2, player);
     }
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
         int x = (int) enemy.getX();
@@ -71,6 +81,80 @@ public class GameRenderer {
         // Vẽ thân Enemy (khối đỏ)
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
+        renderFacingMarker(g2, enemy);
+    }
+
+    private void renderHitbox(Graphics2D g2, Combatant combatant) {
+        double radius = combatant.getHitboxRadius();
+        double diameter = radius * 2;
+        double centerX = combatant.getX() + combatant.getWidth() / 2.0;
+        double centerY = combatant.getY() + combatant.getHeight() / 2.0;
+        Ellipse2D hitbox = new Ellipse2D.Double(
+                centerX - radius, centerY - radius, diameter, diameter);
+
+        Graphics2D debug = (Graphics2D) g2.create();
+        try {
+            debug.setColor(new Color(255, 230, 0, 28));
+            debug.fill(hitbox);
+            debug.setColor(Color.YELLOW);
+            debug.setStroke(new BasicStroke(2f));
+            debug.draw(hitbox);
+        } finally {
+            debug.dispose();
+        }
+    }
+
+    private void renderEnemyDetectionRange(Graphics2D g2, Enemy enemy) {
+        double range = enemy.getDetectionRange();
+        if (Double.isNaN(range) || range < 0) {
+            return;
+        }
+
+        Graphics2D debug = (Graphics2D) g2.create();
+        try {
+            debug.setStroke(new BasicStroke(2f));
+            if (Double.isInfinite(range)) {
+                Rectangle viewport = new Rectangle(
+                        0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+                debug.setColor(new Color(0, 255, 0, 18));
+                debug.fillRect(viewport.x, viewport.y, viewport.width, viewport.height);
+                debug.setColor(new Color(0, 255, 0, 190));
+                debug.drawRect(viewport.x + 1, viewport.y + 1,
+                        Math.max(0, viewport.width - 3), Math.max(0, viewport.height - 3));
+                return;
+            }
+
+            double centerX = enemy.getX() + enemy.getWidth() / 2.0;
+            double centerY = enemy.getY() + enemy.getHeight() / 2.0;
+            double diameter = range * 2;
+            Ellipse2D detectionArea = new Ellipse2D.Double(
+                    centerX - range, centerY - range, diameter, diameter);
+            debug.setColor(new Color(0, 255, 0, 22));
+            debug.fill(detectionArea);
+            debug.setColor(new Color(0, 255, 0, 190));
+            debug.draw(detectionArea);
+        } finally {
+            debug.dispose();
+        }
+    }
+
+    private void renderFacingMarker(Graphics2D g2, Combatant combatant) {
+        double centerX = combatant.getX() + combatant.getWidth() / 2.0;
+        double centerY = combatant.getY() + combatant.getHeight() / 2.0;
+        double markerOffset = Math.min(combatant.getWidth(), combatant.getHeight()) * 0.25;
+        double markerCenterX = centerX + combatant.getFacingX() * markerOffset;
+        double markerCenterY = centerY + combatant.getFacingY() * markerOffset;
+        int eyeSize = Math.max(6, Math.min(combatant.getWidth(), combatant.getHeight()) / 5);
+        int pupilSize = Math.max(3, eyeSize / 2);
+
+        g2.setColor(Color.WHITE);
+        g2.fillOval((int) Math.round(markerCenterX - eyeSize / 2.0),
+                (int) Math.round(markerCenterY - eyeSize / 2.0), eyeSize, eyeSize);
+        g2.setColor(Color.BLACK);
+        g2.fillOval(
+                (int) Math.round(markerCenterX + combatant.getFacingX() * eyeSize * 0.15 - pupilSize / 2.0),
+                (int) Math.round(markerCenterY + combatant.getFacingY() * eyeSize * 0.15 - pupilSize / 2.0),
+                pupilSize, pupilSize);
     }
 
     private static final Color WALL_COLOR = new Color(37, 37, 37);

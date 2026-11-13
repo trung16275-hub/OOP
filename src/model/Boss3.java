@@ -2,7 +2,11 @@ package model;
 
 public class Boss3 extends Enemy {
     public Boss3() {
-        super("Boss 3", 200,3,2,Double.POSITIVE_INFINITY);
+        this(30);
+    }
+
+    public Boss3(double hitboxRadius) {
+        super("Boss 3", 200, 3, 2, Double.POSITIVE_INFINITY, hitboxRadius);
     }
 
     @Override
