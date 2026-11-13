@@ -38,19 +38,15 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
-        // Khởi tạo Player (vị trí x=180, y=260, kích thước 50x50)
+        // GamePanel chỉ quản lý vị trí spawn; chỉ số và kích thước nằm trong class nhân vật.
         this.player = new Player();
         this.player.setX(180);
         this.player.setY(260);
-        this.player.setWidth(50);
-        this.player.setHeight(50);
 
-        // Khởi tạo Boss (vị trí x=680, y=250, kích thước 60x60)
+        // Khởi tạo Boss tại vị trí spawn.
         this.currentEnemy = new Boss1();
         this.currentEnemy.setX(680);
         this.currentEnemy.setY(250);
-        this.currentEnemy.setWidth(60);
-        this.currentEnemy.setHeight(60);
 
         this.room = new Room();
     }
@@ -95,7 +91,14 @@ public class GamePanel extends JPanel implements Runnable {
         if (currentEnemy != null && !currentEnemy.isDead()) {
             currentEnemy.chase(player);
             currentEnemy.clampPosition(getWidth(), getHeight());
+            if (player.canDetect(currentEnemy)) {
+                player.faceToward(currentEnemy);
+            } else {
+                player.resetFacing();
+            }
             currentEnemy.tryContactAttack(player);
+        } else {
+            player.resetFacing();
         }
 
     }

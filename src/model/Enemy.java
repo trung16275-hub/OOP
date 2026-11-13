@@ -7,8 +7,7 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
     private double detectionRange ; 
-    // One second between contact attacks, tracked separately for each enemy.
-    private static final long CONTACT_COOLDOWN_NANOS = 100_000_000L;
+    private static final long CONTACT_COOLDOWN_NANOS = 10_000_000_000L; /// Thời gian 2 skill liên tiếp là 1s
     private long lastContactAttackTime;
     private boolean hasContactAttacked = false;
 
@@ -17,14 +16,7 @@ public abstract class Enemy extends Combatant {
             return;
         }
 
-        // Circular hitboxes match the current square-sized character drawings.
-        double dx = (getX() + getWidth() / 2.0)
-                  - (player.getX() + player.getWidth() / 2.0);
-        double dy = (getY() + getHeight() / 2.0)
-                  - (player.getY() + player.getHeight() / 2.0);
-        double radiusSum = getWidth() / 2.0 + player.getWidth() / 2.0;
-
-        if (dx * dx + dy * dy > radiusSum * radiusSum) {
+        if (!isWithinHitbox(player)) {
             return;
         }
 
@@ -39,6 +31,11 @@ public abstract class Enemy extends Combatant {
 
     public Enemy (String name, int maxHp, int speed, int baseDamage, double detectionRange ) {
         super(name, maxHp,speed);
+        this.baseDamage = baseDamage;
+        this.detectionRange = detectionRange;
+    }
+    public Enemy(String name, int maxHp, int speed, int baseDamage,double detectionRange, double hitboxRadius) {
+        super(name, maxHp, speed, hitboxRadius);
         this.baseDamage = baseDamage;
         this.detectionRange = detectionRange;
     }
@@ -85,6 +82,8 @@ public abstract class Enemy extends Combatant {
     if (!canDetect(player)) {
         return;
     }
+
+    faceToward(player);
 
     // Khoảng cách giữa hai tâm nhân vật
     double dx = (player.getX() + player.getWidth() / 2.0)
