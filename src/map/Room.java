@@ -28,6 +28,7 @@ public class Room {
     private final TileType[][] tiles;
 
     private boolean cleared;
+    private boolean visited;
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
@@ -151,6 +152,9 @@ public class Room {
 
     public int getGridY() { return gridY; }
     public void setGridY(int gridY) { this.gridY = gridY; }
+
+    public boolean isVisited() {return visited;}
+    public void setVisited(boolean visited) {this.visited = visited;}
 
     public RoomType getRoomType() { return roomType; }
     public void setRoomType(RoomType roomType) { this.roomType = roomType; }

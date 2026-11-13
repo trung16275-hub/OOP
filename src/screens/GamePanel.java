@@ -95,13 +95,13 @@ public class GamePanel extends JPanel implements Runnable {
             endGame();
             return;
         }
-        //Cần fix sau - Vị trí
+
         if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
         if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
         if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
 
-        // 2. Kiểm tra bước qua cửa chuyển phòng
+        // 2. Kiểm tra chuyển phòng
         Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
         if (doorDir != null) {
             Room nextRoom = worldMap.moveTo(doorDir);
@@ -116,7 +116,7 @@ public class GamePanel extends JPanel implements Runnable {
             player.clampPosition(getWidth(), getHeight());
         }
 
-        //2. Cập nhật Enemy
+        //3. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
             currentEnemy.chase(player);
             currentEnemy.clampPosition(getWidth(), getHeight());

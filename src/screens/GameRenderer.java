@@ -183,20 +183,14 @@ public class GameRenderer {
                     case WALL -> {
                         g2.setColor(WALL_COLOR);
                         g2.fillRect(px, py, tileSize, tileSize);
-                        g2.setColor(new Color(25, 25, 25));
-                        g2.drawRect(px, py, tileSize, tileSize);
                     }
                     case FLOOR -> {
                         g2.setColor(FLOOR_COLOR);
                         g2.fillRect(px, py, tileSize, tileSize);
-                        g2.setColor(new Color(75, 75, 75));
-                        g2.drawRect(px, py, tileSize, tileSize);
                     }
                     case DOOR_OPEN -> {
                         g2.setColor(DOOR_OPEN_COLOR);
                         g2.fillRect(px, py, tileSize, tileSize);
-                        g2.setColor(new Color(40, 40, 45));
-                        g2.drawRect(px, py, tileSize, tileSize);
                     }
                 }
             }
