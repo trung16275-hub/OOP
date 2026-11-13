@@ -7,7 +7,7 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
     private double detectionRange ; 
-    private static final long CONTACT_COOLDOWN_NANOS = 1_000_000_000L; /// Thời gian 2 skill liên tiếp là 1s
+    private static final long CONTACT_COOLDOWN_NANOS = 10_000_000_000L; /// Thời gian 2 skill liên tiếp là 1s
     private long lastContactAttackTime;
     private boolean hasContactAttacked = false;
 

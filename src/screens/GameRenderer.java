@@ -23,10 +23,13 @@ public class GameRenderer {
         renderRoom(g2, room);
         // 3. Vẽ các thực thể trong game (Entities)
         if (enemy != null && !enemy.isDead()) {
-            renderEnemyDetectionRange(g2, enemy);
+            renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
+                    new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
             renderEnemy(g2, enemy);
         }
         if (player != null && !player.isDead()) {
+            renderDetectionRange(g2, player, player.getDetectionRange(),
+                    new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
             renderPlayer(g2, player);
         }
         if (enemy != null && !enemy.isDead()) {
@@ -104,8 +107,8 @@ public class GameRenderer {
         }
     }
 
-    private void renderEnemyDetectionRange(Graphics2D g2, Enemy enemy) {
-        double range = enemy.getDetectionRange();
+    private void renderDetectionRange(Graphics2D g2, Combatant combatant, double range,
+                                      Color fillColor, Color outlineColor) {
         if (Double.isNaN(range) || range < 0) {
             return;
         }
@@ -116,22 +119,22 @@ public class GameRenderer {
             if (Double.isInfinite(range)) {
                 Rectangle viewport = new Rectangle(
                         0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
-                debug.setColor(new Color(0, 255, 0, 18));
+                debug.setColor(fillColor);
                 debug.fillRect(viewport.x, viewport.y, viewport.width, viewport.height);
-                debug.setColor(new Color(0, 255, 0, 190));
+                debug.setColor(outlineColor);
                 debug.drawRect(viewport.x + 1, viewport.y + 1,
                         Math.max(0, viewport.width - 3), Math.max(0, viewport.height - 3));
                 return;
             }
 
-            double centerX = enemy.getX() + enemy.getWidth() / 2.0;
-            double centerY = enemy.getY() + enemy.getHeight() / 2.0;
+                double centerX = combatant.getX() + combatant.getWidth() / 2.0;
+                double centerY = combatant.getY() + combatant.getHeight() / 2.0;
             double diameter = range * 2;
             Ellipse2D detectionArea = new Ellipse2D.Double(
                     centerX - range, centerY - range, diameter, diameter);
-            debug.setColor(new Color(0, 255, 0, 22));
+                debug.setColor(fillColor);
             debug.fill(detectionArea);
-            debug.setColor(new Color(0, 255, 0, 190));
+                debug.setColor(outlineColor);
             debug.draw(detectionArea);
         } finally {
             debug.dispose();
