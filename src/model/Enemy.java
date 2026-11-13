@@ -7,8 +7,7 @@ import java.util.List;
 public abstract class Enemy extends Combatant {
     private int baseDamage;
     private double detectionRange ; 
-    // One second between contact attacks, tracked separately for each enemy.
-    private static final long CONTACT_COOLDOWN_NANOS = 100_000_000L;
+    private static final long CONTACT_COOLDOWN_NANOS = 100_000_000L; /// Thời gian giữa 2 đòn đánh liên tiếp ( Đang tính theo nano S)
     private long lastContactAttackTime;
     private boolean hasContactAttacked = false;
 
@@ -16,14 +15,9 @@ public abstract class Enemy extends Combatant {
         if (player == null || player.isDead() || isDead()) {
             return;
         }
-
-        // Circular hitboxes match the current square-sized character drawings.
-        double dx = (getX() + getWidth() / 2.0)
-                  - (player.getX() + player.getWidth() / 2.0);
-        double dy = (getY() + getHeight() / 2.0)
-                  - (player.getY() + player.getHeight() / 2.0);
+        double dx = (getX() + getWidth() / 2.0)- (player.getX() + player.getWidth() / 2.0);
+        double dy = (getY() + getHeight() / 2.0)- (player.getY() + player.getHeight() / 2.0);
         double radiusSum = getWidth() / 2.0 + player.getWidth() / 2.0;
-
         if (dx * dx + dy * dy > radiusSum * radiusSum) {
             return;
         }
@@ -71,40 +65,43 @@ public abstract class Enemy extends Combatant {
             return false;
         }
 
-        double dx = (player.getX() + player.getWidth() / 2.0)
-                  - (getX() + getWidth() / 2.0);
+        double dx = (player.getX() + player.getWidth() / 2.0)- (getX() + getWidth() / 2.0); /// khoang cach theo gan nhat theo x cua 2 nhan vat 
 
-        double dy = (player.getY() + player.getHeight() / 2.0)
-                  - (getY() + getHeight() / 2.0);
+        double dy = (player.getY() + player.getHeight() / 2.0)- (getY() + getHeight() / 2.0);/// khoang cach gan nhat theo y cua 2 nhan vat 
 
         double distance = Math.sqrt(dx * dx + dy * dy);
 
         return distance <= detectionRange;
     }
     public void chase(Player player) {
-    if (!canDetect(player)) {
-        return;
+        if (!canDetect(player)) {
+            return;
+        }
+
+        // Khoảng cách giữa hai tâm nhân vật
+        double dx = (player.getX() + player.getWidth() / 2.0)- (getX() + getWidth() / 2.0);
+
+        double dy = (player.getY() + player.getHeight() / 2.0)- (getY() + getHeight() / 2.0);
+
+        double distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Tránh chia cho 0 và dừng khi đến gần Player
+        if (distance <= 1) {
+            return;
+        }
+
+        // Chuẩn hóa vector hướng và di chuyển
+        double step = Math.min(getSpeed(), distance);
+
+        double nextX = getX() + dx / distance * step;
+        if (!overlapsAt(nextX, getY(), player)) {
+            setX(nextX);
+        }
+
+        double nextY = getY() + dy / distance * step;
+        if (!overlapsAt(getX(), nextY, player)) {
+            setY(nextY);
+        }
     }
-
-    // Khoảng cách giữa hai tâm nhân vật
-    double dx = (player.getX() + player.getWidth() / 2.0)
-              - (getX() + getWidth() / 2.0);
-
-    double dy = (player.getY() + player.getHeight() / 2.0)
-              - (getY() + getHeight() / 2.0);
-
-    double distance = Math.sqrt(dx * dx + dy * dy);
-
-    // Tránh chia cho 0 và dừng khi đến gần Player
-    if (distance <= 1) {
-        return;
-    }
-
-    // Chuẩn hóa vector hướng và di chuyển
-    double step = Math.min(getSpeed(), distance);
-
-    setX(getX() + dx / distance * step);
-    setY(getY() + dy / distance * step);
-}
 
 }

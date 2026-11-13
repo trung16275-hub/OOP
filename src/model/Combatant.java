@@ -71,6 +71,17 @@ public abstract class Combatant {
         this.height = height;
     }
 
+    public boolean overlapsAt(double candidateX, double candidateY, Combatant other) {
+        if (other == null) {
+            return false;
+        }
+
+        double dx = candidateX + width / 2.0 - (other.getX() + other.getWidth() / 2.0);
+        double dy = candidateY + height / 2.0 - (other.getY() + other.getHeight() / 2.0);
+        double radiusSum = width / 2.0 + other.getWidth() / 2.0;
+        return dx * dx + dy * dy < radiusSum * radiusSum; /// Điều kiện R1+R2<= khoảng cách 2 tâm nhưng dạng mũ 2 , không phải tính tâm
+    }
+
     public void takeDamage(int dmg) {
         if(dmg <= 0) return ;
         this.hp = Math.max(0, this.hp - dmg);
@@ -81,7 +92,7 @@ public abstract class Combatant {
     }
 
     public abstract void attack(Combatant target) ;
-    //Cần fix
+    //Cần fix -- Reply : Abstract thì sửa gì z bro
     public void clampPosition ( int ScreenWidth , int ScreenHeight ) {
         double maxX = Math.max ( 0 , ScreenWidth - this.width - Room.TILE_SIZE) ;
         double maxY = Math.max ( 0 , ScreenHeight - this.height -Room.TILE_SIZE) ;

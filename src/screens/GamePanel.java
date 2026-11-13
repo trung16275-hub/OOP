@@ -85,10 +85,13 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
         //Cần fix sau - Vị trí
-        if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
-        if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
-        if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
-        if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
+        double moveX = 0;
+        double moveY = 0;
+        if (keyH.upPressed)    moveY -= player.getSpeed();
+        if (keyH.downPressed)  moveY += player.getSpeed();
+        if (keyH.leftPressed)  moveX -= player.getSpeed();
+        if (keyH.rightPressed) moveX += player.getSpeed();
+        movePlayer(moveX, moveY);
         player.clampPosition ( getWidth() , getHeight()) ;
 
         //2. Cập nhật Enemy
@@ -98,6 +101,22 @@ public class GamePanel extends JPanel implements Runnable {
             currentEnemy.tryContactAttack(player);
         }
 
+    }
+
+    private void movePlayer(double moveX, double moveY) {
+        if (moveX != 0) {
+            double nextX = player.getX() + moveX;
+            if (currentEnemy == null || currentEnemy.isDead() || !player.overlapsAt(nextX, player.getY(), currentEnemy)) {
+                player.setX(nextX); /// Kiểm tra điều kiện để đi , nếu bị chặn thì ko đi được 
+            }
+        }
+
+        if (moveY != 0) {
+            double nextY = player.getY() + moveY;
+            if (currentEnemy == null || currentEnemy.isDead()|| !player.overlapsAt(player.getX(), nextY, currentEnemy)) {
+                player.setY(nextY); /// Kiểm tra điều kiện để đi , nếu bị chặn thì ko đi được 
+            }
+        }
     }
 
     private void endGame() {
