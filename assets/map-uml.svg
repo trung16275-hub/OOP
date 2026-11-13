@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 477.0666666666666 1548.8999999999999" width="477.0666666666666" height="1548.8999999999999" style="--bg:#18181B;--fg:#F4F4F5;--line:#71717A;--muted:#A1A1AA;--surface:#27272A;--border:#3F3F46;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="cls-inherit" markerWidth="12" markerHeight="10" refX="12" refY="5" orient="auto-start-reverse">
+    <polygon points="0 0, 12 5, 0 10" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-composition" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="1" />
+  </marker>
+  <marker id="cls-aggregation" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto-start-reverse">
+    <polyline points="0 0, 8 3, 0 6" fill="none" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+</defs>
+<polyline class="class-relationship" data-from="WorldMap" data-to="Room" data-type="composition" data-marker-at="from" data-label="contains" data-from-cardinality="1" data-to-cardinality="0..*" points="297.0666666666666,636.3 297.0666666666666,776.5999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-composition)" />
+<polyline class="class-relationship" data-from="Room" data-to="TileType" data-type="composition" data-marker-at="from" data-label="grid of" data-from-cardinality="1" data-to-cardinality="many" points="194.93333333333328,1164.6 194.93333333333328,1174.6 123.0666666666666,1174.6 123.0666666666666,1304.8999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-start="url(#cls-composition)" />
+<polyline class="class-relationship" data-from="Room" data-to="RoomType" data-type="association" data-marker-at="to" data-label="categorized by" points="297.0666666666666,1164.6 297.0666666666666,1304.8999999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#cls-arrow)" />
+<polyline class="class-relationship" data-from="MapGenerator" data-to="WorldMap" data-type="dependency" data-marker-at="to" data-label="creates" points="297.0666666666666,208 297.0666666666666,348.3" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#cls-arrow)" />
+<polyline class="class-relationship" data-from="MapGenerator" data-to="Room" data-type="dependency" data-marker-at="to" data-label="creates" points="168.5333333333333,208 168.5333333333333,218 116.0666666666666,218 116.0666666666666,726.5999999999999 194.93333333333328,726.5999999999999 194.93333333333328,776.5999999999999" fill="none" stroke="var(--_line)" stroke-width="1" stroke-dasharray="6 4" marker-end="url(#cls-arrow)" />
+<g class="class-node" data-id="TileType" data-label="TileType" data-annotation="enumeration">
+  <rect x="49.066666666666606" y="1304.8999999999999" width="148" height="204" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="49.066666666666606" y="1304.8999999999999" width="148" height="48" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="123.0666666666666" y="1316.8999999999999" text-anchor="middle" dy="0.35em" font-size="10" font-weight="500" font-style="italic" fill="var(--_text-muted)">&lt;&lt;enumeration&gt;&gt;</text>
+  <text x="123.0666666666666" y="1334.8999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">TileType</text>
+  <line x1="49.066666666666606" y1="1352.8999999999999" x2="197.0666666666666" y2="1352.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="57.066666666666606" y="1366.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">WALL</tspan></text>
+  <text x="57.066666666666606" y="1386.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">FLOOR</tspan></text>
+  <text x="57.066666666666606" y="1406.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">DOOR_CLOSED</tspan></text>
+  <text x="57.066666666666606" y="1426.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">DOOR_OPEN</tspan></text>
+  <text x="57.066666666666606" y="1446.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">PORTAL</tspan></text>
+  <text x="57.066666666666606" y="1466.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">solid</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <line x1="49.066666666666606" y1="1480.8999999999999" x2="197.0666666666666" y2="1480.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="57.066666666666606" y="1494.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">isSolid()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">boolean</tspan></text>
+</g>
+<g class="class-node" data-id="RoomType" data-label="RoomType" data-annotation="enumeration">
+  <rect x="237.0666666666666" y="1304.8999999999999" width="120" height="144" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="237.0666666666666" y="1304.8999999999999" width="120" height="48" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="297.0666666666666" y="1316.8999999999999" text-anchor="middle" dy="0.35em" font-size="10" font-weight="500" font-style="italic" fill="var(--_text-muted)">&lt;&lt;enumeration&gt;&gt;</text>
+  <text x="297.0666666666666" y="1334.8999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">RoomType</text>
+  <line x1="237.0666666666666" y1="1352.8999999999999" x2="357.0666666666666" y2="1352.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="245.0666666666666" y="1366.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">SPAWN</tspan></text>
+  <text x="245.0666666666666" y="1386.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">SHOP</tspan></text>
+  <text x="245.0666666666666" y="1406.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">BOSS</tspan></text>
+  <text x="245.0666666666666" y="1426.8999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">NORMAL</tspan></text>
+  <line x1="237.0666666666666" y1="1440.8999999999999" x2="357.0666666666666" y2="1440.8999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+</g>
+<g class="class-node" data-id="Room" data-label="Room">
+  <rect x="92.79999999999995" y="776.5999999999999" width="306.4" height="388" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="92.79999999999995" y="776.5999999999999" width="306.4" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="245.99999999999994" y="792.5999999999999" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">Room</text>
+  <line x1="92.79999999999995" y1="808.5999999999999" x2="399.19999999999993" y2="808.5999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="100.79999999999995" y="822.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400" text-decoration="underline"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">TILE_SIZE</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="842.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">width</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="862.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">height</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="882.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">roomType</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">RoomType</tspan></text>
+  <text x="100.79999999999995" y="902.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">tiles</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">TileType[][]</tspan></text>
+  <text x="100.79999999999995" y="922.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">cleared</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="100.79999999999995" y="942.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">gridX</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="962.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">gridY</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <line x1="92.79999999999995" y1="976.5999999999999" x2="399.19999999999993" y2="976.5999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="100.79999999999995" y="990.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">Room(int width, int height)</tspan></text>
+  <text x="100.79999999999995" y="1010.5999999999999" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getWidth()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="1030.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getHeight()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="100.79999999999995" y="1050.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getRoomType()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">RoomType</tspan></text>
+  <text x="100.79999999999995" y="1070.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">setRoomType(RoomType type)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">void</tspan></text>
+  <text x="100.79999999999995" y="1090.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getTile(int x, int y)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">TileType</tspan></text>
+  <text x="100.79999999999995" y="1110.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">setTile(int x, int y, TileType type)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">void</tspan></text>
+  <text x="100.79999999999995" y="1130.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">isCleared()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">boolean</tspan></text>
+  <text x="100.79999999999995" y="1150.6" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">setCleared(boolean cleared)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">void</tspan></text>
+</g>
+<g class="class-node" data-id="WorldMap" data-label="WorldMap">
+  <rect x="157.0666666666666" y="348.3" width="280" height="288" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="157.0666666666666" y="348.3" width="280" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="297.0666666666666" y="364.3" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">WorldMap</text>
+  <line x1="157.0666666666666" y1="380.3" x2="437.0666666666666" y2="380.3" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="165.0666666666666" y="394.3" class="mono" dy="0.35em" font-size="11" font-weight="400" text-decoration="underline"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">GRID_SIZE</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="165.0666666666666" y="414.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">floorLevel</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="165.0666666666666" y="434.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">rooms</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">List~Room~</tspan></text>
+  <text x="165.0666666666666" y="454.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">grid</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Room[][]</tspan></text>
+  <text x="165.0666666666666" y="474.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">currentRoom</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Room</tspan></text>
+  <line x1="157.0666666666666" y1="488.3" x2="437.0666666666666" y2="488.3" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="165.0666666666666" y="502.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">WorldMap(int floorLevel)</tspan></text>
+  <text x="165.0666666666666" y="522.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getFloorLevel()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">int</tspan></text>
+  <text x="165.0666666666666" y="542.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getRooms()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">List~Room~</tspan></text>
+  <text x="165.0666666666666" y="562.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getRoom(int x, int y)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Room</tspan></text>
+  <text x="165.0666666666666" y="582.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">addRoom(int x, int y, Room room)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">void</tspan></text>
+  <text x="165.0666666666666" y="602.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">getCurrentRoom()</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Room</tspan></text>
+  <text x="165.0666666666666" y="622.3" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">setCurrentRoom(Room room)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">void</tspan></text>
+</g>
+<g class="class-node" data-id="MapGenerator" data-label="MapGenerator">
+  <rect x="40" y="40" width="385.59999999999997" height="168" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="40" width="385.59999999999997" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="232.79999999999998" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="var(--_text)" dy="4.55">MapGenerator</text>
+  <line x1="40" y1="72" x2="425.59999999999997" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="48" y="86" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">rand</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Random</tspan></text>
+  <text x="48" y="106" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">- </tspan><tspan fill="var(--_text-sec)">seed</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">long</tspan></text>
+  <line x1="40" y1="120" x2="425.59999999999997" y2="120" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="48" y="134" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">MapGenerator()</tspan></text>
+  <text x="48" y="154" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">MapGenerator(long seed)</tspan></text>
+  <text x="48" y="174" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">generateFloor(int floorLevel)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">WorldMap</tspan></text>
+  <text x="48" y="194" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-faint)">+ </tspan><tspan fill="var(--_text-sec)">createRoom(RoomType type, int width, int height)</tspan><tspan fill="var(--_text-faint)">: </tspan><tspan fill="var(--_text-muted)">Room</tspan></text>
+</g>
+<text x="325.0876666666666" y="698.4499999999999" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">contains</text>
+<text x="283.0666666666666" y="650.3" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">1</text>
+<text x="283.0666666666666" y="762.5999999999999" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">0..*</text>
+<text x="101.6886666666666" y="1226.75" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">grid of</text>
+<text x="180.93333333333328" y="1178.6" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">1</text>
+<text x="109.0666666666666" y="1290.8999999999999" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">many</text>
+<text x="340.2346666666666" y="1226.75" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">categorized by</text>
+<text x="323.3056666666666" y="270.15" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">creates</text>
+<text x="90.8276666666666" y="484.29999999999995" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.8499999999999996">creates</text>
+</svg>

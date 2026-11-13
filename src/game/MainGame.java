@@ -12,7 +12,6 @@ public class MainGame extends JFrame {
 
     public MainGame() {
         setTitle("Dungeon Crawler Project");
-        setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Căn giữa màn hình
         setResizable(false);
@@ -25,6 +24,9 @@ public class MainGame extends JFrame {
     public void showIntro() {
         IntroPanel intro = new IntroPanel(this);
         setContentPane(intro);
+        pack();
+        setLocationRelativeTo(null);
+
         revalidate(); // Báo cho hệ thống cập nhật lại giao diện
         repaint();    // Vẽ lại màn hình
     }
@@ -33,6 +35,9 @@ public class MainGame extends JFrame {
     public void startGame() {
         GamePanel game = new GamePanel(this);
         setContentPane(game);
+        pack();
+        setLocationRelativeTo(null);
+
         revalidate();
         repaint();
 
@@ -45,6 +50,9 @@ public class MainGame extends JFrame {
 
     public void showGameOver() {
         setContentPane(new GameOverPanel(this));
+        pack();
+        setLocationRelativeTo(null);
+
         revalidate();
         repaint();
     }
