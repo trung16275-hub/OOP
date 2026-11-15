@@ -1,8 +1,10 @@
 package screens;
 
 import game.MainGame;
+import map.Direction;
 import map.Room;
 import map.TileType;
+import map.WorldMap;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
@@ -16,6 +18,10 @@ public class GameRenderer {
     }
 
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
+        render(g2, player, enemy, room, null);
+    }
+
+    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
         // 1. Khử răng cưa cho hình vẽ mượt mà
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 2. Vẽ nền / bản đồ
@@ -162,14 +168,31 @@ public class GameRenderer {
 
     private static final Color WALL_COLOR = new Color(37, 37, 37);
     private static final Color FLOOR_COLOR = new Color(82, 82, 82);
+    private static final Color DOOR_OPEN_COLOR = new Color(20, 20, 25);
 
     private void renderRoom(Graphics2D g2, Room room) {
         int tileSize = Room.TILE_SIZE;
 
         for (int x = 0; x < room.getWidth(); x++) {
             for (int y = 0; y < room.getHeight(); y++) {
-                g2.setColor(room.getTile(x, y) == TileType.WALL ? WALL_COLOR : FLOOR_COLOR);
-                g2.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                TileType type = room.getTile(x, y);
+                int px = x * tileSize;
+                int py = y * tileSize;
+
+                switch (type) {
+                    case WALL -> {
+                        g2.setColor(WALL_COLOR);
+                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                    case FLOOR -> {
+                        g2.setColor(FLOOR_COLOR);
+                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                    case DOOR_OPEN -> {
+                        g2.setColor(DOOR_OPEN_COLOR);
+                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                }
             }
         }
     }
