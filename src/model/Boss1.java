@@ -2,12 +2,15 @@
 package model;
 
 public class Boss1 extends Enemy {
-
     // Thông số riêng của Boss1
-    private static final int MAX_HP = 300;
-    private static final int SPEED = 2;
-    private static final int DAMAGE = 20;
-    private static final double DETECTION_RANGE = 250;
+    private static final String DEFAULT_NAME = "Boss 1";
+    private static final int DEFAULT_MAX_HP = 300;
+    private static final int DEFAULT_SPEED = 2;
+    private static final int DEFAULT_BASE_DAMAGE = 20;
+    private static final double DEFAULT_DETECTION_RANGE = 250;
+    private static final double DEFAULT_HITBOX_RADIUS = 30;
+    private static final int DEFAULT_WIDTH = 60;
+    private static final int DEFAULT_HEIGHT = 60;
 
     // Lưu Player mà Boss đang truy đuổi
     private Player target;
@@ -18,7 +21,14 @@ public class Boss1 extends Enemy {
 
     // Constructor
     public Boss1() {
-        super("Boss 1", MAX_HP, SPEED, DAMAGE, DETECTION_RANGE);
+        this(DEFAULT_HITBOX_RADIUS);
+    }
+
+    public Boss1(double hitboxRadius) {
+        super(DEFAULT_NAME, DEFAULT_MAX_HP, DEFAULT_SPEED, DEFAULT_BASE_DAMAGE,
+                DEFAULT_DETECTION_RANGE, hitboxRadius);
+        setWidth(DEFAULT_WIDTH);
+        setHeight(DEFAULT_HEIGHT);
     }
 
     // Gán mục tiêu cho Boss
