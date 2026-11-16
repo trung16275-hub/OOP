@@ -1,8 +1,8 @@
 package test;
 
-import model.Boss1;
 import model.Player;
 import model.Weapon;
+import model.boss.Boss1;
 
 public class CombatTest {
     public static void main(String[] args) {

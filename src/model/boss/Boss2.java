@@ -1,4 +1,6 @@
-package model;
+package model.boss;
+
+import model.Enemy;
 
 public class Boss2 extends Enemy {
     // Chỉnh các chỉ số mặc định của Boss 2 tại đây.

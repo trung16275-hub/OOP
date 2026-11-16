@@ -1,5 +1,8 @@
 
-package model;
+package model.boss;
+
+import model.Enemy;
+import model.Player;
 
 public class Boss1 extends Enemy {
     // Thông số riêng của Boss1
@@ -25,8 +28,7 @@ public class Boss1 extends Enemy {
     }
 
     public Boss1(double hitboxRadius) {
-        super(DEFAULT_NAME, DEFAULT_MAX_HP, DEFAULT_SPEED, DEFAULT_BASE_DAMAGE,
-                DEFAULT_DETECTION_RANGE, hitboxRadius);
+        super(DEFAULT_NAME, DEFAULT_MAX_HP, DEFAULT_SPEED, DEFAULT_BASE_DAMAGE,DEFAULT_DETECTION_RANGE, hitboxRadius);
         setWidth(DEFAULT_WIDTH);
         setHeight(DEFAULT_HEIGHT);
     }

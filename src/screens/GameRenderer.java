@@ -96,9 +96,11 @@ public class GameRenderer {
                     int y = startY + gy * (cellSize + gap);
 
                     if (room == worldMap.getCurrentRoom()) {
-                        mini.setColor(new Color(255, 255, 255, 210));
+                        mini.setColor(new Color(78, 180, 220, 210));
+                    } else if (room.isVisited()) {
+                        mini.setColor(new Color(145, 145, 145, 170));
                     } else {
-                        mini.setColor(new Color(90, 90, 95, 170));
+                        mini.setColor(new Color(45, 45, 55, 170));
                     }
                     mini.fillRoundRect(x, y, cellSize, cellSize, 2, 2);
 

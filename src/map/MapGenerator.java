@@ -1,9 +1,9 @@
 package map;
 
-import model.Boss1;
-import model.Boss2;
-import model.Boss3;
 import model.Enemy;
+import model.boss.Boss1;
+import model.boss.Boss2;
+import model.boss.Boss3;
 
 import java.awt.Point;
 import java.util.*;
@@ -116,17 +116,15 @@ public class MapGenerator {
         int midPxY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
 
         for (Room r : map.getRooms()) {
-            if (r.getRoomType() == Room.RoomType.NORMAL) {
-                // Sinh 1 quái vật trong phòng bình thường
-                Boss1 minion = new Boss1();
-                minion.setX(midPxX - 50 + rand.nextInt(100));
-                minion.setY(midPxY - 50 + rand.nextInt(100));
-                r.addEnemy(minion);
+            if (r.getRoomType() == Room.RoomType.BOSS) {
+                Boss1 boss = new Boss1();
+                boss.setX(midPxX - 30);
+                boss.setY(midPxY - 30);
+                r.addEnemy(boss);
                 r.setCleared(false);
             } else {
-                // SPAWN & SHOP an toàn không có quái
+                // Spawn room và các phòng còn lại không có quái
                 r.setCleared(true);
-
             }
         }
     }
