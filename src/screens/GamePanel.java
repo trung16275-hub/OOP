@@ -6,7 +6,8 @@ import map.Room;
 import model.Boss1;
 import model.Enemy;
 import model.Player;
-import model.Weapon;
+import model.weapon.Sword;
+import model.weapon.Bow;
 import screens.input.*;
 
 import java.awt.*;
@@ -36,12 +37,16 @@ public class GamePanel extends JPanel implements Runnable {
     private GameRenderer renderer;
 
     public GamePanel(MainGame mainFrame) {
-        setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
+        setPreferredSize(new Dimension(
+                MainGame.WINDOW_WIDTH,
+                MainGame.WINDOW_HEIGHT
+        ));
+
         this.mainFrame = mainFrame;
         this.renderer = new GameRenderer();
         this.addKeyListener(keyH);
 
-        // Bổ sung điều khiển J/K, không thay đổi KeyHandler cũ
+        // Điều khiển J/K
         this.addKeyListener(new KeyAdapter() {
 
             @Override
@@ -81,24 +86,24 @@ public class GamePanel extends JPanel implements Runnable {
 
         setFocusable(true);
 
-        // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
         initNewGame();
     }
 
     public void initNewGame() {
-        // GamePanel chỉ quản lý vị trí spawn; chỉ số và kích thước nằm trong class nhân vật.
+
+        // Khởi tạo Player
         this.player = new Player();
         this.player.setX(180);
         this.player.setY(260);
 
-        // Trang bị vũ khí mặc định cho Player
-        player.equip(new Weapon("Kiếm", 20, Weapon.Type.MELEE, 70));
-        player.equip(new Weapon("Cung", 15, Weapon.Type.RANGED, 250));
+        // Trang bị vũ khí theo hệ thống mới
+        player.equip(new Sword());
+        player.equip(new Bow());
 
         // Bắt đầu bằng kiếm
         player.switchWeapon();
 
-        // Khởi tạo Boss tại vị trí spawn.
+        // Khởi tạo Boss
         this.currentEnemy = new Boss1();
         this.currentEnemy.setX(680);
         this.currentEnemy.setY(250);
@@ -114,38 +119,50 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     public void run() {
-        // Vòng lặp game (Game Loop)
+
         while (isRunning) {
-            update(); // Cập nhật logic (tọa độ, máu, va chạm)
-            repaint(); // Vẽ lại mọi thứ ra màn hình
+            update();
+            repaint();
 
             try {
-                Thread.sleep(16); // Giới hạn tốc độ khung hình (khoảng 60 FPS)
+                Thread.sleep(16);
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                Thread.currentThread().interrupt();
+                break;
             }
         }
     }
 
     private void update() {
-        // Cập nhật trạng thái quái vật, nhân vật di chuyển
 
-        // 1. Cập nhật nhân vật
         if (player.isDead()) {
             endGame();
             return;
         }
 
-        // Cần fix sau - Vị trí
-        if (keyH.upPressed) player.setY(player.getY() - player.getSpeed());
-        if (keyH.downPressed) player.setY(player.getY() + player.getSpeed());
-        if (keyH.leftPressed) player.setX(player.getX() - player.getSpeed());
-        if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
+        // Di chuyển Player
+        if (keyH.upPressed) {
+            player.setY(player.getY() - player.getSpeed());
+        }
+
+        if (keyH.downPressed) {
+            player.setY(player.getY() + player.getSpeed());
+        }
+
+        if (keyH.leftPressed) {
+            player.setX(player.getX() - player.getSpeed());
+        }
+
+        if (keyH.rightPressed) {
+            player.setX(player.getX() + player.getSpeed());
+        }
 
         player.clampPosition(getWidth(), getHeight());
 
-        // 2. Cập nhật Enemy
+        // Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
+
             currentEnemy.chase(player);
             currentEnemy.clampPosition(getWidth(), getHeight());
 
@@ -156,6 +173,7 @@ public class GamePanel extends JPanel implements Runnable {
             }
 
             currentEnemy.tryContactAttack(player);
+
         } else {
             player.resetFacing();
         }
@@ -164,7 +182,6 @@ public class GamePanel extends JPanel implements Runnable {
     private void endGame() {
         isRunning = false;
 
-        // Swing screen changes must run on the event dispatch thread.
         SwingUtilities.invokeLater(() -> {
             if (mainFrame.getContentPane() == this) {
                 mainFrame.showGameOver();
@@ -181,8 +198,8 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
 
+        Graphics2D g2 = (Graphics2D) g;
         renderer.render(g2, player, currentEnemy, room);
     }
 }

@@ -1,6 +1,11 @@
 
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import model.weapon.Weapon;
+
 public class Player extends Combatant {
 
     // ================= DEFAULT STATS =================
@@ -16,9 +21,6 @@ public class Player extends Combatant {
     private static final double DEFAULT_HITBOX_RADIUS = 25.0;
     private static final double DEFAULT_DETECTION_RANGE = 250.0;
 
-    // Cooldown giữa hai lần tấn công: 0.5 giây.
-    private static final long ATTACK_COOLDOWN_NANOS = 500_000_000L;
-
     // ================= PLAYER STATS =================
 
     private int armor = DEFAULT_ARMOR;
@@ -26,9 +28,9 @@ public class Player extends Combatant {
 
     // ================= WEAPON SYSTEM =================
 
-    private Weapon currentWeapon;
-    private Weapon meleeWeapon;
-    private Weapon rangedWeapon;
+    private final List<Weapon> weapons = new ArrayList<>();
+
+    private int currentWeaponIndex = -1;
 
     private long lastAttackTime = 0;
     private boolean hasAttacked = false;
@@ -66,12 +68,10 @@ public class Player extends Combatant {
             return;
         }
 
-        // Armor hấp thụ damage trước.
         int absorbed = Math.min(armor, dmg);
 
         armor -= absorbed;
 
-        // Phần damage còn lại mới trừ vào HP.
         int remainingDamage = dmg - absorbed;
 
         super.takeDamage(remainingDamage);
@@ -116,16 +116,18 @@ public class Player extends Combatant {
 
     // ================= WEAPON EQUIPMENT =================
 
+    public List<Weapon> getWeapons() {
+        return new ArrayList<>(weapons);
+    }
+
     public Weapon getCurrentWeapon() {
-        return currentWeapon;
-    }
 
-    public Weapon getMeleeWeapon() {
-        return meleeWeapon;
-    }
+        if (currentWeaponIndex < 0
+                || currentWeaponIndex >= weapons.size()) {
+            return null;
+        }
 
-    public Weapon getRangedWeapon() {
-        return rangedWeapon;
+        return weapons.get(currentWeaponIndex);
     }
 
     public void equip(Weapon weapon) {
@@ -136,65 +138,44 @@ public class Player extends Combatant {
             );
         }
 
-        if (weapon.getType() == Weapon.Type.MELEE) {
+        weapons.add(weapon);
 
-            meleeWeapon = weapon;
+        currentWeaponIndex = weapons.size() - 1;
 
-        } else {
-
-            rangedWeapon = weapon;
-        }
-
-        // Vũ khí vừa trang bị sẽ được chọn làm vũ khí hiện tại.
-        currentWeapon = weapon;
-
-        System.out.println("Đã trang bị: " + weapon.name);
+        System.out.println(
+                "Đã trang bị: " + weapon.getName()
+        );
     }
 
-    // Chuyển đổi giữa vũ khí cận chiến và tầm xa.
     public void switchWeapon() {
 
-        if (currentWeapon == null) {
-
-            if (meleeWeapon != null) {
-                currentWeapon = meleeWeapon;
-            } else {
-                currentWeapon = rangedWeapon;
-            }
-
+        if (weapons.size() <= 1) {
             return;
         }
 
-        if (currentWeapon.getType() == Weapon.Type.MELEE
-                && rangedWeapon != null) {
+        currentWeaponIndex =
+                (currentWeaponIndex + 1) % weapons.size();
 
-            currentWeapon = rangedWeapon;
-
-        } else if (currentWeapon.getType() == Weapon.Type.RANGED
-                && meleeWeapon != null) {
-
-            currentWeapon = meleeWeapon;
-        }
-
-        if (currentWeapon != null) {
-            System.out.println(
-                    "Đã đổi sang: " + currentWeapon.name
-            );
-        }
+        System.out.println(
+                "Đã đổi sang: " + getCurrentWeapon().getName()
+        );
     }
 
-    // Tháo toàn bộ vũ khí.
     public void unequip() {
 
-        currentWeapon = null;
-        meleeWeapon = null;
-        rangedWeapon = null;
+        weapons.clear();
+        currentWeaponIndex = -1;
+
+        lastAttackTime = 0;
+        hasAttacked = false;
     }
 
     // ================= ATTACK SYSTEM =================
 
     @Override
     public void attack(Combatant target) {
+
+        Weapon currentWeapon = getCurrentWeapon();
 
         if (currentWeapon == null
                 || target == null
@@ -207,51 +188,20 @@ public class Player extends Combatant {
 
         long now = System.nanoTime();
 
-        // Kiểm tra cooldown.
+        // Cooldown riêng của vũ khí hiện tại.
         if (hasAttacked
-                && now - lastAttackTime < ATTACK_COOLDOWN_NANOS) {
+                && now - lastAttackTime
+                < currentWeapon.getCooldownNanos()) {
 
             return;
         }
 
-        // Tính khoảng cách giữa tâm hai nhân vật.
-        double dx =
-                (target.getX() + target.getWidth() / 2.0)
-                        - (getX() + getWidth() / 2.0);
-
-        double dy =
-                (target.getY() + target.getHeight() / 2.0)
-                        - (getY() + getHeight() / 2.0);
-
-        double distanceSquared = dx * dx + dy * dy;
-
-        double attackRange = currentWeapon.getRange();
-
-        // Cận chiến tính thêm hitbox của hai nhân vật.
-        if (currentWeapon.getType() == Weapon.Type.MELEE) {
-
-            attackRange += getHitboxRadius()
-                    + target.getHitboxRadius();
-        }
-
-        // Ngoài tầm đánh thì không gây damage.
-        if (distanceSquared > attackRange * attackRange) {
-            return;
-        }
-
-        // Gây sát thương cho mục tiêu.
-        target.takeDamage(currentWeapon.damage);
+        // Vũ khí tự quyết định cách tấn công thông qua Strategy.
+        currentWeapon.attack(this, target);
 
         lastAttackTime = now;
         hasAttacked = true;
-
-        System.out.println(
-                getName() + " tấn công "
-                        + target.getName()
-                        + " bằng " + currentWeapon.name
-                        + ", gây " + currentWeapon.damage
-                        + " damage."
-        );
     }
 }
+
 
