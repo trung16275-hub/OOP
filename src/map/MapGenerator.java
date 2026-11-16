@@ -64,6 +64,14 @@ public class MapGenerator {
             }
         }
 
+        // Chọn 1 phòng bình thường làm boss room
+        if (roomPositions.size() > 1) {
+            Point bossPoint = roomPositions.get(rand.nextInt(roomPositions.size() - 1) + 1);
+            Room bossRoom = map.getRoom(bossPoint.x, bossPoint.y);
+            if (bossRoom != null && bossRoom.getRoomType() != Room.RoomType.SPAWN) {
+                bossRoom.setRoomType(Room.RoomType.BOSS);
+            }
+        }
 
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);

@@ -44,6 +44,9 @@ public class GameRenderer {
         if (player != null && !player.isDead()) {
             renderHitbox(g2, player);
         }
+        if (worldMap != null) {
+            renderMiniMap(g2, worldMap);
+        }
         if (player != null) {
             renderPlayerStats(g2, player);
         }
@@ -65,6 +68,48 @@ public class GameRenderer {
             hud.drawString("Armor: " + player.getArmor(), 20, 66);
         } finally {
             hud.dispose();
+        }
+    }
+
+    private void renderMiniMap(Graphics2D g2, WorldMap worldMap) {
+        int cellSize = 12;
+        int gap = 3;
+        int gridSize = WorldMap.GRID_SIZE;
+        int mapWidth = gridSize * cellSize + (gridSize - 1) * gap;
+        int mapHeight = gridSize * cellSize + (gridSize - 1) * gap;
+        int startX = MainGame.WINDOW_WIDTH - mapWidth - 18;
+        int startY = 18;
+
+        Graphics2D mini = (Graphics2D) g2.create();
+        try {
+            mini.setColor(new Color(20, 20, 25, 220));
+            mini.fillRoundRect(startX - 8, startY - 8, mapWidth + 16, mapHeight + 16, 12, 12);
+
+            for (int gx = 0; gx < gridSize; gx++) {
+                for (int gy = 0; gy < gridSize; gy++) {
+                    Room room = worldMap.getRoom(gx, gy);
+                    if (room == null) {
+                        continue;
+                    }
+
+                    int x = startX + gx * (cellSize + gap);
+                    int y = startY + gy * (cellSize + gap);
+
+                    if (room == worldMap.getCurrentRoom()) {
+                        mini.setColor(new Color(255, 255, 255, 210));
+                    } else {
+                        mini.setColor(new Color(90, 90, 95, 170));
+                    }
+                    mini.fillRoundRect(x, y, cellSize, cellSize, 2, 2);
+
+                    if (room.getRoomType() == Room.RoomType.BOSS) {
+                        mini.setColor(Color.RED);
+                        mini.fillOval(x + 3, y + 3, cellSize - 6, cellSize - 6);
+                    }
+                }
+            }
+        } finally {
+            mini.dispose();
         }
     }
     private void renderBackground(Graphics2D g2) {
