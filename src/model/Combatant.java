@@ -15,12 +15,19 @@ public abstract class Combatant {
     protected double y;
     protected int width;
     protected int height;
+    private double facingX;
+    private double facingY;
+    private double hitboxRadius = -1;
 
     public Combatant (String name, int maxHp, int speed) {
         this.name = name;
         this.maxHp = maxHp;
         this.hp = maxHp;
         this.speed = speed;
+    }
+    public Combatant(String name, int maxHp, int speed, double hitboxRadius) {
+        this(name, maxHp, speed);
+        setHitboxRadius(hitboxRadius);
     }
 
     public String getName() {
@@ -69,6 +76,57 @@ public abstract class Combatant {
 
     public void setHeight(int height) {
         this.height = height;
+    }
+
+    public double getFacingX() {
+        return facingX;
+    }
+
+    public double getFacingY() {
+        return facingY;
+    }
+
+    public double getHitboxRadius() {
+        return hitboxRadius >= 0 ? hitboxRadius : Math.min(width, height) / 2.0;
+    }
+
+    public void setHitboxRadius(double hitboxRadius) {
+        if (!Double.isFinite(hitboxRadius) || hitboxRadius < 0) {
+            throw new IllegalArgumentException("Hitbox radius must be a finite, non-negative value.");
+        }
+        this.hitboxRadius = hitboxRadius;
+    }
+
+    public boolean isWithinHitbox(Combatant other) {
+        if (other == null || other == this) {
+            return false;
+        }
+
+        double dx = (other.getX() + other.getWidth() / 2.0)- (getX() + getWidth() / 2.0);
+        double dy = (other.getY() + other.getHeight() / 2.0)- (getY() + getHeight() / 2.0);
+        double radius = getHitboxRadius() + other.getHitboxRadius();
+
+        return dx * dx + dy * dy <= radius * radius;
+    }
+
+    public void faceToward(Combatant other) {
+        if (other == null || other == this) {
+            return;
+        }
+
+        double dx = (other.getX() + other.getWidth() / 2.0)- (getX() + getWidth() / 2.0);
+        double dy = (other.getY() + other.getHeight() / 2.0)- (getY() + getHeight() / 2.0);
+        double distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 0) {
+            facingX = dx / distance;
+            facingY = dy / distance;
+        }
+    }
+
+    public void resetFacing() {
+        facingX = 0;
+        facingY = 0;
     }
 
     public void takeDamage(int dmg) {

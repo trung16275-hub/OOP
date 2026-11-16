@@ -1,11 +1,14 @@
 package screens;
 
 import game.MainGame;
+import map.Direction;
+import map.MapGenerator;
 import map.Room;
-import model.Boss1;
+import map.TileType;
+import map.WorldMap;
 import model.Enemy;
 import model.Player;
-import screens.input.*;
+import screens.input.KeyHandler;
 
 import java.awt.*;
 import javax.swing.*;
@@ -18,6 +21,10 @@ public class GamePanel extends JPanel implements Runnable {
     // Entities
     private Player player;
     private Enemy currentEnemy;
+
+    // Map System
+    private MapGenerator mapGenerator;
+    private WorldMap worldMap;
     private Room room;
 
     // Key Handling
@@ -30,6 +37,7 @@ public class GamePanel extends JPanel implements Runnable {
         setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
         this.mainFrame = mainFrame;
         this.renderer = new GameRenderer();
+        this.mapGenerator = new MapGenerator();
         this.addKeyListener(keyH);
 
         setFocusable(true);
@@ -38,21 +46,24 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
-        // Khởi tạo Player (vị trí x=180, y=260, kích thước 50x50)
+        // 1. Tạo tầng hầm ngục ngẫu nhiên (Tầng 1, 8 phòng)
+        this.worldMap = mapGenerator.generateFloor(1, 8);
+        this.room = worldMap.getCurrentRoom();
+
         this.player = new Player();
         this.player.setX(180);
         this.player.setY(260);
-        this.player.setWidth(50);
-        this.player.setHeight(50);
 
-        // Khởi tạo Boss (vị trí x=680, y=250, kích thước 60x60)
-        this.currentEnemy = new Boss1();
-        this.currentEnemy.setX(680);
-        this.currentEnemy.setY(250);
-        this.currentEnemy.setWidth(60);
-        this.currentEnemy.setHeight(60);
+        // 3. Cập nhật kẻ địch trong phòng hiện tại
+        updateRoomEntities();
+    }
 
-        this.room = new Room();
+    private void updateRoomEntities() {
+        if (room != null && !room.getEnemies().isEmpty()) {
+            this.currentEnemy = room.getEnemies().get(0);
+        } else {
+            this.currentEnemy = null;
+        }
     }
 
     public void startGameLoop() {
@@ -84,20 +95,42 @@ public class GamePanel extends JPanel implements Runnable {
             endGame();
             return;
         }
-        //Cần fix sau - Vị trí
+
         if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
         if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
         if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
-        player.clampPosition ( getWidth() , getHeight()) ;
 
-        //2. Cập nhật Enemy
+        // 2. Kiểm tra chuyển phòng
+        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        if (doorDir != null) {
+            Room nextRoom = worldMap.moveTo(doorDir);
+            if (nextRoom != room) {
+                this.room = nextRoom;
+                Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
+                player.setX(spawnPos.x);
+                player.setY(spawnPos.y);
+                updateRoomEntities();
+            }
+        } else {
+            player.clampPosition(getWidth(), getHeight());
+        }
+
+        //3. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
             currentEnemy.chase(player);
             currentEnemy.clampPosition(getWidth(), getHeight());
+            if (player.canDetect(currentEnemy)) {
+                player.faceToward(currentEnemy);
+            } else {
+                player.resetFacing();
+            }
             currentEnemy.tryContactAttack(player);
+        } else {
+            player.resetFacing();
         }
 
+        room.openDoors();
     }
 
     private void endGame() {
@@ -119,9 +152,6 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
-
-        renderer.render((Graphics2D) g, player, currentEnemy, room);
-
+        renderer.render((Graphics2D) g, player, currentEnemy, room, worldMap);
     }
 }
