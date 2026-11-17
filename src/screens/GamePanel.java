@@ -49,6 +49,9 @@ public class GamePanel extends JPanel implements Runnable {
         // 1. Tạo tầng hầm ngục ngẫu nhiên (Tầng 1, 8 phòng)
         this.worldMap = mapGenerator.generateFloor(1, 8);
         this.room = worldMap.getCurrentRoom();
+        if (this.room != null) {
+            this.room.setVisited(true);
+        }
 
         this.player = new Player();
         this.player.setX(180);
@@ -107,6 +110,7 @@ public class GamePanel extends JPanel implements Runnable {
             Room nextRoom = worldMap.moveTo(doorDir);
             if (nextRoom != room) {
                 this.room = nextRoom;
+                this.room.setVisited(true);
                 Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
