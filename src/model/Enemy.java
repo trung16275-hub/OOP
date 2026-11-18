@@ -56,8 +56,17 @@ public abstract class Enemy extends Combatant {
 
     }
 
-    // Mỗi người sẽ tự viết logic tấn công riêng cho Boss của mình
-    public abstract void updateBehavior();
+    // Hành vi chung cho mọi Enemy.
+    // Boss có thể override phương thức này và gọi super.updateBehavior(player)
+    // để giữ lại hành vi đuổi theo và tấn công tiếp xúc.
+    public void updateBehavior(Player player) {
+        if (player == null || player.isDead() || isDead()) {
+            return;
+        }
+
+        chase(player);
+        tryContactAttack(player);
+    }
     public double getDetectionRange ( )
     {
         return detectionRange ; 

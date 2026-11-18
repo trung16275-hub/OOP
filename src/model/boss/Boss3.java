@@ -23,10 +23,4 @@ public class Boss3 extends Enemy {
         setWidth(DEFAULT_WIDTH);
         setHeight(DEFAULT_HEIGHT);
     }
-
-    @Override
-    public void updateBehavior() {
-        // Logic tấn công của Boss 3
-        System.out.println(this.getName() + " đang tấn công!");
-    }
 }

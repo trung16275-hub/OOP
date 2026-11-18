@@ -1,4 +1,3 @@
-
 package model.boss;
 
 import model.Enemy;
@@ -15,9 +14,6 @@ public class Boss1 extends Enemy {
     private static final int DEFAULT_WIDTH = 60;
     private static final int DEFAULT_HEIGHT = 60;
 
-    // Lưu Player mà Boss đang truy đuổi
-    private Player target;
-
     // Thời gian hồi chiêu kỹ năng
     private static final long SKILL_COOLDOWN = 3_000_000_000L;
     private long lastSkillTime = 0;
@@ -33,39 +29,17 @@ public class Boss1 extends Enemy {
         setHeight(DEFAULT_HEIGHT);
     }
 
-    // Gán mục tiêu cho Boss
-    public void setTarget(Player target) {
-        this.target = target;
-    }
-
-    // Lấy mục tiêu hiện tại
-    public Player getTarget() {
-        return target;
-    }
-
-    // Hành vi của Boss
+    // Hành vi của Boss: dùng hành vi chung rồi thêm kỹ năng riêng
     @Override
-    public void updateBehavior() {
-        if (target == null || target.isDead() || isDead()) {
-            return;
-        }
-
-        // Đuổi theo Player nếu phát hiện
-        if (canDetect(target)) {
-            chase(target);
-
-            // Tấn công khi tiếp xúc
-            tryContactAttack(target);
-        }
-    }
-
-    // Cho phép cập nhật mục tiêu trực tiếp
     public void updateBehavior(Player player) {
-        setTarget(player);
-        updateBehavior();
+        super.updateBehavior(player);
+
+        if (isWithinHitbox(player)) { /// Trong class Combatant co
+            specialAttack(player);
+        }
     }
 
-    // Kỹ năng đặc biệt: Gây sát thương gấp đôi
+    // Kỹ năng đặc biệt: gây sát thương gấp đôi
     public void specialAttack(Player player) {
         if (player == null || player.isDead() || isDead()) {
             return;
