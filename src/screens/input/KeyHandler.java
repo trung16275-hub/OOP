@@ -3,7 +3,7 @@ package screens.input;
 import java.awt.event.*;
 
 public class KeyHandler implements KeyListener {
-    public boolean upPressed, downPressed, rightPressed, leftPressed;
+    public volatile boolean upPressed, downPressed, rightPressed, leftPressed, attackPressed;
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
@@ -11,6 +11,7 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN)  downPressed = true;
         if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT)  leftPressed = true;
         if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) rightPressed = true;
+        if (code == KeyEvent.VK_SPACE) attackPressed = true;
     }
     @Override
     public void keyReleased(KeyEvent e) {
@@ -19,6 +20,7 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN)  downPressed = false;
         if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT)  leftPressed = false;
         if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) rightPressed = false;
+        if (code == KeyEvent.VK_SPACE) attackPressed = false;
     }
     @Override
     public void keyTyped(KeyEvent e) {} // Not needed

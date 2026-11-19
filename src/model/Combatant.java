@@ -86,6 +86,14 @@ public abstract class Combatant {
         return facingY;
     }
 
+    public void setFacingDirection(double directionX, double directionY) {
+        double length = Math.hypot(directionX, directionY);
+        if (Double.isFinite(length) && length > 0) {
+            facingX = directionX / length;
+            facingY = directionY / length;
+        }
+    }
+
     public double getHitboxRadius() {
         return hitboxRadius >= 0 ? hitboxRadius : Math.min(width, height) / 2.0;
     }

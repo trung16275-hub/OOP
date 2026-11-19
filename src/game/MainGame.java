@@ -42,7 +42,7 @@ public class MainGame extends JFrame {
         repaint();
 
         // Yêu cầu Focus để nhận sự kiện bàn phím
-        game.requestFocusInWindow();
+        SwingUtilities.invokeLater(game::requestFocusInWindow);
 
         // Kích hoạt Game Loop
         game.startGameLoop();

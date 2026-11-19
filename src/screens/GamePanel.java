@@ -8,6 +8,7 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Player;
+import model.weapon.Sword;
 import screens.input.KeyHandler;
 
 import java.awt.*;
@@ -21,6 +22,7 @@ public class GamePanel extends JPanel implements Runnable {
     // Entities
     private Player player;
     private Enemy currentEnemy;
+    private boolean attackWasPressed;
 
     // Map System
     private MapGenerator mapGenerator;
@@ -39,6 +41,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.renderer = new GameRenderer();
         this.mapGenerator = new MapGenerator();
         this.addKeyListener(keyH);
+        installAttackKeyBinding();
 
         setFocusable(true);
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
@@ -56,6 +59,8 @@ public class GamePanel extends JPanel implements Runnable {
         this.player = new Player();
         this.player.setX(180);
         this.player.setY(260);
+        this.player.equipWeapon(new Sword());
+        this.attackWasPressed = false;
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
@@ -67,6 +72,25 @@ public class GamePanel extends JPanel implements Runnable {
         } else {
             this.currentEnemy = null;
         }
+    }
+
+    private void installAttackKeyBinding() {
+        InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        inputMap.put(KeyStroke.getKeyStroke("pressed SPACE"), "attack-pressed");
+        inputMap.put(KeyStroke.getKeyStroke("released SPACE"), "attack-released");
+
+        getActionMap().put("attack-pressed", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                keyH.attackPressed = true;
+            }
+        });
+        getActionMap().put("attack-released", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                keyH.attackPressed = false;
+            }
+        });
     }
 
     public void startGameLoop() {
@@ -99,6 +123,10 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
+        double facingX = (keyH.rightPressed ? 1 : 0) - (keyH.leftPressed ? 1 : 0);
+        double facingY = (keyH.downPressed ? 1 : 0) - (keyH.upPressed ? 1 : 0);
+        player.setFacingDirection(facingX, facingY);
+
         if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
         if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
         if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
@@ -127,12 +155,14 @@ public class GamePanel extends JPanel implements Runnable {
 
             if (player.canDetect(currentEnemy)) {
                 player.faceToward(currentEnemy);
-            } else {
-                player.resetFacing();
             }
-        } else {
-            player.resetFacing();
         }
+
+        // Space tạo một lần chém khi vừa nhấn; đứng trong hitbox không tự gây sát thương.
+        if (keyH.attackPressed && !attackWasPressed) {
+            player.attack(currentEnemy);
+        }
+        attackWasPressed = keyH.attackPressed;
 
         room.openDoors();
     }

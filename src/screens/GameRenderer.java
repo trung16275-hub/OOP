@@ -8,8 +8,10 @@ import map.WorldMap;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
+import model.weapon.Sword;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 
 public class GameRenderer {
     public GameRenderer() {
@@ -128,7 +130,74 @@ public class GameRenderer {
         g2.setColor(new Color(52, 152, 219));
         g2.fillOval(x, y, w, h);
         renderFacingMarker(g2, player);
+        renderSword(g2, player);
     }
+
+    private void renderSword(Graphics2D g2, Player player) {
+        if (!(player.getEquippedWeapon() instanceof Sword sword)) {
+            return;
+        }
+
+        double centerX = player.getX() + player.getWidth() / 2.0;
+        double centerY = player.getY() + player.getHeight() / 2.0;
+        double facingX = player.getFacingX();
+        double facingY = player.getFacingY();
+        if (facingX == 0 && facingY == 0) {
+            facingX = 1;
+        }
+
+        double facingAngle = Math.atan2(facingY, facingX);
+        double swingProgress = sword.getSwingProgress();
+        boolean swinging = swingProgress >= 0;
+        double swingAngle = swinging
+                ? Math.toRadians(-75 + 150 * swingProgress)
+                : 0;
+
+        Graphics2D swordGraphics = (Graphics2D) g2.create();
+        try {
+            swordGraphics.translate(centerX, centerY);
+            swordGraphics.rotate(facingAngle + swingAngle);
+
+            if (swinging) {
+                int alpha = (int) (190 * (1 - swingProgress));
+                Path2D slashTrail = new Path2D.Double();
+                slashTrail.moveTo(24, -31);
+                slashTrail.curveTo(43, -49, 77, -34, 79, -4);
+                slashTrail.curveTo(81, 19, 57, 34, 32, 29);
+                swordGraphics.setColor(new Color(170, 230, 255, Math.max(0, alpha)));
+                swordGraphics.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+                swordGraphics.draw(slashTrail);
+            }
+
+            // Grip and pommel.
+            swordGraphics.setColor(new Color(102, 62, 35));
+            swordGraphics.fillRoundRect(14, -4, 20, 8, 4, 4);
+            swordGraphics.setColor(new Color(220, 180, 90));
+            swordGraphics.fillOval(10, -5, 8, 10);
+
+            // Crossguard.
+            swordGraphics.setColor(new Color(218, 172, 75));
+            swordGraphics.fillRoundRect(31, -13, 6, 26, 4, 4);
+
+            // Blade, with a bright center line.
+            Polygon blade = new Polygon(
+                    new int[] {35, 68, 82, 68, 35},
+                    new int[] {-5, -5, 0, 5, 5},
+                    5);
+            swordGraphics.setColor(new Color(195, 211, 222));
+            swordGraphics.fillPolygon(blade);
+            swordGraphics.setColor(new Color(70, 88, 100));
+            swordGraphics.setStroke(new BasicStroke(1.5f));
+            swordGraphics.drawPolygon(blade);
+            swordGraphics.setColor(new Color(245, 250, 255));
+            swordGraphics.setStroke(new BasicStroke(1.5f));
+            swordGraphics.drawLine(37, -2, 70, -2);
+        } finally {
+            swordGraphics.dispose();
+        }
+    }
+
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
@@ -138,6 +207,33 @@ public class GameRenderer {
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
         renderFacingMarker(g2, enemy);
+        renderEnemyHealthBar(g2, enemy);
+    }
+
+    private void renderEnemyHealthBar(Graphics2D g2, Enemy enemy) {
+        int barWidth = Math.max(52, enemy.getWidth());
+        int barHeight = 7;
+        int barX = (int) Math.round(enemy.getX() + (enemy.getWidth() - barWidth) / 2.0);
+        int barY = (int) enemy.getY() - 13;
+        double healthRatio = enemy.getMaxHp() == 0
+                ? 0
+                : Math.max(0, enemy.getHp()) / (double) enemy.getMaxHp();
+
+        g2.setColor(new Color(25, 25, 25, 220));
+        g2.fillRoundRect(barX, barY, barWidth, barHeight, 5, 5);
+        g2.setColor(healthRatio > 0.5 ? new Color(46, 204, 113)
+                : healthRatio > 0.25 ? new Color(243, 156, 18)
+                : new Color(231, 76, 60));
+        g2.fillRoundRect(barX, barY,
+                (int) Math.round(barWidth * healthRatio), barHeight, 5, 5);
+
+        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+        g2.setColor(Color.WHITE);
+        String hpText = enemy.getHp() + "/" + enemy.getMaxHp();
+        FontMetrics metrics = g2.getFontMetrics();
+        g2.drawString(hpText,
+            barX + (barWidth - metrics.stringWidth(hpText)) / 2,
+            barY - 3);
     }
 
     private void renderHitbox(Graphics2D g2, Combatant combatant) {

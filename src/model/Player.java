@@ -15,6 +15,7 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
+    private model.weapon.Weapon equippedWeapon;
     
     //default constructor for testing
     public Player() {
@@ -34,6 +35,15 @@ public class Player extends Combatant {
     public Weapon getCurrentWeapon() {
         return currentWeapon;
     }
+
+    public model.weapon.Weapon getEquippedWeapon() {
+        return equippedWeapon;
+    }
+
+    public void equipWeapon(model.weapon.Weapon weapon) {
+        this.equippedWeapon = weapon;
+    }
+
     public int getArmor ( )
     {
         return armor ; 
@@ -70,6 +80,11 @@ public class Player extends Combatant {
 
     @Override
     public void attack(Combatant target) {
+        if (equippedWeapon != null) {
+            equippedWeapon.tryAttack(this, target);
+            return;
+        }
+
         if (currentWeapon != null && target !=null) {
             target.takeDamage(currentWeapon.damage);
         }
