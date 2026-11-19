@@ -122,14 +122,14 @@ public class GamePanel extends JPanel implements Runnable {
 
         //3. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
-            currentEnemy.chase(player);
+            currentEnemy.updateBehavior(player);
             currentEnemy.clampPosition(getWidth(), getHeight());
+
             if (player.canDetect(currentEnemy)) {
                 player.faceToward(currentEnemy);
             } else {
                 player.resetFacing();
             }
-            currentEnemy.tryContactAttack(player);
         } else {
             player.resetFacing();
         }
