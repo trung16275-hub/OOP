@@ -30,18 +30,29 @@ public class GameRenderer {
         renderBackground(g2);
         renderRoom(g2, room);
         // 3. Vẽ các thực thể trong game (Entities)
-        if (enemy != null && !enemy.isDead()) {
-            renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                    new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-            renderEnemy(g2, enemy);
+        if (room != null) {
+            for (Enemy roomEnemy : room.getEnemies()) {
+                if (!roomEnemy.isDead()) {
+                    renderDetectionRange(g2, roomEnemy, roomEnemy.getDetectionRange(),
+                            new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
+                    renderEnemy(g2, roomEnemy);
+                    if (roomEnemy == enemy && player != null && player.canDetect(roomEnemy)) {
+                        renderTargetArrow(g2, roomEnemy);
+                    }
+                }
+            }
         }
         if (player != null && !player.isDead()) {
             renderDetectionRange(g2, player, player.getDetectionRange(),
                     new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
             renderPlayer(g2, player);
         }
-        if (enemy != null && !enemy.isDead()) {
-            renderHitbox(g2, enemy);
+        if (room != null) {
+            for (Enemy roomEnemy : room.getEnemies()) {
+                if (!roomEnemy.isDead()) {
+                    renderHitbox(g2, roomEnemy);
+                }
+            }
         }
         if (player != null && !player.isDead()) {
             renderHitbox(g2, player);
@@ -210,11 +221,34 @@ public class GameRenderer {
         renderEnemyHealthBar(g2, enemy);
     }
 
+    private void renderTargetArrow(Graphics2D g2, Enemy enemy) {
+        int centerX = (int) Math.round(enemy.getX() + enemy.getWidth() / 2.0);
+        int topY = (int) enemy.getY() - 34;
+        Polygon arrow = new Polygon(
+                new int[] {centerX - 4, centerX + 4, centerX + 4, centerX + 10,
+                        centerX, centerX - 10, centerX - 4},
+                new int[] {topY, topY, topY + 13, topY + 13,
+                        topY + 24, topY + 13, topY + 13},
+                7);
+
+        Graphics2D indicator = (Graphics2D) g2.create();
+        try {
+            indicator.setColor(new Color(255, 215, 65));
+            indicator.fillPolygon(arrow);
+            indicator.setColor(new Color(25, 25, 25, 210));
+            indicator.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND));
+            indicator.drawPolygon(arrow);
+        } finally {
+            indicator.dispose();
+        }
+    }
+
     private void renderEnemyHealthBar(Graphics2D g2, Enemy enemy) {
         int barWidth = Math.max(52, enemy.getWidth());
         int barHeight = 7;
         int barX = (int) Math.round(enemy.getX() + (enemy.getWidth() - barWidth) / 2.0);
-        int barY = (int) enemy.getY() - 13;
+        int barY = (int) enemy.getY() - 43;
         double healthRatio = enemy.getMaxHp() == 0
                 ? 0
                 : Math.max(0, enemy.getHp()) / (double) enemy.getMaxHp();

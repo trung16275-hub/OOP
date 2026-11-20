@@ -1,6 +1,7 @@
 package map;
 
 import model.Enemy;
+import model.creep.Slime;
 import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss3;
@@ -15,6 +16,7 @@ import java.util.*;
 public class MapGenerator {
     private final Random rand;
     private final long seed;
+    private static final int SLIMES_PER_ROOM = 2;
 
     public MapGenerator() {
         this(System.currentTimeMillis());
@@ -122,8 +124,17 @@ public class MapGenerator {
                 boss.setY(midPxY - 30);
                 r.addEnemy(boss);
                 r.setCleared(false);
+            } else if (r.getRoomType() == Room.RoomType.NORMAL) {
+                for (int i = 0; i < SLIMES_PER_ROOM; i++) {
+                    Slime slime = new Slime();
+                    double offsetX = (i - (SLIMES_PER_ROOM - 1) / 2.0) * 48;
+                    slime.setX(midPxX + offsetX - slime.getWidth() / 2.0);
+                    slime.setY(midPxY - slime.getHeight() / 2.0);
+                    r.addEnemy(slime);
+                }
+                r.setCleared(false);
             } else {
-                // Spawn room và các phòng còn lại không có quái
+                // Spawn room và shop không có quái.
                 r.setCleared(true);
             }
         }

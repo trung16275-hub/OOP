@@ -67,10 +67,25 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void updateRoomEntities() {
-        if (room != null && !room.getEnemies().isEmpty()) {
-            this.currentEnemy = room.getEnemies().get(0);
-        } else {
-            this.currentEnemy = null;
+        this.currentEnemy = null;
+        if (room == null || player == null) {
+            return;
+        }
+        double playerCenterX = player.getX() + player.getWidth() / 2.0;
+        double playerCenterY = player.getY() + player.getHeight() / 2.0;
+        double nearestDistanceSquared = Double.POSITIVE_INFINITY;
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy.isDead()) {
+                continue;
+            }
+
+            double dx = enemy.getX() + enemy.getWidth() / 2.0 - playerCenterX;
+            double dy = enemy.getY() + enemy.getHeight() / 2.0 - playerCenterY;
+            double distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared < nearestDistanceSquared) {
+                this.currentEnemy = enemy;
+                nearestDistanceSquared = distanceSquared;
+            }
         }
     }
 
@@ -148,19 +163,26 @@ public class GamePanel extends JPanel implements Runnable {
             player.clampPosition(getWidth(), getHeight());
         }
 
-        //3. Cập nhật Enemy
-        if (currentEnemy != null && !currentEnemy.isDead()) {
-            currentEnemy.updateBehavior(player);
-            currentEnemy.clampPosition(getWidth(), getHeight());
-
-            if (player.canDetect(currentEnemy)) {
-                player.faceToward(currentEnemy);
+        // 3. Cập nhật tất cả Enemy trong phòng.
+        if (room != null) {
+            for (Enemy enemy : room.getEnemies()) {
+                if (!enemy.isDead()) {
+                    enemy.updateBehavior(player);
+                    enemy.clampPosition(getWidth(), getHeight());
+                }
             }
+        }
+        updateRoomEntities();
+        if (currentEnemy != null && !currentEnemy.isDead() && player.canDetect(currentEnemy)) {
+            player.faceToward(currentEnemy);
         }
 
         // Space tạo một lần chém khi vừa nhấn; đứng trong hitbox không tự gây sát thương.
         if (keyH.attackPressed && !attackWasPressed) {
             player.attack(currentEnemy);
+            if (currentEnemy != null && currentEnemy.isDead()) {
+                updateRoomEntities();
+            }
         }
         attackWasPressed = keyH.attackPressed;
 
