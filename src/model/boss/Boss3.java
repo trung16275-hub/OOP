@@ -7,7 +7,7 @@ import model.Player;
 public class Boss3 extends Enemy {
     // Chỉnh các chỉ số mặc định của Boss 3 tại đây.
     private static final String DEFAULT_NAME = "Boss 3";
-    private static final int DEFAULT_MAX_HP = 200;
+    private static final int DEFAULT_MAX_HP = 1000;
     private static final int DEFAULT_SPEED = 3;
     private static final int DEFAULT_BASE_DAMAGE = 20;
     private static final double DEFAULT_DETECTION_RANGE = Double.POSITIVE_INFINITY;
