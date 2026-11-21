@@ -137,6 +137,12 @@ public abstract class Combatant {
     public boolean isDead() {
         return hp<=0;
     }
+    public void heal(int amount) {
+    if (isDead() || amount <= 0) {
+        return;
+    }
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    }
 
     public abstract void attack(Combatant target) ;
     //Cần fix
