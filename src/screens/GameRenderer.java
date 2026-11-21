@@ -10,7 +10,7 @@ import model.Enemy;
 import model.Player;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-
+import model.boss.Boss3;
 public class GameRenderer {
     public GameRenderer() {
         // Tải trước sprite ở đây
@@ -31,7 +31,21 @@ public class GameRenderer {
         if (enemy != null && !enemy.isDead()) {
             renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
                     new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
+                    // Vẽ 4 tia laze dưới thân Boss3
+        if (enemy instanceof Boss3) {
+            Boss3 boss3 = (Boss3) enemy;
+            if (boss3.isFiringLaser()) {
+                renderBoss3Lasers(g2, boss3);
+            }
+        }
             renderEnemy(g2, enemy);
+            // Vẽ vòng sáng hồi máu đè lên thân Boss3
+        if (enemy instanceof Boss3) {
+            Boss3 boss3 = (Boss3) enemy;
+            if (boss3.isHealing()) {
+                renderBoss3Healing(g2, boss3);
+            }
+        }
         }
         if (player != null && !player.isDead()) {
             renderDetectionRange(g2, player, player.getDetectionRange(),
@@ -242,6 +256,56 @@ public class GameRenderer {
                 }
             }
         }
+    }
+        private void renderBoss3Lasers(Graphics2D g2, Boss3 boss) {
+        Stroke oldStroke = g2.getStroke();
+        Color oldColor = g2.getColor();
+
+        double centerX = boss.getX() + boss.getWidth() / 2.0;
+        double centerY = boss.getY() + boss.getHeight() / 2.0;
+        double baseAngle = boss.getLaserBaseAngle();
+        double length = boss.getLaserLength();
+        int count = boss.getLaserCount();
+
+        for (int i = 0; i < count; i++) {
+            double angle = baseAngle + i * (Math.PI / 2.0);
+            int endX = (int) (centerX + Math.cos(angle) * length);
+            int endY = (int) (centerY + Math.sin(angle) * length);
+
+            // Viền ngoài phát sáng (đỏ mờ)
+            g2.setColor(new Color(255, 50, 50, 120));
+            g2.setStroke(new BasicStroke(12f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine((int) centerX, (int) centerY, endX, endY);
+
+            // Lõi tia laze (trắng sáng)
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine((int) centerX, (int) centerY, endX, endY);
+        }
+
+        g2.setStroke(oldStroke);
+        g2.setColor(oldColor);
+    }
+
+    private void renderBoss3Healing(Graphics2D g2, Boss3 boss) {
+        Stroke oldStroke = g2.getStroke();
+        Color oldColor = g2.getColor();
+
+        int padding = 10;
+        int x = (int) boss.getX() - padding;
+        int y = (int) boss.getY() - padding;
+        int w = boss.getWidth() + padding * 2;
+        int h = boss.getHeight() + padding * 2;
+
+        // Vòng hào quang xanh lá khi đang hồi máu
+        g2.setColor(new Color(46, 204, 113, 70));
+        g2.fillOval(x, y, w, h);
+        g2.setColor(new Color(46, 204, 113, 220));
+        g2.setStroke(new BasicStroke(3f));
+        g2.drawOval(x, y, w, h);
+
+        g2.setStroke(oldStroke);
+        g2.setColor(oldColor);
     }
 
 }
