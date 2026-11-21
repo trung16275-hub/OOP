@@ -59,15 +59,6 @@ public class GamePanel extends JPanel implements Runnable {
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
-        Boss3 testBoss = new Boss3();
-    testBoss.setX(500);
-    testBoss.setY(260);
-    testBoss.takeDamage(755);
-        if (this.room != null) {
-        this.room.getEnemies().clear();
-        this.room.getEnemies().add(testBoss);
-    }
-    this.currentEnemy = testBoss;
     }
     
     
