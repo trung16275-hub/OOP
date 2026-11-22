@@ -9,6 +9,7 @@ Game Panels
 
 Creep: 
 - Mỗi người làm boss thì sẽ nghĩ ra con boss đấy dạng gì ( kiểu goblin hay ghost hay skeleton) để mình sẽ tạo các con creep cùng 1 kiểu đấy luôn : 1 là có thể dùng để các boss Spawn ra và cho vào màn ko phải boss .
+- 
 Boss 2 – Hắc Kiếm Sĩ
 - Máu: 500 HP
 - Tốc độ: 3
