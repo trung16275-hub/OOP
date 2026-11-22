@@ -1,7 +1,6 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
@@ -10,10 +9,29 @@ import model.Enemy;
 import model.Player;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
 
 public class GameRenderer {
+    private BufferedImage basefloorImage;
+    private BufferedImage basewallImage;
+    private BufferedImage wallTopRimImage;
+    private BufferedImage wallBotRimImage;
+    private BufferedImage doorOpenedImage;
+    private BufferedImage doorClosedImage;
+    private BufferedImage wallGrimeImage;
+
+
+
+
     public GameRenderer() {
-        // Tải trước sprite ở đây
+        // Preload tiles from assets/tiles/
+        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
+        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
+        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
+        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
+        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
 
     }
 
@@ -238,19 +256,61 @@ public class GameRenderer {
 
                 switch (type) {
                     case WALL -> {
-                        g2.setColor(WALL_COLOR);
+                        switch (y) {
+                            case 1 -> {
+                                if (wallTopRimImage != null) {
+                                    g2.drawImage(wallTopRimImage, px, py, tileSize, tileSize, null);
+                                } else {
+                                    g2.setColor(WALL_COLOR);
+                                    g2.fillRect(px, py, tileSize, tileSize);
+                                }
+                            }
+                            case 2 -> {
+                                if (basewallImage != null) {
+                                    g2.drawImage(basewallImage, px, py, tileSize, tileSize, null);
+                                } else {
+                                    g2.setColor(WALL_COLOR);
+                                    g2.fillRect(px, py, tileSize, tileSize);
+                                }
+                            }
+                            case 3 -> {
+                                if (wallBotRimImage != null) {
+                                    g2.drawImage(wallBotRimImage, px, py, tileSize, tileSize, null);
+                                } else {
+                                    g2.setColor(WALL_COLOR);
+                                    g2.fillRect(px, py, tileSize, tileSize);
+                                }
+                            }
+                        }
                     }
                     case FLOOR -> {
-                        g2.setColor(FLOOR_COLOR);
-                    }
+                        if (basefloorImage != null) {
+                            g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
+                        } else {
+                            g2.setColor(FLOOR_COLOR);
+                            g2.fillRect(px, py, tileSize, tileSize);
+                        }                    }
                     case DOOR_OPEN -> {
-                        g2.setColor(DOOR_OPEN_COLOR);
+                        if (basefloorImage != null) {
+                            g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
+                        } else {
+                            g2.setColor(FLOOR_COLOR);
+                            g2.fillRect(px, py, tileSize, tileSize);
+                        }
                     }
                     case DOOR_CLOSED -> {
-                        g2.setColor(DOOR_CLOSED_COLOR);
+                        if (wallGrimeImage != null) {
+                            g2.drawImage(wallGrimeImage, px, py, tileSize, tileSize, null);
+                        } else {
+                            g2.setColor(DOOR_CLOSED_COLOR);
+                            g2.fillRect(px, py, tileSize, tileSize);
+                        }
+                    }
+                    case VOID -> {
+                        g2.setColor(new Color(0,0,0));
+                        g2.fillRect(px,py,tileSize, tileSize);
                     }
                 }
-                g2.fillRect(px, py, tileSize, tileSize);
             }
         }
     }

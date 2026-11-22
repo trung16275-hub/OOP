@@ -52,7 +52,8 @@ public class Room {
     public void generateDefaultRoom() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (x==0||y==0||x==(width-1)||y==(height-1)) tiles[x][y] = TileType.WALL;
+                if (x==0||y==0||x==(width-1)||y==(height-1)) tiles[x][y] = TileType.VOID;
+                else if (x==1||y<=3||x==(width-2)||y==(height-2)) tiles[x][y] = TileType.WALL;
                 else tiles[x][y] = TileType.FLOOR;
             }
         }
@@ -62,26 +63,37 @@ public class Room {
         TileType doorTile = open ? TileType.DOOR_OPEN : TileType.DOOR_CLOSED;
         doors.put(dir, open);
 
+        int midX = width / 2;
+        int midY = height / 2;
+
         switch (dir) {
             case NORTH -> {
-                int midX = width / 2;
-                tiles[midX - 1][0] = doorTile;
-                tiles[midX][0] = doorTile;
+                for (int x = midX - 1; x <= midX; x++) {
+                    for (int y = 0; y <= 3; y++) {
+                        tiles[x][y] = doorTile;
+                    }
+                }
             }
             case SOUTH -> {
-                int midX = width / 2;
-                tiles[midX - 1][height - 1] = doorTile;
-                tiles[midX][height - 1] = doorTile;
+                for (int x = midX - 1; x <= midX; x++) {
+                    for (int y = height - 2; y < height; y++) {
+                        tiles[x][y] = doorTile;
+                    }
+                }
             }
             case WEST -> {
-                int midY = height / 2;
-                tiles[0][midY - 1] = doorTile;
-                tiles[0][midY] = doorTile;
+                for (int x = 0; x <= 1; x++) {
+                    for (int y = midY - 1; y <= midY + 1; y++) {
+                        tiles[x][y] = doorTile;
+                    }
+                }
             }
             case EAST -> {
-                int midY = height / 2;
-                tiles[width - 1][midY - 1] = doorTile;
-                tiles[width - 1][midY] = doorTile;
+                for (int x = width - 2; x < width; x++) {
+                    for (int y = midY - 1; y <= midY + 1; y++) {
+                        tiles[x][y] = doorTile;
+                    }
+                }
             }
         }
     }
@@ -104,25 +116,25 @@ public class Room {
 
         // Cửa Bắc
         if (doors.getOrDefault(Direction.NORTH, false)) {
-            if (py <= TILE_SIZE && px + pw > midX - TILE_SIZE && px < midX + TILE_SIZE) {
+            if (py <= 2 * TILE_SIZE && px + pw > midX - TILE_SIZE && px < midX + TILE_SIZE) {
                 return Direction.NORTH;
             }
         }
         // Cửa Nam
         if (doors.getOrDefault(Direction.SOUTH, false)) {
-            if (py + ph >= (height - 1) * TILE_SIZE && px + pw > midX - TILE_SIZE && px < midX + TILE_SIZE) {
+            if (py + ph >= (height - 2) * TILE_SIZE && px + pw > midX - TILE_SIZE && px < midX + TILE_SIZE) {
                 return Direction.SOUTH;
             }
         }
         // Cửa Tây
         if (doors.getOrDefault(Direction.WEST, false)) {
-            if (px <= TILE_SIZE && py + ph > midY - TILE_SIZE && py < midY + TILE_SIZE) {
+            if (px <= 1.5 * TILE_SIZE && py + ph > midY - TILE_SIZE && py < midY + 2 * TILE_SIZE) {
                 return Direction.WEST;
             }
         }
         // Cửa Đông
         if (doors.getOrDefault(Direction.EAST, false)) {
-            if (px + pw >= (width - 1) * TILE_SIZE && py + ph > midY - TILE_SIZE && py < midY + TILE_SIZE) {
+            if (px + pw >= (width - 2) * TILE_SIZE && py + ph > midY - TILE_SIZE && py < midY + 2 * TILE_SIZE) {
                 return Direction.EAST;
             }
         }
@@ -138,10 +150,14 @@ public class Room {
         int midY = (height / 2) * TILE_SIZE;
 
         return switch (fromDir) {
-            case NORTH -> new Point(midX - 25, (height - 3) * TILE_SIZE); // Đi từ Bắc xuống -> xuất hiện ở cửa Nam
-            case SOUTH -> new Point(midX - 25, 2 * TILE_SIZE);            // Đi từ Nam lên -> xuất hiện ở cửa Bắc
-            case WEST -> new Point((width - 3) * TILE_SIZE, midY - 25);   // Đi từ Tây sang -> xuất hiện ở cửa Đông
-            case EAST -> new Point(2 * TILE_SIZE, midY - 25);            // Đi từ Đông sang -> xuất hiện ở cửa Tây
+            // Came from North -> spawn at South entrance (facing into room)
+            case NORTH -> new Point(midX - 16, (height - 3) * TILE_SIZE - 10);
+            // Came from South -> spawn at North entrance below the 3-tile top wall
+            case SOUTH -> new Point(midX - 16, 4 * TILE_SIZE);
+            // Came from West -> spawn at East entrance
+            case WEST -> new Point((width - 3) * TILE_SIZE - 10, midY);
+            // Came from East -> spawn at West entrance
+            case EAST -> new Point(2 * TILE_SIZE, midY);
         };
     }
 
