@@ -7,8 +7,8 @@ import screens.GameOverPanel;
 import screens.IntroPanel;
 
 public class MainGame extends JFrame {
-    public static final int WINDOW_WIDTH = 960;
-    public static final int WINDOW_HEIGHT = 640;
+    public static final int WINDOW_WIDTH = 1024;
+    public static final int WINDOW_HEIGHT = 576;
 
     public MainGame() {
         setTitle("Dungeon Crawler Project");

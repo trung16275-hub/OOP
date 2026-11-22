@@ -1,7 +1,8 @@
 package map;
 
 import model.Enemy;
-import java.awt.Point;
+
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -10,8 +11,8 @@ import java.util.Map;
 public class Room {
 
     public static final int TILE_SIZE = 32;
-    public static final int DEFAULT_WIDTH = 30;
-    public static final int DEFAULT_HEIGHT = 20;
+    public static final int DEFAULT_WIDTH = 32;
+    public static final int DEFAULT_HEIGHT = 18;
 
     public enum RoomType {
         SPAWN,
@@ -144,6 +145,24 @@ public class Room {
         };
     }
 
+    public boolean checkCollision(Rectangle bounds) {
+        int minTileX = Math.max(0, bounds.x / TILE_SIZE);
+        int maxTileX = Math.min(width - 1, (bounds.x + bounds.width - 1) / TILE_SIZE);
+        int minTileY = Math.max(0, bounds.y / TILE_SIZE);
+        int maxTileY = Math.min(height - 1, (bounds.y + bounds.height - 1) / TILE_SIZE);
+
+        for (int tx = minTileX; tx <= maxTileX; tx++) {
+            for (int ty = minTileY; ty <= maxTileY; ty++) {
+                if(isTileSolid(tx,ty)) {
+                    Rectangle tileRec = new Rectangle(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    if (bounds.intersects(tileRec)) return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public int getWidth() { return width; }
     public int getHeight() { return height; }
 
@@ -171,11 +190,18 @@ public class Room {
     }
 
     public void setTile (int x, int y, TileType tile) {
-        if (x<0||x>=width||y<0||y>=height) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
             throw new IndexOutOfBoundsException(
                     String.format("Tile coordinates (%d, %d) out of bounds for grid size (%d, %d)", x, y, width, height));
             };
         tiles[x][y] = tile;
+    }
+
+    public boolean isTileSolid (int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return true;
+        }
+        return tiles[x][y].isSolid();
     }
 
     public boolean isCleared () {
@@ -185,4 +211,5 @@ public class Room {
     public void setCleared (boolean cleared) {
         this.cleared = cleared;
     }
+
 }

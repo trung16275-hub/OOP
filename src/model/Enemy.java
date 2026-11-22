@@ -1,12 +1,11 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.List;
+import map.Room;
 
 // File: src/enemy/Enemy.java
 public abstract class Enemy extends Combatant {
     private int baseDamage;
-    private double detectionRange ; 
+    private double detectionRange ;
     private static final long CONTACT_COOLDOWN_NANOS = 10_000_000_000L; /// Thời gian 2 skill liên tiếp là 1s
     private long lastContactAttackTime;
     private boolean hasContactAttacked = false;
@@ -59,17 +58,17 @@ public abstract class Enemy extends Combatant {
     // Hành vi chung cho mọi Enemy.
     // Boss có thể override phương thức này và gọi super.updateBehavior(player)
     // để giữ lại hành vi đuổi theo và tấn công tiếp xúc.
-    public void updateBehavior(Player player) {
+    public void updateBehavior(Player player, Room room) {
         if (player == null || player.isDead() || isDead()) {
             return;
         }
 
-        chase(player);
+        chase(player,room);
         tryContactAttack(player);
     }
     public double getDetectionRange ( )
     {
-        return detectionRange ; 
+        return detectionRange ;
     }
     public boolean canDetect(Player player) {
 
@@ -87,7 +86,7 @@ public abstract class Enemy extends Combatant {
 
         return distance <= detectionRange;
     }
-    public void chase(Player player) {
+    public void chase(Player player, Room room) {
     if (!canDetect(player)) {
         return;
     }
@@ -101,7 +100,7 @@ public abstract class Enemy extends Combatant {
     double dy = (player.getY() + player.getHeight() / 2.0)
               - (getY() + getHeight() / 2.0);
 
-    double distance = Math.sqrt(dx * dx + dy * dy);
+    double distance = Math.hypot(dx, dy);
 
     // Tránh chia cho 0 và dừng khi đến gần Player
     if (distance <= 1) {
@@ -109,10 +108,17 @@ public abstract class Enemy extends Combatant {
     }
 
     // Chuẩn hóa vector hướng và di chuyển
-    double step = Math.min(getSpeed(), distance);
 
-    setX(getX() + dx / distance * step);
-    setY(getY() + dy / distance * step);
+    double dirX = dx / distance;
+    double dirY = dy / distance;
+
+    int enemySpeed = getSpeed();
+    if (distance < enemySpeed) {
+        dirX *= (distance / enemySpeed);
+        dirY *= (distance / enemySpeed);
+    }
+
+    move(dirX, dirY, room);
 }
 
 }
