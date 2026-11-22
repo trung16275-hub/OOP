@@ -56,7 +56,7 @@ public class MapGenerator {
             // Giới hạn trong phạm vi an toàn của lưới 9x9 (từ 1 đến 7)
             if (nx >= 1 && nx <= 7 && ny >= 1 && ny <= 7 && !map.hasRoom(nx, ny)) {
                 // Kiểm tra số lượng phòng kề cận để tránh các cụm phòng hình vuông dày đặc
-                if (countAdjacentRooms(map, nx, ny) <= 2) {
+                if (countAdjacentRooms(map, nx, ny) <= 2 && !createsSquareCluster(map, nx, ny)) {
                     Room newRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.NORMAL);
                     map.addRoom(nx, ny, newRoom);
                     roomPositions.add(new Point(nx, ny));
@@ -64,14 +64,8 @@ public class MapGenerator {
             }
         }
 
-        // Chọn 1 phòng bình thường làm boss room
-        if (roomPositions.size() > 1) {
-            Point bossPoint = roomPositions.get(rand.nextInt(roomPositions.size() - 1) + 1);
-            Room bossRoom = map.getRoom(bossPoint.x, bossPoint.y);
-            if (bossRoom != null && bossRoom.getRoomType() != Room.RoomType.SPAWN) {
-                bossRoom.setRoomType(Room.RoomType.BOSS);
-            }
-        }
+        // Chọn 1 phòng bình thường xa spawn nhất làm boss room
+        setBossRoom(map,roomPositions, spawnRoom);
 
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);
@@ -128,7 +122,38 @@ public class MapGenerator {
             }
         }
     }
+    public void setBossRoom(WorldMap map, List<Point> roomPositions, Room spawnRoom) { //phong xa nhat vs spawn
+        if (roomPositions.size() > 1) {
+            Point spawnPoint = new Point(spawnRoom.getGridX(),spawnRoom.getGridY());
+            Point bossPoint = spawnPoint;
+            double currentBest = Double.NEGATIVE_INFINITY;
+            double dist;
+            for (Point p : roomPositions) {
+                dist = p.distance(spawnPoint);
+                if (dist > currentBest) {
+                    currentBest = dist;
+                    bossPoint = p;
+                }
+            }
+            Room bossRoom = map.getRoom(bossPoint.x, bossPoint.y);
+            if (bossRoom != null && bossRoom.getRoomType() != Room.RoomType.SPAWN) {
+                bossRoom.setRoomType(Room.RoomType.BOSS);
+            }
+        }
+    }
 
+    private boolean createsSquareCluster(WorldMap map, int x, int y) {
+        // Check all 4 quadrants where (x, y) would be a corner of a 2x2 square
+        int[][] offsets = { {-1, -1}, {1, -1}, {-1, 1}, {1, 1} };
+        for (int[] off : offsets) {
+            int dx = off[0];
+            int dy = off[1];
+            if (map.hasRoom(x + dx, y) && map.hasRoom(x, y + dy) && map.hasRoom(x + dx, y + dy)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public long getSeed() {
         return seed;
