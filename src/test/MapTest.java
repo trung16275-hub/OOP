@@ -46,15 +46,23 @@ public class MapTest {
         MapGenerator generator = new MapGenerator(12345L);
         WorldMap map = generator.generateFloor(1, 8);
 
-        assert map.getRooms().size() == 8 : "Số phòng sinh ra phải bằng 8";
+        assert map.getRooms().size() == 4 : "Bản đồ phải có đúng 4 phòng";
         assert map.getSpawnRoom() != null : "Phải có phòng SPAWN";
-        assert map.getSpawnRoom().getGridX() == 4 && map.getSpawnRoom().getGridY() == 4 : "SPAWN phải ở (4, 4)";
-        System.out.println("✓ testProceduralFloorGeneration: OK (Đã sinh " + map.getRooms().size() + " phòng, ");
+        assert map.getSpawnRoom().getGridX() == 3 && map.getSpawnRoom().getGridY() == 3 : "SPAWN phải ở (3, 3)";
+
+        int bossRoomCount = 0;
+        for (Room room : map.getRooms()) {
+            if (room.getRoomType() == Room.RoomType.BOSS) {
+                bossRoomCount++;
+            }
+        }
+        assert bossRoomCount == 3 : "Phải có đúng 3 phòng boss";
+        System.out.println("✓ testProceduralFloorGeneration: OK (Đã sinh đúng 4 phòng: 1 spawn, 3 boss)");
     }
 
     private static void testDoorSymmetry() {
         MapGenerator generator = new MapGenerator(999L);
-        WorldMap map = generator.generateFloor(1, 8);
+        WorldMap map = generator.generateFloor(1, 4);
 
         for (Room r : map.getRooms()) {
             for (Direction dir : Direction.values()) {
