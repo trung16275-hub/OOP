@@ -12,7 +12,7 @@ import screens.input.KeyHandler;
 
 import java.awt.*;
 import javax.swing.*;
-
+import model.boss.Boss3;
 public class GamePanel extends JPanel implements Runnable {
     private MainGame mainFrame;
     private Thread gameThread;
@@ -59,7 +59,10 @@ public class GamePanel extends JPanel implements Runnable {
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
+        
     }
+    
+    
 
     private void updateRoomEntities() {
         if (room != null && !room.getEnemies().isEmpty()) {
