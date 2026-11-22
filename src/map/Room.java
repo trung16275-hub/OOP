@@ -52,8 +52,8 @@ public class Room {
     public void generateDefaultRoom() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (x==0||y==0||x==(width-1)||y==(height-1)) tiles[x][y] = TileType.VOID;
-                else if (x==1||y<=3||x==(width-2)||y==(height-2)) tiles[x][y] = TileType.WALL;
+                if (x==0||y==0||x==(width-1)||y==(height-1)
+                        ||x==1||y<=3||x==(width-2)||y==(height-2)) tiles[x][y] = TileType.WALL;
                 else tiles[x][y] = TileType.FLOOR;
             }
         }
