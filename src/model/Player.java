@@ -15,6 +15,7 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
+    private boolean facingLeft = false; // Trạng thái hướng trái/phải
 
     //default constructor for testing
     public Player() {
@@ -86,4 +87,11 @@ public class Player extends Combatant {
         super.takeDamage ( dmg - absorbed ) ;
     }
 
+    public boolean isFacingLeft() {
+        return facingLeft;
+    }
+
+    public void setFacingLeft(boolean facingLeft) {
+        this.facingLeft = facingLeft;
+    }
 }

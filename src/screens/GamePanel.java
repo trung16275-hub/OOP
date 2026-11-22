@@ -116,6 +116,12 @@ public class GamePanel extends JPanel implements Runnable {
             moveY *= 0.7071;
         }
 
+        if (moveX < 0) {
+            player.setFacingLeft(true);
+        } else if (moveX > 0) {
+            player.setFacingLeft(false);
+        }
+
         player.move(moveX,moveY,room);
 
         // 2. Kiểm tra chuyển phòng

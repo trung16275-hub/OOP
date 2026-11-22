@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 public class GameRenderer {
     private BufferedImage basefloorImage;
@@ -35,9 +36,10 @@ public class GameRenderer {
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
-    
+    private ImageIcon playerIdleImage;
 
     public GameRenderer() {
+        playerIdleImage = new ImageIcon("assets/player/ak47/idle.gif");
         // Preload tiles from assets/tiles/
         registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
     registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
@@ -215,10 +217,12 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        // Vẽ thân Player (khối xanh)
-        g2.setColor(new Color(52, 152, 219));
-        g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, player);
+
+        if (player.isFacingLeft()) {
+            g2.drawImage(playerIdleImage.getImage(), x + w, y, -w, h, null);
+        } else {
+            g2.drawImage(playerIdleImage.getImage(), x, y, w, h, null);
+        }
     }
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
         
@@ -478,6 +482,6 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
 
 
 }
-    
+
 
 
