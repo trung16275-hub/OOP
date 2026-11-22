@@ -1,7 +1,6 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
@@ -10,10 +9,43 @@ import model.Enemy;
 import model.Player;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
 
 public class GameRenderer {
+    private BufferedImage basefloorImage;
+    private BufferedImage basewallImage;
+    private BufferedImage wallTopRimImage;
+    private BufferedImage wallBotRimImage;
+    private BufferedImage doorOpenedImage;
+    private BufferedImage doorClosedImage;
+    private BufferedImage wallGrimeImage;
+    private BufferedImage wallBorderBottomImage;
+    private BufferedImage wallBorderLeftImage;
+    private BufferedImage wallBorderRightImage;
+    private BufferedImage wallBorderTopImage;
+    private BufferedImage wallCornerBottomLeftImage;
+    private BufferedImage wallCornerBottomRightImage;
+    private BufferedImage wallCornerTopLeftImage;
+    private BufferedImage wallCornerTopRightImage;
+
+
     public GameRenderer() {
-        // Tải trước sprite ở đây
+        // Preload tiles from assets/tiles/
+        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
+        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
+        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
+        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
+        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
+        wallBorderBottomImage = AssetLoader.loadImage("/tiles/wall_border_bottom.png");
+        wallBorderLeftImage = AssetLoader.loadImage("/tiles/wall_border_left.png");
+        wallBorderRightImage = AssetLoader.loadImage("/tiles/wall_border_right.png");
+        wallBorderTopImage = AssetLoader.loadImage("/tiles/wall_border_top.png");
+        wallCornerBottomLeftImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_left.png");
+        wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
+        wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
+        wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
 
     }
 
@@ -237,21 +269,89 @@ public class GameRenderer {
                 int py = y * tileSize;
 
                 switch (type) {
-                    case WALL -> {
-                        g2.setColor(WALL_COLOR);
-                    }
-                    case FLOOR -> {
-                        g2.setColor(FLOOR_COLOR);
-                    }
-                    case DOOR_OPEN -> {
-                        g2.setColor(DOOR_OPEN_COLOR);
+                    case WALL -> renderWallTile(g2, room, x, y, px, py, tileSize);
+
+                    case FLOOR, DOOR_OPEN -> {
+                        if (basefloorImage != null) {
+                            g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
+                        } else {
+                            g2.setColor(FLOOR_COLOR);
+                            g2.fillRect(px, py, tileSize, tileSize);
+                        }
                     }
                     case DOOR_CLOSED -> {
-                        g2.setColor(DOOR_CLOSED_COLOR);
+                        if (doorClosedImage != null) {
+                            g2.drawImage(doorClosedImage, px, py, tileSize, tileSize, null);
+                        } else {
+                            g2.setColor(DOOR_CLOSED_COLOR);
+                            g2.fillRect(px, py, tileSize, tileSize);
+                        }
                     }
                 }
-                g2.fillRect(px, py, tileSize, tileSize);
             }
+        }
+    }
+
+    private boolean isWalkable(Room room, int x, int y) {
+        if (room == null || x < 0 || x >= room.getWidth() || y < 0 || y >= room.getHeight()) {
+            return false;
+        }
+        TileType type = room.getTile(x, y);
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN;
+    }
+
+    private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
+        int w = room.getWidth();
+        int h = room.getHeight();
+        int midY = h/2;
+
+        BufferedImage img = null;
+
+        // 1. North Wall Decorative Wallpaper Stack (rows 1 to 3, between side walls)
+        if (y >= 1 && y <= 3 && x >= 2 && x <= w - 3) {
+            switch (y) {
+                case 1 -> img = wallTopRimImage != null ? wallTopRimImage : wallBorderTopImage;
+                case 2 -> img = basewallImage;
+                case 3 -> img = wallBotRimImage;
+            }
+        } else if (((x <= 1) || (x >= w - 2)) && (y == midY - 3||y == midY - 2) && (isWalkable(room,x , midY))) {
+            if (y == midY - 3) img = wallTopRimImage;
+            else if (y == midY - 2) img = wallBotRimImage;
+        } else {
+            // 2. Autotiling / Context-Aware Neighbor Checking for side walls, bottom wall, and doorways
+            boolean openNorth = isWalkable(room, x, y - 1);
+            boolean openSouth = isWalkable(room, x, y + 1);
+            boolean openWest  = isWalkable(room, x - 1, y) || (1<=y && y<=3) && (x == w - 2);
+            boolean openEast  = isWalkable(room, x + 1, y) || (1<=y && y<=3) && (x == 1);
+
+            // Doorway and perimeter corner caps
+            if (openNorth && openWest) {
+                img = wallCornerTopLeftImage;
+            } else if (openNorth && openEast) {
+                img = wallCornerTopRightImage;
+            } else if (openSouth && openWest) {
+                img = wallCornerBottomLeftImage;
+            } else if (openSouth && openEast) {
+                img = wallCornerBottomRightImage;
+            }
+            // Straight borders facing walkable floor or doorway
+            else if (openWest) {
+                img = wallBorderLeftImage;
+            } else if (openEast) {
+                img = wallBorderRightImage;
+            } else if (openNorth) {
+                img = wallBorderTopImage;
+            } else if (openSouth) {
+                img = wallBorderBottomImage;
+            }
+        }
+
+        // Render texture or fallback color
+        if (img != null) {
+            g2.drawImage(img, px, py, tileSize, tileSize, null);
+        } else {
+            g2.setColor(Color.BLACK);
+            g2.fillRect(px, py, tileSize, tileSize);
         }
     }
 

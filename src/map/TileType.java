@@ -5,7 +5,8 @@ public enum TileType {
     FLOOR(false),
     DOOR_CLOSED(true),
     DOOR_OPEN(false),
-    PORTAL(false);
+    PORTAL(false),
+    VOID(true);
 
     private final boolean solid;
 
