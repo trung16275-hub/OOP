@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class WorldMap {
-    public static final int GRID_SIZE = 9;
+    public static final int GRID_SIZE = 7;
 
     private final int floorLevel;
     private final Room[][] grid;
@@ -103,5 +103,22 @@ public class WorldMap {
 
     public void setSpawnRoom(Room spawnRoom) {
         this.spawnRoom = spawnRoom;
+    }
+
+    public boolean hasVisitedNeighbor (int gx, int gy) {
+        for (Direction dir : Direction.values()) {
+            int nx = gx + dir.getDx();
+            int ny = gy + dir.getDy();
+
+            if (nx >= 0 && nx < WorldMap.GRID_SIZE && ny >= 0 && ny < WorldMap.GRID_SIZE) {
+                Room neighbor = getRoom(nx, ny);
+                if (neighbor != null && neighbor.isVisited()) {
+                    return true;
+                }
+            }
+
+        }
+
+        return false;
     }
 }
