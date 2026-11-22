@@ -1,5 +1,6 @@
 package model.boss;
 
+import map.Room;
 import model.Enemy;
 import model.Player;
 
@@ -31,8 +32,8 @@ public class Boss1 extends Enemy {
 
     // Hành vi của Boss: dùng hành vi chung rồi thêm kỹ năng riêng
     @Override
-    public void updateBehavior(Player player) {
-        super.updateBehavior(player);
+    public void updateBehavior(Player player, Room room) {
+        super.updateBehavior(player,room);
 
         if (isWithinHitbox(player)) { /// Trong class Combatant co
             specialAttack(player);

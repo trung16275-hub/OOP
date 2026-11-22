@@ -3,6 +3,7 @@ package model;
 //Class cho cả Player và Boss/Enemy
 
 import map.Room;
+import java.awt.Rectangle;
 
 public abstract class Combatant {
     private String name;
@@ -139,12 +140,37 @@ public abstract class Combatant {
     }
 
     public abstract void attack(Combatant target) ;
-    //Cần fix
-    public void clampPosition ( int ScreenWidth , int ScreenHeight ) {
-        double maxX = Math.max ( 0 , ScreenWidth - this.width - Room.TILE_SIZE) ;
-        double maxY = Math.max ( 0 , ScreenHeight - this.height -Room.TILE_SIZE) ;
-        x = Math.max ( Room.TILE_SIZE , Math.min ( x , maxX )) ;
-        y = Math.max ( Room.TILE_SIZE , Math.min ( y , maxY)) ;
+    public void move(double dx, double dy, Room room) {
+
+        double stepX = dx * speed;
+        double stepY = dy * speed;
+
+        Rectangle boxX = new Rectangle((int) Math.round(x + stepX), (int) Math.round(y), width, height);
+        if (!room.checkCollision(boxX)) {
+            x += stepX;
+        } else {
+            double signX = Math.signum(stepX);
+            while (Math.abs(stepX) >= 1.0) {
+                Rectangle microX = new Rectangle((int) Math.round(x + signX), (int) Math.round(y), width, height);
+                if (room.checkCollision(microX)) break;
+                x += signX;
+                stepX -= signX;
+            }
+        }
+
+        Rectangle boxY = new Rectangle((int) Math.round(x), (int) Math.round(y + stepY), width, height);
+        if (!room.checkCollision(boxY)) {
+            y += stepY;
+        } else {
+            double signY = Math.signum(stepY);
+            while (Math.abs(stepY) >= 1.0) {
+                Rectangle microY = new Rectangle((int) Math.round(x), (int) Math.round(y + signY), width, height);
+                if (room.checkCollision(microY)) break;
+                y += signY;
+                stepY -= signY;
+            }
+        }
+
     }
 
 }

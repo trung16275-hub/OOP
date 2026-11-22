@@ -117,7 +117,7 @@ public class GameRenderer {
     private void renderBackground(Graphics2D g2) {
         // Sau này thay bằng vẽ tile map; hiện tại là nền tối
         g2.setColor(new Color(25, 25, 30));
-        g2.fillRect(0, 0, 960, 640);
+        g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
     }
     private void renderPlayer(Graphics2D g2, Player player) {
         int x = (int) player.getX();
