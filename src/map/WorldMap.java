@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class WorldMap {
-    public static final int GRID_SIZE = 9;
+    public static final int GRID_SIZE = 7;
 
     private final int floorLevel;
     private final Room[][] grid;

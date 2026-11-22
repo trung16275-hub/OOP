@@ -34,10 +34,10 @@ public class MapGenerator {
      */
     public WorldMap generateFloor(int floorLevel, int targetRooms) {
         WorldMap map = new WorldMap(floorLevel);
-        int spawnX = 4;
-        int spawnY = 4;
+        int spawnX = 3;
+        int spawnY = 3;
 
-        // 1. Khởi tạo phòng SPAWN tại trung tâm (4, 4)
+        // 1. Khởi tạo phòng SPAWN tại trung tâm (3, 3)
         Room spawnRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.SPAWN);
         map.addRoom(spawnX, spawnY, spawnRoom);
 
@@ -53,8 +53,8 @@ public class MapGenerator {
             int nx = current.x + dir.getDx();
             int ny = current.y + dir.getDy();
 
-            // Giới hạn trong phạm vi an toàn của lưới 9x9 (từ 1 đến 7)
-            if (nx >= 1 && nx <= 7 && ny >= 1 && ny <= 7 && !map.hasRoom(nx, ny)) {
+            // Giới hạn trong phạm vi an toàn của lưới
+            if (nx >= 1 && nx <= WorldMap.GRID_SIZE - 2 && ny >= 1 && ny <= WorldMap.GRID_SIZE - 2 && !map.hasRoom(nx, ny)) {
                 // Kiểm tra số lượng phòng kề cận để tránh các cụm phòng hình vuông dày đặc
                 if (countAdjacentRooms(map, nx, ny) <= 2 && !createsSquareCluster(map, nx, ny)) {
                     Room newRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.NORMAL);

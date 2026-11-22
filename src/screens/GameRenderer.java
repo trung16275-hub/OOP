@@ -72,7 +72,7 @@ public class GameRenderer {
     }
 
     private void renderMiniMap(Graphics2D g2, WorldMap worldMap) {
-        int cellSize = 12;
+        int cellSize = 15;
         int gap = 3;
         int gridSize = WorldMap.GRID_SIZE;
         int mapWidth = gridSize * cellSize + (gridSize - 1) * gap;
