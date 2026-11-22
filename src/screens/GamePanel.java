@@ -131,7 +131,15 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        //3. Cập nhật Enemy
+        //3. Cap nhat cua
+        if (room != null) {
+            if (room.getEnemies().isEmpty()) {
+                room.setCleared(true);
+                room.openDoors();
+            }
+        }
+
+        //4. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
             currentEnemy.updateBehavior(player, room);
 
@@ -144,7 +152,6 @@ public class GamePanel extends JPanel implements Runnable {
             player.resetFacing();
         }
 
-        room.openDoors();
     }
 
     private void endGame() {

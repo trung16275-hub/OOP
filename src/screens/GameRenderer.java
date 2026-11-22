@@ -120,7 +120,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     }
 
     private void renderMiniMap(Graphics2D g2, WorldMap worldMap) {
-        int cellSize = 12;
+        int cellSize = 15;
         int gap = 3;
         int gridSize = WorldMap.GRID_SIZE;
         int mapWidth = gridSize * cellSize + (gridSize - 1) * gap;
@@ -140,6 +140,10 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                         continue;
                     }
 
+                    if (!room.isVisited() && !worldMap.hasVisitedNeighbor(gx,gy)) {
+                        continue;
+                    }
+
                     int x = startX + gx * (cellSize + gap);
                     int y = startY + gy * (cellSize + gap);
 
@@ -154,6 +158,11 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
 
                     if (room.getRoomType() == Room.RoomType.BOSS) {
                         mini.setColor(Color.RED);
+                        mini.fillOval(x + 3, y + 3, cellSize - 6, cellSize - 6);
+                    }
+
+                    if (room.getRoomType() == Room.RoomType.SPAWN) {
+                        mini.setColor(Color.YELLOW);
                         mini.fillOval(x + 3, y + 3, cellSize - 6, cellSize - 6);
                     }
                 }
@@ -280,6 +289,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     private static final Color WALL_COLOR = new Color(37, 37, 37);
     private static final Color FLOOR_COLOR = new Color(82, 82, 82);
     private static final Color DOOR_OPEN_COLOR = new Color(20, 20, 25);
+    private static final Color DOOR_CLOSED_COLOR = new Color(139, 128, 0);
 
     private void renderRoom(Graphics2D g2, Room room) {
         int tileSize = Room.TILE_SIZE;
@@ -293,17 +303,18 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                 switch (type) {
                     case WALL -> {
                         g2.setColor(WALL_COLOR);
-                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                     case FLOOR -> {
                         g2.setColor(FLOOR_COLOR);
-                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                     case DOOR_OPEN -> {
                         g2.setColor(DOOR_OPEN_COLOR);
-                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                    case DOOR_CLOSED -> {
+                        g2.setColor(DOOR_CLOSED_COLOR);
                     }
                 }
+                g2.fillRect(px, py, tileSize, tileSize);
             }
         }
     }
