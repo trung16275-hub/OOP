@@ -1,7 +1,7 @@
 package model.boss;
 
 import model.Enemy;
-
+import model.Combatant;
 import model.Player;
 import map.Room;
 public class Boss3 extends Enemy {
@@ -14,7 +14,8 @@ public class Boss3 extends Enemy {
     private static final double DEFAULT_HITBOX_RADIUS = 50;
     private static final int DEFAULT_WIDTH = 200;
     private static final int DEFAULT_HEIGHT = 200;
-
+    private static final long JUMP_ANIM_DURATION_NANOS = 700_000_000L; // 0.7 giây (khớp 7 frame x 100ms)
+    private long jumpAnimEndTime = 0L;
     // Cấu hình kỹ năng hồi máu
     private static final double HEAL_TRIGGER_RATIO = 0.25;           // <= 25% máu
     private static final long HEAL_DURATION_NANOS = 10_000_000_000L; // 10 giây
@@ -49,15 +50,29 @@ public class Boss3 extends Enemy {
         setWidth(DEFAULT_WIDTH);
         setHeight(DEFAULT_HEIGHT);
     }
+        
     @Override
 public String getSpriteKey() {
     return "boss3";
 }
-
+@Override 
+public void attack(Combatant target) {
+    if (isDead() || target == null || target.isDead()) {
+        return;
+    }
+    // Tấn công tiếp xúc
+    if (!isFiringLaser && !isHealing) {
+        super.attack(target);
+        jumpAnimEndTime = System.nanoTime() + JUMP_ANIM_DURATION_NANOS;
+    }
+}
 @Override
 public String getAnimState() {
-    if (isFiringLaser) return "fire";
+    if (isFiringLaser) return "jump";
     if (isHealing) return "idle";
+    if (System.nanoTime() < jumpAnimEndTime) {
+        return "fire";
+    }
     return "run";
 }
     @Override
