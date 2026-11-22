@@ -39,10 +39,10 @@ public class GameRenderer {
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
-        registerAnim("boss3", "idle", "src/res/boss3/super-cool-robot-idle.png", 9);
-    registerAnim("boss3", "run",  "src/res/boss3/super-cool-robot-run.png", 9);
-    registerAnim("boss3", "fire", "src/res/boss3/super-cool-robot-fire.png", 4);
-    registerAnim("boss3", "jump", "src/res/boss3/super-cool-robot-jump.png", 7);
+        registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
+    registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
+    registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
+    registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
 
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");

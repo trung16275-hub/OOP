@@ -60,6 +60,7 @@ public class GamePanel extends JPanel implements Runnable {
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
         
+
     }
     
     
