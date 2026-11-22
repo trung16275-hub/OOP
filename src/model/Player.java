@@ -15,7 +15,7 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
-    
+
     //default constructor for testing
     public Player() {
         this(DEFAULT_NAME, DEFAULT_MAX_HP, DEFAULT_SPEED, DEFAULT_HITBOX_RADIUS);
@@ -36,7 +36,7 @@ public class Player extends Combatant {
     }
     public int getArmor ( )
     {
-        return armor ; 
+        return armor ;
     }
 
     public double getDetectionRange() {
@@ -74,16 +74,16 @@ public class Player extends Combatant {
             target.takeDamage(currentWeapon.damage);
         }
     }
-    @Override 
+    @Override
     public void takeDamage ( int dmg )
     {
         if ( dmg <= 0 || isDead ( ) )
         {
-            return ; 
+            return ;
         }
-        int absorbed = Math.min ( armor , dmg ) ; 
-        armor -= absorbed ; 
+        int absorbed = Math.min ( armor , dmg ) ;
+        armor -= absorbed ;
         super.takeDamage ( dmg - absorbed ) ;
     }
-    
+
 }

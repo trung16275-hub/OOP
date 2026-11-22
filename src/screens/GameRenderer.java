@@ -11,12 +11,46 @@ import model.Player;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import model.boss.Boss3;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+
 public class GameRenderer {
+    private Map<String, BufferedImage[]> animations = new HashMap<>();
     public GameRenderer() {
         // Tải trước sprite ở đây
-
+        registerAnim("boss3", "idle", "src/res/boss3/super-cool-robot-idle.png", 9);
+    registerAnim("boss3", "run",  "src/res/boss3/super-cool-robot-run.png", 9);
+    registerAnim("boss3", "fire", "src/res/boss3/super-cool-robot-fire.png", 4);
     }
+    // Hàm cắt 1 hàng ngang thành mảng các frame
+private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
+    try {
+        BufferedImage sheet = ImageIO.read(new File(path));
+        int frameWidth = sheet.getWidth() / frameCount;
+        int frameHeight = sheet.getHeight();
 
+        BufferedImage[] frames = new BufferedImage[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
+        }
+        return frames;
+    } catch (IOException e) {
+        System.err.println("Không tìm thấy ảnh: " + path);
+        return null;
+    }
+}
+    // Hàm đăng ký animation cho 1 bộ sprite
+    private void registerAnim(String spriteKey, String state, String path, int frameCount) {
+    BufferedImage[] frames = loadSpriteSheet(path, frameCount);
+    if (frames != null) {
+        animations.put(spriteKey + "_" + state, frames);
+    }
+}
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
         render(g2, player, enemy, room, null);
     }
@@ -131,7 +165,7 @@ public class GameRenderer {
     private void renderBackground(Graphics2D g2) {
         // Sau này thay bằng vẽ tile map; hiện tại là nền tối
         g2.setColor(new Color(25, 25, 30));
-        g2.fillRect(0, 0, 960, 640);
+        g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
     }
     private void renderPlayer(Graphics2D g2, Player player) {
         int x = (int) player.getX();
@@ -144,10 +178,26 @@ public class GameRenderer {
         renderFacingMarker(g2, player);
     }
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
+        
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
         int w = enemy.getWidth();
         int h = enemy.getHeight();
+        String key = enemy.getSpriteKey();
+    if (key != null) {
+        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
+        if (frames != null && frames.length > 0) {
+            int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
+            if(enemy.getFacingX() >= 0) {
+                g2.drawImage(frames[frameIndex], x, y, w, h, null);
+            } else {
+                // Lật ảnh theo chiều ngang
+                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+            }
+            return;
+            
+        }
+    }
         // Vẽ thân Enemy (khối đỏ)
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
@@ -307,6 +357,12 @@ public class GameRenderer {
         g2.setStroke(oldStroke);
         g2.setColor(oldColor);
     }
+        
 
+    
+
+    
 }
+    
+
 

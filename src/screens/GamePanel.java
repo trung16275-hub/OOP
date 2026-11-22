@@ -59,6 +59,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
+        
     }
     
     
@@ -101,10 +102,20 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        if (keyH.upPressed)    player.setY(player.getY() - player.getSpeed());
-        if (keyH.downPressed)  player.setY(player.getY() + player.getSpeed());
-        if (keyH.leftPressed)  player.setX(player.getX() - player.getSpeed());
-        if (keyH.rightPressed) player.setX(player.getX() + player.getSpeed());
+        double moveX = 0;
+        double moveY = 0;
+
+        if (keyH.upPressed)    moveY -=1;
+        if (keyH.downPressed)  moveY +=1;
+        if (keyH.leftPressed)  moveX -=1;
+        if (keyH.rightPressed) moveX +=1;
+
+        if (moveX != 0 && moveY !=0) {
+            moveX *= 0.7071;
+            moveY *= 0.7071;
+        }
+
+        player.move(moveX,moveY,room);
 
         // 2. Kiểm tra chuyển phòng
         Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
@@ -118,14 +129,11 @@ public class GamePanel extends JPanel implements Runnable {
                 player.setY(spawnPos.y);
                 updateRoomEntities();
             }
-        } else {
-            player.clampPosition(getWidth(), getHeight());
         }
 
         //3. Cập nhật Enemy
         if (currentEnemy != null && !currentEnemy.isDead()) {
-            currentEnemy.updateBehavior(player);
-            currentEnemy.clampPosition(getWidth(), getHeight());
+            currentEnemy.updateBehavior(player, room);
 
             if (player.canDetect(currentEnemy)) {
                 player.faceToward(currentEnemy);

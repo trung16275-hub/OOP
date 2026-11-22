@@ -3,17 +3,17 @@ package model.boss;
 import model.Enemy;
 
 import model.Player;
-
+import map.Room;
 public class Boss3 extends Enemy {
     // Chỉnh các chỉ số mặc định của Boss 3 tại đây.
     private static final String DEFAULT_NAME = "ChatGPT";
     private static final int DEFAULT_MAX_HP = 1000;
     private static final int DEFAULT_SPEED = 3;
     private static final int DEFAULT_BASE_DAMAGE = 20;
-    private static final double DEFAULT_DETECTION_RANGE = 250;
+    private static final double DEFAULT_DETECTION_RANGE = 275;
     private static final double DEFAULT_HITBOX_RADIUS = 50;
-    private static final int DEFAULT_WIDTH = 60;
-    private static final int DEFAULT_HEIGHT = 60;
+    private static final int DEFAULT_WIDTH = 200;
+    private static final int DEFAULT_HEIGHT = 200;
 
     // Cấu hình kỹ năng hồi máu
     private static final double HEAL_TRIGGER_RATIO = 0.25;           // <= 25% máu
@@ -49,9 +49,19 @@ public class Boss3 extends Enemy {
         setWidth(DEFAULT_WIDTH);
         setHeight(DEFAULT_HEIGHT);
     }
-
     @Override
-    public void updateBehavior(Player player) {
+public String getSpriteKey() {
+    return "boss3";
+}
+
+@Override
+public String getAnimState() {
+    if (isFiringLaser) return "fire";
+    if (isHealing) return "idle";
+    return "run";
+}
+    @Override
+    public void updateBehavior(Player player,Room room) {
         if (isDead()) {
             isHealing = false;
             isFiringLaser = false;
@@ -94,7 +104,7 @@ public class Boss3 extends Enemy {
 
         
         // 3. Hoạt động bình thường (đuổi theo + tấn công tiếp xúc)
-        super.updateBehavior(player);
+        super.updateBehavior(player,room);
     }
 
     public boolean isHealing() {
