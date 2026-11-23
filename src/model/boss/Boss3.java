@@ -52,8 +52,11 @@ public class Boss3 extends Enemy {
     }
         
     @Override
-public String getSpriteKey() {
-    return "boss3";
+public String getSpritePath() {
+    if (isFiringLaser) return "boss3/super-cool-robot-jump.png";
+    if (isHealing)     return "boss3/super-cool-robot-idle.png";
+    if (System.nanoTime() < jumpAnimEndTime) return "boss3/super-cool-robot-fire.png";
+    return "boss3/super-cool-robot-run.png";
 }
 @Override 
 public void attack(Combatant target) {
@@ -67,13 +70,13 @@ public void attack(Combatant target) {
     }
 }
 @Override
-public String getAnimState() {
-    if (isFiringLaser) return "jump";
-    if (isHealing) return "idle";
+public int getSpriteFrameCount() {
+    if (isFiringLaser) return 7;
+    if (isHealing) return 9;
     if (System.nanoTime() < jumpAnimEndTime) {
-        return "fire";
+        return 4;
     }
-    return "run";
+    return 9;
 }
     @Override
     public void updateBehavior(Player player,Room room) {
