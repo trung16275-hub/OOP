@@ -1,6 +1,7 @@
 package map;
 
 import model.Enemy;
+import screens.lighting.*;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class Room {
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
     private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
 
+    private final List<LightSource> lights = new ArrayList<>();
 
     // Constructor mặc định
     public Room() {
@@ -262,6 +264,9 @@ public class Room {
 
     public List<Enemy> getEnemies() { return enemies; }
     public void addEnemy(Enemy enemy) { enemies.add(enemy); }
+
+    public List<LightSource> getLights() { return lights; }
+    public void addLight(LightSource light) { lights.add(light); }
 
     public TileType getTile(int x, int y) {
         if (x<0||x>=width||y<0||y>=height) return TileType.WALL;

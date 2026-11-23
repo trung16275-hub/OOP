@@ -12,6 +12,7 @@ import model.Projectile;
 import model.weapon.Ak47;
 import model.weapon.Bat;
 import screens.input.KeyHandler;
+import screens.lighting.*;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -77,11 +78,11 @@ public class GamePanel extends JPanel implements Runnable {
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
-        
+
 
     }
-    
-    
+
+
 
     private void updateRoomEntities() {
         if (room != null && !room.getEnemies().isEmpty()) {
@@ -219,6 +220,9 @@ public class GamePanel extends JPanel implements Runnable {
         } else {
             player.resetFacing();
         }
+
+        //update light system
+        renderer.getLightSystem().update(room, 0.016);
 
     }
 
