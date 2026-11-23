@@ -9,9 +9,9 @@ public class Player extends Combatant {
     private static final int DEFAULT_MAX_HP = 100;
     private static final int DEFAULT_SPEED = 4;
     private static final int DEFAULT_ARMOR = 30;
-    private static final int DEFAULT_WIDTH = 50;
-    private static final int DEFAULT_HEIGHT = 50;
-    private static final double DEFAULT_HITBOX_RADIUS = 50.0;
+    private static final int DEFAULT_WIDTH = 60;
+    private static final int DEFAULT_HEIGHT = 60;
+    private static final double DEFAULT_HITBOX_RADIUS = 60;
     private static final double DEFAULT_DETECTION_RANGE = 250.0;
 
     private int armor = DEFAULT_ARMOR;
