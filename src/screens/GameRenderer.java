@@ -474,58 +474,50 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             return false;
         }
         TileType type = room.getTile(x, y);
-        return type == TileType.FLOOR || type == TileType.DOOR_OPEN;
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED;
     }
 
     private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
         int w = room.getWidth();
-        int h = room.getHeight();
-        int midY = h/2;
+        int padX = room.getPadX();
+        int padY = room.getPadY();
 
         BufferedImage img = null;
-        Direction sideDir = (x <= 1) ? Direction.WEST : Direction.EAST;
+        Direction sideDir = (x <= padX + 1) ? Direction.WEST : Direction.EAST;
         int doorY = room.getDoorOffset(sideDir);
 
-        // 1. North Wall Decorative Wallpaper Stack (rows 1 to 3, between side walls)
-        if (y >= 1 && y <= 3 && x >= 2 && x <= w - 3) {
-            switch (y) {
+        // 1. North Wall Decorative Wallpaper Stack (shifted by padY and padX)
+        if (y >= padY + 1 && y <= padY + 3 && x >= padX + 2 && x <= w - padX - 3) {
+            int relY = y - padY;
+            switch (relY) {
                 case 1 -> img = wallTopRimImage != null ? wallTopRimImage : wallBorderTopImage;
                 case 2 -> img = basewallImage;
                 case 3 -> img = wallBotRimImage;
             }
-        } else if (((x <= 1) || (x >= w - 2)) && (y == doorY - 3 || y == doorY - 2) && (isWalkable(room, x, doorY))) {
+        }
+        // Extended West/East Hallway Wallpaper Rims (all the way to x = 0 and x = w - 1)
+        else if (((x <= padX + 1) || (x >= w - padX - 2))
+                && (y == doorY - 3 || y == doorY - 2)
+                && isWalkable(room, x, doorY)) {
             if (y == doorY - 3) img = wallTopRimImage;
             else if (y == doorY - 2) img = wallBotRimImage;
         } else {
-            // 2. Autotiling / Context-Aware Neighbor Checking for side walls, bottom wall, and doorways
+            // 2. Autotiling / Neighbor Checking
             boolean openNorth = isWalkable(room, x, y - 1);
             boolean openSouth = isWalkable(room, x, y + 1);
-            boolean openWest  = isWalkable(room, x - 1, y) || (1<=y && y<=3) && (x == w - 2);
-            boolean openEast  = isWalkable(room, x + 1, y) || (1<=y && y<=3) && (x == 1);
+            boolean openWest  = isWalkable(room, x - 1, y) || (y >= padY + 1 && y <= padY + 3 && x == w - padX - 2);
+            boolean openEast  = isWalkable(room, x + 1, y) || (y >= padY + 1 && y <= padY + 3 && x == padX + 1);
 
-            // Doorway and perimeter corner caps
-            if (openNorth && openWest) {
-                img = wallCornerTopLeftImage;
-            } else if (openNorth && openEast) {
-                img = wallCornerTopRightImage;
-            } else if (openSouth && openWest) {
-                img = wallCornerBottomLeftImage;
-            } else if (openSouth && openEast) {
-                img = wallCornerBottomRightImage;
-            }
-            // Straight borders facing walkable floor or doorway
-            else if (openWest) {
-                img = wallBorderLeftImage;
-            } else if (openEast) {
-                img = wallBorderRightImage;
-            } else if (openNorth) {
-                img = wallBorderTopImage;
-            } else if (openSouth) {
-                img = wallBorderBottomImage;
-            }
+            if (openNorth && openWest)      img = wallCornerTopLeftImage;
+            else if (openNorth && openEast) img = wallCornerTopRightImage;
+            else if (openSouth && openWest) img = wallCornerBottomLeftImage;
+            else if (openSouth && openEast) img = wallCornerBottomRightImage;
+            else if (openWest)              img = wallBorderLeftImage;
+            else if (openEast)              img = wallBorderRightImage;
+            else if (openNorth)             img = wallBorderTopImage;
+            else if (openSouth)             img = wallBorderBottomImage;
         }
 
-        // Render texture or fallback color
         if (img != null) {
             g2.drawImage(img, px, py, tileSize, tileSize, null);
         } else {

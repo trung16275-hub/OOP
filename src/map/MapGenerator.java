@@ -108,12 +108,12 @@ public class MapGenerator {
                     if (!r.getDoors().containsKey(dir)) {
                         int offset;
                         if (dir == Direction.NORTH || dir == Direction.SOUTH) {
-                            int minX = 3;
-                            int maxX = r.getWidth() - 4;
+                            int minX = r.getPadX() + 3;
+                            int maxX = r.getWidth() - r.getPadX() - 4;
                             offset = minX + rand.nextInt(Math.max(1, maxX - minX + 1));
                         } else {
-                            int minY = 5;
-                            int maxY = r.getHeight() - 4;
+                            int minY = r.getPadY() + 5;
+                            int maxY = r.getHeight() - r.getPadY() - 4;
                             offset = minY + rand.nextInt(Math.max(1, maxY - minY + 1));
                         }
                         r.setDoorOffset(dir, offset);
