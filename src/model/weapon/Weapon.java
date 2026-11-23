@@ -16,4 +16,9 @@ public class Weapon {
     public int getDamage() {
         return damage;
     }
+
+    /** Returns whether the weapon can make an attack; unlimited weapons use the default. */
+    public boolean consumeAmmo() {
+        return true;
+    }
 }
