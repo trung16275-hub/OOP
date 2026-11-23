@@ -11,12 +11,7 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import model.boss.Boss3;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.imageio.ImageIO;
 
 public class GameRenderer {
     private BufferedImage basefloorImage;
@@ -34,15 +29,12 @@ public class GameRenderer {
     private BufferedImage wallCornerBottomRightImage;
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
-    private Map<String, BufferedImage[]> animations = new HashMap<>();
     private BufferedImage armorImage;
+    
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
-        registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
-    registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
-    registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
-    registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
+        
 
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
@@ -60,32 +52,10 @@ public class GameRenderer {
         wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
         wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
+    }
+       
+    
 
-    }
-    // Hàm cắt 1 hàng ngang thành mảng các frame
-private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
-    try {
-        BufferedImage sheet = ImageIO.read(new File(path));
-        int frameWidth = sheet.getWidth() / frameCount;
-        int frameHeight = sheet.getHeight();
-
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
-        }
-        return frames;
-    } catch (IOException e) {
-        System.err.println("Không tìm thấy ảnh: " + path);
-        return null;
-    }
-}
-    // Hàm đăng ký animation cho 1 bộ sprite
-    private void registerAnim(String spriteKey, String state, String path, int frameCount) {
-    BufferedImage[] frames = loadSpriteSheet(path, frameCount);
-    if (frames != null) {
-        animations.put(spriteKey + "_" + state, frames);
-    }
-}
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
         render(g2, player, enemy, room, null);
     }
@@ -265,9 +235,8 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) enemy.getY();
         int w = enemy.getWidth();
         int h = enemy.getHeight();
-        String key = enemy.getSpriteKey();
-    if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
+        
+        BufferedImage[] frames = AssetLoader.getSpriteSheet(enemy.getSpritePath() , enemy.getSpriteFrameCount());
         if (frames != null && frames.length > 0) {
             int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
             if(enemy.getFacingX() >= 0) {
@@ -279,7 +248,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             return;
             
         }
-    }
+    
         // Vẽ thân Enemy (khối đỏ)
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
@@ -514,9 +483,10 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             g2.fillRect(px, py, tileSize, tileSize);
         }
     }
-
-
 }
+
+
+
 
 
 
