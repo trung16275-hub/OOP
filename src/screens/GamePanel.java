@@ -8,13 +8,21 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Player;
+import model.Projectile;
+import model.weapon.Ak47;
 import screens.input.KeyHandler;
 import screens.lighting.*;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import javax.swing.*;
 import model.boss.Boss3;
 public class GamePanel extends JPanel implements Runnable {
+    private static final long AK47_FIRE_INTERVAL_MS = 180;
+    private static final int PLAYER_ATTACK_ANIMATION_MS = 320;
+
     private MainGame mainFrame;
     private Thread gameThread;
     private volatile boolean isRunning;
@@ -22,6 +30,9 @@ public class GamePanel extends JPanel implements Runnable {
     // Entities
     private Player player;
     private Enemy currentEnemy;
+    private long nextShotTime;
+    private final List<Projectile> projectiles = new ArrayList<>();
+    private static final double PROJECTILE_SPEED = 12.0;
 
     // Map System
     private MapGenerator mapGenerator;
@@ -55,6 +66,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         this.player = new Player();
+        this.player.equip(new Ak47());
         this.player.setX(180);
         this.player.setY(260);
 
@@ -116,8 +128,36 @@ public class GamePanel extends JPanel implements Runnable {
             moveX *= 0.7071;
             moveY *= 0.7071;
         }
+        // Đạn chỉ bắn ngang; phím lên/xuống không đổi hướng bắn.
+        if (moveX != 0) {
+            player.setAimDirection(moveX, 0);
+        }
 
-        player.move(moveX,moveY,room);
+        double previousX = player.getX();
+        double previousY = player.getY();
+        player.move(moveX, moveY, room);
+        double movedX = player.getX() - previousX;
+        double movedY = player.getY() - previousY;
+        player.setMoving(movedX != 0 || movedY != 0);
+        if (movedX != 0) {
+            player.setFacingLeft(movedX < 0);
+        }
+
+        long now = System.currentTimeMillis();
+        if (keyH.spacePressed && now >= nextShotTime) {
+            if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
+                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
+                double bulletX = player.getX() + player.getWidth() / 2.0;
+                double bulletY = player.getY() + player.getHeight() / 2.0;
+                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY(),
+                        PROJECTILE_SPEED, ak47.getDamage()));
+                nextShotTime = now + AK47_FIRE_INTERVAL_MS;
+            } else {
+                player.stopAttackAnimation();
+            }
+        }
+
+        updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
         Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
@@ -129,6 +169,7 @@ public class GamePanel extends JPanel implements Runnable {
                 Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
+                projectiles.clear();
                 updateRoomEntities();
             }
         }
@@ -159,6 +200,21 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
+    private void updateProjectiles() {
+        Iterator<Projectile> iterator = projectiles.iterator();
+        while (iterator.hasNext()) {
+            Projectile projectile = iterator.next();
+            projectile.update(room);
+            if (projectile.isActive() && projectile.hits(currentEnemy)) {
+                currentEnemy.takeDamage(projectile.getDamage());
+                projectile.deactivate();
+            }
+            if (!projectile.isActive()) {
+                iterator.remove();
+            }
+        }
+    }
+
     private void endGame() {
         isRunning = false;
         // Swing screen changes must run on the event dispatch thread.
@@ -178,6 +234,6 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        renderer.render((Graphics2D) g, player, currentEnemy, room, worldMap);
+        renderer.render((Graphics2D) g, player, currentEnemy, room, worldMap, projectiles);
     }
 }

@@ -8,6 +8,8 @@ import map.WorldMap;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
+import model.Projectile;
+import model.weapon.Ak47;
 import model.boss.Boss3;
 import screens.lighting.*;
 
@@ -18,10 +20,16 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
 public class GameRenderer {
+    // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
+    private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
+    private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
+    private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
+
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
@@ -45,6 +53,12 @@ public class GameRenderer {
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
+        registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
+        registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
+        registerPlayerAnim("player_ak47", "attack", "/player/ak47/attack", 4);
+        registerPlayerAnim("player_bat", "idle", "/player/bat/idle", 4);
+        registerPlayerAnim("player_bat", "walk", "/player/bat/walk", 4);
+        registerPlayerAnim("player_bat", "attack", "/player/bat/attack", 4);
         registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
     registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
@@ -92,11 +106,27 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         animations.put(spriteKey + "_" + state, frames);
     }
 }
+
+    private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
+        BufferedImage[] frames = new BufferedImage[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = AssetLoader.loadImage(path + "_" + i + ".png");
+            if (frames[i] == null) {
+                return;
+            }
+        }
+        animations.put(spriteKey + "_" + state, frames);
+    }
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
         render(g2, player, enemy, room, null);
     }
 
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
+        render(g2, player, enemy, room, worldMap, java.util.Collections.emptyList());
+    }
+
+    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap,
+                       List<Projectile> projectiles) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -140,6 +170,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                     new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
             renderPlayer(g2, player);
         }
+        renderProjectiles(g2, projectiles);
         if (enemy != null && !enemy.isDead()) {
             renderHitbox(g2, enemy);
         }
@@ -168,7 +199,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             int x = 10;
             int y = 10;
             int width = 200;
-            int height = 72;
+            int height = 96;
 
             // Khung HUD ngoài.
             hud.setColor(new Color(70, 58, 43));
@@ -203,6 +234,11 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.setColor(Color.BLACK);
             hud.drawString("Armor:", x + 12, y + 57);
             hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
+
+            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
+                hud.drawString("Ammo:", x + 12, y + 85);
+                hud.drawString(ak47.getAmmo() + "/" + ak47.getMagazineSize(), x + 75, y + 85);
+            }
 
 
             // Icon giáp đơn giản ở góc phải.
@@ -278,11 +314,42 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        // Vẽ thân Player (khối xanh)
-        g2.setColor(new Color(52, 152, 219));
-        g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, player);
+        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
+        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+        String state = player.isAttacking() ? "attack" : player.isMoving() ? "walk" : "idle";
+        BufferedImage[] frames = animations.get(spriteKey + "_" + state);
+        int frameDuration = player.isAttacking()
+            ? PLAYER_ATTACK_FRAME_DURATION_MS
+            : player.isMoving() ? PLAYER_WALK_FRAME_DURATION_MS : PLAYER_IDLE_FRAME_DURATION_MS;
+
+        if (frames != null && frames.length > 0) {
+            int frameIndex = (int) ((System.currentTimeMillis() / frameDuration) % frames.length);
+            BufferedImage frame = frames[frameIndex];
+            int drawHeight = h;
+            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+            int drawX = x + (w - drawWidth) / 2;
+            if (player.isFacingLeft()) {
+                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
+            } else {
+                g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
+            }
+        } else {
+            // Fallback when player sprite assets are unavailable.
+            g2.setColor(new Color(52, 152, 219));
+            g2.fillOval(x, y, w, h);
+        }
     }
+
+    private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
+        g2.setColor(new Color(255, 220, 90));
+        for (Projectile projectile : projectiles) {
+            if (projectile.isActive()) {
+                Rectangle bounds = projectile.getBounds();
+                g2.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
+        }
+    }
+
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
         int x = (int) enemy.getX();
