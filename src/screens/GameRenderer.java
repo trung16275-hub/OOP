@@ -1,23 +1,25 @@
 package screens;
 
 import game.MainGame;
+import map.Direction;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
-import map.Direction;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
+import model.boss.Boss3;
+import screens.lighting.*;
+
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-import model.boss.Boss3;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.imageio.ImageIO;
 
 public class GameRenderer {
     private BufferedImage basefloorImage;
@@ -37,6 +39,9 @@ public class GameRenderer {
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
     private BufferedImage armorImage;
+
+    //Light System
+    private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
@@ -143,6 +148,8 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
 
         g2.translate(camX, camY); // reset before rendering HUD/minimap
+
+        lightSystem.render(g2, player, room, camX, camY);
 
         if (worldMap != null) {
             renderMiniMap(g2, worldMap);
@@ -526,6 +533,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
     }
 
+    public LightSystem getLightSystem() { return lightSystem; }
 
 }
 
