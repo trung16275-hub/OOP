@@ -4,6 +4,7 @@ import game.MainGame;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
+import map.Direction;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
@@ -44,7 +45,7 @@ public class GameRenderer {
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
     registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
 
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
+        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
         wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
@@ -91,12 +92,25 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     }
 
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
-        // 1. Khử răng cưa cho hình vẽ mượt mà
+        // 1. Fill entire screen with the abyss/void color BEFORE camera translation
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+
+        int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
+        int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
+
+        int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
+                ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
+                : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
+        int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
+                ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
+                : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
+        // 2. Translate world
+        g2.translate(-camX, -camY);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        // 2. Vẽ nền / bản đồ
-        renderBackground(g2);
+        // 3. Render room & entities
         renderRoom(g2, room);
-        // 3. Vẽ các thực thể trong game (Entities)
+
         if (enemy != null && !enemy.isDead()) {
             renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
                     new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
@@ -127,6 +141,9 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         if (player != null && !player.isDead()) {
             renderHitbox(g2, player);
         }
+
+        g2.translate(camX, camY); // reset before rendering HUD/minimap
+
         if (worldMap != null) {
             renderMiniMap(g2, worldMap);
         }
@@ -260,7 +277,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         renderFacingMarker(g2, player);
     }
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
-        
+
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
         int w = enemy.getWidth();
@@ -277,7 +294,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                 g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
             }
             return;
-            
+
         }
     }
         // Vẽ thân Enemy (khối đỏ)
@@ -447,66 +464,60 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         g2.setStroke(oldStroke);
         g2.setColor(oldColor);
     }
-        
 
-    
 
-    
+
+
+
     private boolean isWalkable(Room room, int x, int y) {
         if (room == null || x < 0 || x >= room.getWidth() || y < 0 || y >= room.getHeight()) {
             return false;
         }
         TileType type = room.getTile(x, y);
-        return type == TileType.FLOOR || type == TileType.DOOR_OPEN;
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED;
     }
 
     private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
         int w = room.getWidth();
-        int h = room.getHeight();
-        int midY = h/2;
+        int padX = room.getPadX();
+        int padY = room.getPadY();
 
         BufferedImage img = null;
+        Direction sideDir = (x <= padX + 1) ? Direction.WEST : Direction.EAST;
+        int doorY = room.getDoorOffset(sideDir);
 
-        // 1. North Wall Decorative Wallpaper Stack (rows 1 to 3, between side walls)
-        if (y >= 1 && y <= 3 && x >= 2 && x <= w - 3) {
-            switch (y) {
+        // 1. North Wall Decorative Wallpaper Stack (shifted by padY and padX)
+        if (y >= padY + 1 && y <= padY + 3 && x >= padX + 2 && x <= w - padX - 3) {
+            int relY = y - padY;
+            switch (relY) {
                 case 1 -> img = wallTopRimImage != null ? wallTopRimImage : wallBorderTopImage;
                 case 2 -> img = basewallImage;
                 case 3 -> img = wallBotRimImage;
             }
-        } else if (((x <= 1) || (x >= w - 2)) && (y == midY - 3||y == midY - 2) && (isWalkable(room,x , midY))) {
-            if (y == midY - 3) img = wallTopRimImage;
-            else if (y == midY - 2) img = wallBotRimImage;
+        }
+        // Extended West/East Hallway Wallpaper Rims (all the way to x = 0 and x = w - 1)
+        else if (((x <= padX + 1) || (x >= w - padX - 2))
+                && (y == doorY - 3 || y == doorY - 2)
+                && isWalkable(room, x, doorY)) {
+            if (y == doorY - 3) img = wallTopRimImage;
+            else if (y == doorY - 2) img = wallBotRimImage;
         } else {
-            // 2. Autotiling / Context-Aware Neighbor Checking for side walls, bottom wall, and doorways
+            // 2. Autotiling / Neighbor Checking
             boolean openNorth = isWalkable(room, x, y - 1);
             boolean openSouth = isWalkable(room, x, y + 1);
-            boolean openWest  = isWalkable(room, x - 1, y) || (1<=y && y<=3) && (x == w - 2);
-            boolean openEast  = isWalkable(room, x + 1, y) || (1<=y && y<=3) && (x == 1);
+            boolean openWest  = isWalkable(room, x - 1, y) || (y >= padY + 1 && y <= padY + 3 && x == w - padX - 2);
+            boolean openEast  = isWalkable(room, x + 1, y) || (y >= padY + 1 && y <= padY + 3 && x == padX + 1);
 
-            // Doorway and perimeter corner caps
-            if (openNorth && openWest) {
-                img = wallCornerTopLeftImage;
-            } else if (openNorth && openEast) {
-                img = wallCornerTopRightImage;
-            } else if (openSouth && openWest) {
-                img = wallCornerBottomLeftImage;
-            } else if (openSouth && openEast) {
-                img = wallCornerBottomRightImage;
-            }
-            // Straight borders facing walkable floor or doorway
-            else if (openWest) {
-                img = wallBorderLeftImage;
-            } else if (openEast) {
-                img = wallBorderRightImage;
-            } else if (openNorth) {
-                img = wallBorderTopImage;
-            } else if (openSouth) {
-                img = wallBorderBottomImage;
-            }
+            if (openNorth && openWest)      img = wallCornerTopLeftImage;
+            else if (openNorth && openEast) img = wallCornerTopRightImage;
+            else if (openSouth && openWest) img = wallCornerBottomLeftImage;
+            else if (openSouth && openEast) img = wallCornerBottomRightImage;
+            else if (openWest)              img = wallBorderLeftImage;
+            else if (openEast)              img = wallBorderRightImage;
+            else if (openNorth)             img = wallBorderTopImage;
+            else if (openSouth)             img = wallBorderBottomImage;
         }
 
-        // Render texture or fallback color
         if (img != null) {
             g2.drawImage(img, px, py, tileSize, tileSize, null);
         } else {

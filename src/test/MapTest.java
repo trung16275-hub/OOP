@@ -18,7 +18,7 @@ public class MapTest {
     }
 
     private static void testRoomCreation() {
-        Room room = new Room(30, 20, Room.RoomType.SPAWN);
+        Room room = new Room(Room.RoomSize.SCREEN, Room.RoomType.SPAWN);
         assert room.getWidth() == 30 : "Chiều rộng phòng phải là 30";
         assert room.getHeight() == 20 : "Chiều cao phòng phải là 20";
         assert room.getTile(0, 0) == TileType.WALL : "Góc (0, 0) phải là tường";
@@ -28,7 +28,7 @@ public class MapTest {
     }
 
     private static void testDoorCarving() {
-        Room room = new Room(30, 20, Room.RoomType.NORMAL);
+        Room room = new Room(Room.RoomSize.SCREEN, Room.RoomType.NORMAL);
         room.carveDoor(Direction.NORTH, false);
         room.carveDoor(Direction.SOUTH, true);
 
@@ -70,8 +70,8 @@ public class MapTest {
 
     private static void testRoomTransitions() {
         WorldMap map = new WorldMap(1);
-        Room r1 = new Room(30, 20, Room.RoomType.SPAWN);
-        Room r2 = new Room(30, 20, Room.RoomType.NORMAL);
+        Room r1 = new Room(Room.RoomSize.SCREEN, Room.RoomType.SPAWN);
+        Room r2 = new Room(Room.RoomSize.SCREEN, Room.RoomType.NORMAL);
         map.addRoom(4, 4, r1);
         map.addRoom(4, 3, r2); // r2 ở phía Bắc của r1
 
