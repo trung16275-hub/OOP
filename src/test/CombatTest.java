@@ -1,7 +1,7 @@
 package test;
 
 import model.Player;
-import model.Weapon;
+import model.weapon.Weapon;
 import model.boss.Boss1;
 
 public class CombatTest {
