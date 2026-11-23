@@ -11,6 +11,7 @@ import model.Player;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.boss.Boss3;
+import model.boss.Boss2;
 import screens.lighting.*;
 
 import javax.imageio.ImageIO;
@@ -157,6 +158,10 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             }
         }
             renderEnemy(g2, enemy);
+            // Hiệu ứng riêng của Boss2
+            if (enemy instanceof Boss2 boss2) {
+                renderBoss2Effects(g2, boss2);
+            }
             // Vẽ vòng sáng hồi máu đè lên thân Boss3
         if (enemy instanceof Boss3) {
             Boss3 boss3 = (Boss3) enemy;
@@ -374,12 +379,138 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
 
         }
     }
-        // Vẽ thân Enemy (khối đỏ)
+        // Vẽ hình dáng riêng cho Boss2
+        if (enemy instanceof Boss2) {
+            renderBoss2(g2, enemy);
+            return;
+        }
+
+// Enemy thông thường
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
         renderFacingMarker(g2, enemy);
     }
 
+    // Vẽ Boss2 theo hình dáng quái vật bò bằng bốn chân
+    private void renderBoss2(Graphics2D g2, Enemy enemy) {
+        Graphics2D g = (Graphics2D) g2.create();
+
+        try {
+            int x = (int) enemy.getX();
+            int y = (int) enemy.getY();
+            int w = enemy.getWidth();
+            int h = enemy.getHeight();
+
+            // Bốn chân
+            g.setColor(new Color(75, 65, 48));
+            g.setStroke(new BasicStroke(7f, BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND));
+
+            g.drawLine(x + 12, y + h - 15, x + 4, y + h + 5);
+            g.drawLine(x + 25, y + h - 12, x + 20, y + h + 7);
+            g.drawLine(x + w - 25, y + h - 12, x + w - 20, y + h + 7);
+            g.drawLine(x + w - 12, y + h - 15, x + w - 4, y + h + 5);
+
+            // Thân quái vật
+            g.setColor(new Color(100, 85, 62));
+            g.fillOval(x + 5, y + 12, w - 10, h - 18);
+
+            // Đầu
+            int headX = enemy.getFacingX() >= 0 ? x + w - 20 : x - 5;
+            g.setColor(new Color(65, 58, 45));
+            g.fillOval(headX, y + 15, 25, 25);
+
+            // Các bọc mủ trên lưng
+            g.setColor(new Color(145, 115, 65));
+            g.fillOval(x + 15, y + 8, 13, 13);
+            g.fillOval(x + 32, y + 3, 15, 15);
+            g.fillOval(x + 49, y + 9, 12, 12);
+
+            // Chi tiết các bọc mủ
+            g.setColor(new Color(190, 145, 75));
+            g.fillOval(x + 19, y + 11, 5, 5);
+            g.fillOval(x + 37, y + 7, 5, 5);
+            g.fillOval(x + 53, y + 12, 4, 4);
+
+            // Mắt
+            g.setColor(Color.RED);
+            int eyeX = enemy.getFacingX() >= 0 ? headX + 15 : headX + 5;
+            g.fillOval(eyeX, y + 23, 5, 5);
+
+        } finally {
+            g.dispose();
+        }
+    }
+
+    // Hiệu ứng nổ axit và lớp kén của Boss2
+    private void renderBoss2Effects(Graphics2D g2, Boss2 boss) {
+        Graphics2D g = (Graphics2D) g2.create();
+
+        try {
+            double centerX = boss.getX() + boss.getWidth() / 2.0;
+            double centerY = boss.getY() + boss.getHeight() / 2.0;
+
+            // Hiệu ứng vụ nổ
+            if (boss.isExploding()) {
+                double elapsed = System.nanoTime() - boss.getExplosionStart();
+
+                if (elapsed < 500_000_000L) {
+                    float progress = (float) (elapsed / 500_000_000.0);
+                    double radius = boss.getExplosionRadius() * progress;
+
+                    g.setColor(new Color(100, 220, 40, 65));
+                    g.fillOval(
+                            (int) (centerX - radius),
+                            (int) (centerY - radius),
+                            (int) (radius * 2),
+                            (int) (radius * 2)
+                    );
+
+                    g.setColor(new Color(150, 255, 50, 210));
+                    g.setStroke(new BasicStroke(4f));
+                    g.drawOval(
+                            (int) (centerX - radius),
+                            (int) (centerY - radius),
+                            (int) (radius * 2),
+                            (int) (radius * 2)
+                    );
+                }
+            }
+
+            // Lớp kén khi Boss2 còn ít máu
+            if (boss.isCocooned()) {
+                int x = (int) boss.getX() - 8;
+                int y = (int) boss.getY() - 8;
+                int w = boss.getWidth() + 16;
+                int h = boss.getHeight() + 16;
+
+                g.setColor(new Color(110, 95, 55, 190));
+                g.fillOval(x, y, w, h);
+
+                g.setColor(new Color(210, 185, 110));
+                g.setStroke(new BasicStroke(4f));
+                g.drawOval(x, y, w, h);
+
+                // Thanh HP kén
+                int barWidth = 70;
+                int barX = (int) centerX - barWidth / 2;
+                int barY = y - 12;
+
+                double ratio = (double) boss.getCocoonHP()
+                        / boss.getCocoonMaxHP();
+
+                g.setColor(Color.BLACK);
+                g.fillRect(barX, barY, barWidth, 7);
+
+                g.setColor(new Color(190, 160, 80));
+                g.fillRect(barX, barY,
+                        (int) (barWidth * ratio), 7);
+            }
+
+        } finally {
+            g.dispose();
+        }
+    }
     private void renderHitbox(Graphics2D g2, Combatant combatant) {
         double radius = combatant.getHitboxRadius();
         double diameter = radius * 2;
