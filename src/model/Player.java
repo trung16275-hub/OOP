@@ -1,5 +1,7 @@
 package model;
 
+import model.weapon.Weapon;
+
 // File: src/player/Player.java
 public class Player extends Combatant {
     // Chỉnh các chỉ số mặc định của Player tại đây.
@@ -65,13 +67,13 @@ public class Player extends Combatant {
 
     public void equip(Weapon w) {
         this.currentWeapon = w;
-        System.out.println("Đã trang bị: " + w.name);
+        System.out.println("Đã trang bị: " + w.getName());
     }
 
     @Override
     public void attack(Combatant target) {
         if (currentWeapon != null && target !=null) {
-            target.takeDamage(currentWeapon.damage);
+            target.takeDamage(currentWeapon.getDamage());
         }
     }
     @Override

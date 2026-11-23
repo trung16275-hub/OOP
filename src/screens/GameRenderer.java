@@ -35,7 +35,7 @@ public class GameRenderer {
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
-    
+    private BufferedImage armorImage;
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
@@ -59,6 +59,7 @@ public class GameRenderer {
         wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
         wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
         wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
+        armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
 
     }
     // Hàm cắt 1 hàng ngang thành mảng các frame
@@ -138,16 +139,54 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     private void renderPlayerStats(Graphics2D g2, Player player) {
         Graphics2D hud = (Graphics2D) g2.create();
         try {
-            // A light background keeps dark gray armor readable on the game map.
-            hud.setColor(new Color(235, 235, 240, 230));
-            hud.fillRoundRect(10, 10, 220, 70, 12, 12);
-            hud.setFont(new Font("SansSerif", Font.BOLD, 22));
+            hud.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 
-            hud.setColor(Color.RED);
-            hud.drawString("HP: " + player.getHp() + "/" + player.getMaxHp(), 20, 37);
+            int x = 10;
+            int y = 10;
+            int width = 200;
+            int height = 72;
 
-            hud.setColor(Color.DARK_GRAY);
-            hud.drawString("Armor: " + player.getArmor(), 20, 66);
+            // Khung HUD ngoài.
+            hud.setColor(new Color(70, 58, 43));
+            hud.fillRoundRect(x, y, width, height, 8, 8);
+            hud.setColor(new Color(180, 145, 95));
+            hud.fillRoundRect(x + 4, y + 4, width - 8, height - 8, 5, 5);
+            hud.setColor(new Color(215, 196, 150));
+            hud.drawRoundRect(x + 4, y + 4, width - 9, height - 9, 5, 5);
+
+            hud.setFont(new Font("Minecraftia", Font.BOLD, 18));
+
+            // Thanh HP.
+            hud.setColor(Color.BLACK);
+            hud.drawString("HP:", x + 12, y + 27);
+            hud.drawString(player.getHp() + "/" + player.getMaxHp(), x + 45, y + 27);
+
+            int hpBarX = x + 128;
+            int hpBarY = y + 13;
+            int hpBarWidth = 58;
+            int hpBarHeight = 16;
+            double hpRatio = player.getMaxHp() <= 0
+                    ? 0
+                    : (double) player.getHp() / player.getMaxHp();
+
+            hud.setColor(new Color(45, 32, 25));
+            hud.fillRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight);
+            hud.setColor(new Color(170, 35, 25));
+            hud.fillRect(hpBarX + 2, hpBarY + 2,
+                    (int) ((hpBarWidth - 4) * hpRatio), hpBarHeight - 4);
+
+            // Thanh Armor.
+            hud.setColor(Color.BLACK);
+            hud.drawString("Armor:", x + 12, y + 57);
+            hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
+
+
+            // Icon giáp đơn giản ở góc phải.
+            int iconX = x + 145;
+            int iconY = y + 25;
+            if (armorImage != null) {
+                hud.drawImage(armorImage, iconX, iconY, 40, 50, null);
+            }
         } finally {
             hud.dispose();
         }
@@ -478,6 +517,6 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
 
 
 }
-    
+
 
 
