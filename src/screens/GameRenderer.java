@@ -19,6 +19,10 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 public class GameRenderer {
+    // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
+    private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
+    private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
+
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
@@ -39,6 +43,10 @@ public class GameRenderer {
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
+        registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
+        registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
+        registerPlayerAnim("player_bat", "idle", "/player/bat/idle", 4);
+        registerPlayerAnim("player_bat", "walk", "/player/bat/walk", 4);
         registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
     registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
@@ -86,6 +94,17 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         animations.put(spriteKey + "_" + state, frames);
     }
 }
+
+    private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
+        BufferedImage[] frames = new BufferedImage[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = AssetLoader.loadImage(path + "_" + i + ".png");
+            if (frames[i] == null) {
+                return;
+            }
+        }
+        animations.put(spriteKey + "_" + state, frames);
+    }
     public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
         render(g2, player, enemy, room, null);
     }
@@ -254,10 +273,24 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        // Vẽ thân Player (khối xanh)
-        g2.setColor(new Color(52, 152, 219));
-        g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, player);
+        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
+        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+        String state = player.isMoving() ? "walk" : "idle";
+        BufferedImage[] frames = animations.get(spriteKey + "_" + state);
+        int frameDuration = player.isMoving()? PLAYER_WALK_FRAME_DURATION_MS:PLAYER_IDLE_FRAME_DURATION_MS;
+
+        if (frames != null && frames.length > 0) {
+            int frameIndex = (int) ((System.currentTimeMillis() / frameDuration) % frames.length);
+            if (player.isFacingLeft()) {
+                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+            } else {
+                g2.drawImage(frames[frameIndex], x, y, w, h, null);
+            }
+        } else {
+            // Fallback when player sprite assets are unavailable.
+            g2.setColor(new Color(52, 152, 219));
+            g2.fillOval(x, y, w, h);
+        }
     }
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
         

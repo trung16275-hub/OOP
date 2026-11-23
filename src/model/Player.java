@@ -7,7 +7,7 @@ public class Player extends Combatant {
     // Chỉnh các chỉ số mặc định của Player tại đây.
     private static final String DEFAULT_NAME = "Hero";
     private static final int DEFAULT_MAX_HP = 100;
-    private static final int DEFAULT_SPEED = 10;
+    private static final int DEFAULT_SPEED = 3;
     private static final int DEFAULT_ARMOR = 30;
     private static final int DEFAULT_WIDTH = 50;
     private static final int DEFAULT_HEIGHT = 50;
@@ -17,6 +17,8 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
+    private boolean moving;
+    private boolean facingLeft;
 
     //default constructor for testing
     public Player() {
@@ -36,6 +38,23 @@ public class Player extends Combatant {
     public Weapon getCurrentWeapon() {
         return currentWeapon;
     }
+
+    public boolean isMoving() {
+        return moving;
+    }
+
+    public void setMoving(boolean moving) {
+        this.moving = moving;
+    }
+
+    public boolean isFacingLeft() {
+        return facingLeft;
+    }
+
+    public void setFacingLeft(boolean facingLeft) {
+        this.facingLeft = facingLeft;
+    }
+
     public int getArmor ( )
     {
         return armor ;

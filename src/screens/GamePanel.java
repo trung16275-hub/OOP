@@ -116,7 +116,15 @@ public class GamePanel extends JPanel implements Runnable {
             moveY *= 0.7071;
         }
 
-        player.move(moveX,moveY,room);
+        double previousX = player.getX();
+        double previousY = player.getY();
+        player.move(moveX, moveY, room);
+        double movedX = player.getX() - previousX;
+        double movedY = player.getY() - previousY;
+        player.setMoving(movedX != 0 || movedY != 0);
+        if (movedX != 0) {
+            player.setFacingLeft(movedX < 0);
+        }
 
         // 2. Kiểm tra chuyển phòng
         Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
