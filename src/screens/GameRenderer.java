@@ -45,7 +45,7 @@ public class GameRenderer {
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
     registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
 
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_clean.png");
+        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
         wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
