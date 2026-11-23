@@ -4,9 +4,11 @@ import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss3;
+import screens.lighting.*;
 
 import java.awt.Point;
 import java.util.*;
+import java.awt.Color;
 
 /**
  * Bộ tạo bản đồ ngẫu nhiên cho hầm ngục.
@@ -81,6 +83,9 @@ public class MapGenerator {
         // Sinh quái vật vào các phòng
         populateEnemies(map, floorLevel);
 
+        // them den
+        populateLights(map);
+
         return map;
     }
 
@@ -144,6 +149,37 @@ public class MapGenerator {
             }
         }
     }
+
+    private void populateLights(WorldMap map) {
+        for (Room r : map.getRooms()) {
+            int innerLeftPx = (r.getPadX() + 2) * Room.TILE_SIZE;
+            int innerWidthPx = (r.getWidth() - (r.getPadX() + 2) * 2) * Room.TILE_SIZE;
+            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE; // Middle of North wall
+
+            // Place 2 tubes for normal/big rooms, 1 for small rooms
+            int tubeCount = (r.getWidth() - r.getPadX() * 2 <= 22) ? 1 : 2;
+
+            for (int i = 0; i < tubeCount; i++) {
+                double tubeX = innerLeftPx + innerWidthPx * ((i + 1.0) / (tubeCount + 1.0));
+                boolean flickers = (r.getRoomType() == Room.RoomType.BOSS) || (rand.nextInt(10) < 3);
+
+                if (r.getTile((int) tubeX / Room.TILE_SIZE, (int) wallY / Room.TILE_SIZE ) == TileType.FLOOR ||
+                        r.getTile((int) tubeX / Room.TILE_SIZE - 1, (int) wallY / Room.TILE_SIZE ) == TileType.FLOOR||
+                        r.getTile((int) tubeX / Room.TILE_SIZE + 1, (int) wallY / Room.TILE_SIZE) == TileType.FLOOR
+                ) continue;
+                r.addLight(new LightSource(
+                        LightSource.Type.FLUORESCENT_TUBE,
+                        tubeX,
+                        wallY,
+                        170f,
+                        new Color(220, 235, 190),
+                        0.85f,
+                        flickers
+                ));
+            }
+        }
+    }
+
     public void setBossRoom(WorldMap map, List<Point> roomPositions, Room spawnRoom) { //phong xa nhat vs spawn
         if (roomPositions.size() > 1) {
             Point spawnPoint = new Point(spawnRoom.getGridX(),spawnRoom.getGridY());

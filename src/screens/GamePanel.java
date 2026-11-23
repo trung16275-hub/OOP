@@ -9,6 +9,7 @@ import map.WorldMap;
 import model.Enemy;
 import model.Player;
 import screens.input.KeyHandler;
+import screens.lighting.*;
 
 import java.awt.*;
 import javax.swing.*;
@@ -59,11 +60,11 @@ public class GamePanel extends JPanel implements Runnable {
 
         // 3. Cập nhật kẻ địch trong phòng hiện tại
         updateRoomEntities();
-        
+
 
     }
-    
-    
+
+
 
     private void updateRoomEntities() {
         if (room != null && !room.getEnemies().isEmpty()) {
@@ -152,6 +153,9 @@ public class GamePanel extends JPanel implements Runnable {
         } else {
             player.resetFacing();
         }
+
+        //update light system
+        renderer.getLightSystem().update(room, 0.016);
 
     }
 
