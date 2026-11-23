@@ -229,8 +229,8 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
 
             if (player.getCurrentWeapon() instanceof Ak47 ak47) {
-                hud.drawString("Ammo:", x + 5, y + 85);
-                hud.drawString(ak47.getAmmo() + "/" + ak47.getMagazineSize(), x + 75, y + 85);
+                hud.drawString("Ammo: " + ak47.getAmmo() + "/" + ak47.getMagazineSize(),
+                    x + 10, y + 85);
             }
 
 
@@ -316,7 +316,10 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             : player.isMoving() ? PLAYER_WALK_FRAME_DURATION_MS : PLAYER_IDLE_FRAME_DURATION_MS;
 
         if (frames != null && frames.length > 0) {
-            int frameIndex = (int) ((System.currentTimeMillis() / frameDuration) % frames.length);
+                long animationTime = player.isAttacking()
+                    ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
+                    : System.currentTimeMillis();
+                int frameIndex = (int) ((animationTime / frameDuration) % frames.length);
             BufferedImage frame = frames[frameIndex];
             int drawHeight = h;
             int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());

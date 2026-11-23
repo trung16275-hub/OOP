@@ -10,6 +10,7 @@ import model.Enemy;
 import model.Player;
 import model.Projectile;
 import model.weapon.Ak47;
+import model.weapon.Bat;
 import screens.input.KeyHandler;
 
 import java.awt.*;
@@ -20,6 +21,7 @@ import javax.swing.*;
 import model.boss.Boss3;
 public class GamePanel extends JPanel implements Runnable {
     private static final long AK47_FIRE_INTERVAL_MS = 180;
+    private static final long BAT_ATTACK_INTERVAL_MS = 450;
     private static final int PLAYER_ATTACK_ANIMATION_MS = 320;
 
     private MainGame mainFrame;
@@ -29,6 +31,8 @@ public class GamePanel extends JPanel implements Runnable {
     // Entities
     private Player player;
     private Enemy currentEnemy;
+    private Ak47 ak47;
+    private Bat bat;
     private long nextShotTime;
     private final List<Projectile> projectiles = new ArrayList<>();
     private static final double PROJECTILE_SPEED = 12.0;
@@ -65,7 +69,9 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         this.player = new Player();
-        this.player.equip(new Ak47());
+        this.ak47 = new Ak47();
+        this.bat = new Bat();
+        this.player.equip(ak47);
         this.player.setX(180);
         this.player.setY(260);
 
@@ -83,6 +89,15 @@ public class GamePanel extends JPanel implements Runnable {
         } else {
             this.currentEnemy = null;
         }
+    }
+
+    private void toggleWeapon() {
+        if (player.getCurrentWeapon() instanceof Ak47) {
+            player.equip(bat);
+        } else {
+            player.equip(ak47);
+        }
+        player.stopAttackAnimation();
     }
 
     public void startGameLoop() {
@@ -113,6 +128,10 @@ public class GamePanel extends JPanel implements Runnable {
         if (player.isDead()) {
             endGame();
             return;
+        }
+
+        if (keyH.consumeWeaponSwitchPress()) {
+            toggleWeapon();
         }
 
         double moveX = 0;
@@ -151,6 +170,13 @@ public class GamePanel extends JPanel implements Runnable {
                 projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY(),
                         PROJECTILE_SPEED, ak47.getDamage()));
                 nextShotTime = now + AK47_FIRE_INTERVAL_MS;
+            } else if (player.getCurrentWeapon() instanceof Bat) {
+                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
+                if (currentEnemy != null && !currentEnemy.isDead()
+                        && player.isWithinHitbox(currentEnemy)) {
+                    player.attack(currentEnemy);
+                }
+                nextShotTime = now + BAT_ATTACK_INTERVAL_MS;
             } else {
                 player.stopAttackAnimation();
             }
