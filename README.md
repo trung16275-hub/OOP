@@ -1,7 +1,7 @@
 Game Rules : 
 - Nhân vật có chỉ số HP, Ammor Tính theo chỉ số ( 100 - 30 ) . Speed 4 dang oke
 - Nhân vật chỉ có thể gây damage với vũ khí ( tạm thời sẽ là ak47 và gậy ).
-- 
+- Space để bắn / chém và T để đổi vũ khí ( tạm thời 2 vũ khí ) .
 - 
 - 
 TO DO LIST :
