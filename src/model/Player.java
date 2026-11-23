@@ -19,6 +19,7 @@ public class Player extends Combatant {
     private Weapon currentWeapon;
     private boolean moving;
     private boolean facingLeft;
+    private long attackAnimationStartTime;
     private long attackAnimationEndTime;
     private double aimX = 1;
     private double aimY;
@@ -79,7 +80,12 @@ public class Player extends Combatant {
     }
 
     public void playAttackAnimation(int durationMs) {
-        attackAnimationEndTime = System.currentTimeMillis() + durationMs;
+        attackAnimationStartTime = System.currentTimeMillis();
+        attackAnimationEndTime = attackAnimationStartTime + durationMs;
+    }
+
+    public long getAttackAnimationStartTime() {
+        return attackAnimationStartTime;
     }
 
     public boolean isAttacking() {
@@ -88,6 +94,7 @@ public class Player extends Combatant {
 
     public void stopAttackAnimation() {
         attackAnimationEndTime = 0;
+        attackAnimationStartTime = 0;
     }
 
     public int getArmor ( )
