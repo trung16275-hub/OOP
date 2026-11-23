@@ -229,7 +229,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
 
             if (player.getCurrentWeapon() instanceof Ak47 ak47) {
-                hud.drawString("Ammo:", x + 12, y + 85);
+                hud.drawString("Ammo:", x + 5, y + 85);
                 hud.drawString(ak47.getAmmo() + "/" + ak47.getMagazineSize(), x + 75, y + 85);
             }
 
