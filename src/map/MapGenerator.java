@@ -38,7 +38,7 @@ public class MapGenerator {
         int spawnY = 3;
 
         // 1. Khởi tạo phòng SPAWN tại trung tâm (3, 3)
-        Room spawnRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.SPAWN);
+        Room spawnRoom = new Room(Room.RoomSize.SCREEN, Room.RoomType.SPAWN);
         map.addRoom(spawnX, spawnY, spawnRoom);
 
         List<Point> roomPositions = new ArrayList<>();
@@ -57,7 +57,15 @@ public class MapGenerator {
             if (nx >= 1 && nx <= WorldMap.GRID_SIZE - 2 && ny >= 1 && ny <= WorldMap.GRID_SIZE - 2 && !map.hasRoom(nx, ny)) {
                 // Kiểm tra số lượng phòng kề cận để tránh các cụm phòng hình vuông dày đặc
                 if (countAdjacentRooms(map, nx, ny) <= 2 && !createsSquareCluster(map, nx, ny)) {
-                    Room newRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.NORMAL);
+                    int roll = rand.nextInt(10);
+                    Room.RoomSize chosenSize;
+                    if (roll < 2) {
+                        chosenSize = Room.RoomSize.SMALL;
+                    } else if (roll < 8) {
+                        chosenSize = Room.RoomSize.SCREEN;
+                    } else chosenSize = Room.RoomSize.BIG;
+
+                    Room newRoom = new Room(chosenSize, Room.RoomType.NORMAL);
                     map.addRoom(nx, ny, newRoom);
                     roomPositions.add(new Point(nx, ny));
                 }
@@ -65,7 +73,7 @@ public class MapGenerator {
         }
 
         // Chọn 1 phòng bình thường xa spawn nhất làm boss room
-        setBossRoom(map,roomPositions, spawnRoom);
+        setBossRoom(map, roomPositions, spawnRoom);
 
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);
@@ -96,6 +104,20 @@ public class MapGenerator {
                 int ny = r.getGridY() + dir.getDy();
 
                 if (map.hasRoom(nx, ny)) {
+                    // Determine door position using the seed if not already set
+                    if (!r.getDoors().containsKey(dir)) {
+                        int offset;
+                        if (dir == Direction.NORTH || dir == Direction.SOUTH) {
+                            int minX = 3;
+                            int maxX = r.getWidth() - 4;
+                            offset = minX + rand.nextInt(Math.max(1, maxX - minX + 1));
+                        } else {
+                            int minY = 5;
+                            int maxY = r.getHeight() - 4;
+                            offset = minY + rand.nextInt(Math.max(1, maxY - minY + 1));
+                        }
+                        r.setDoorOffset(dir, offset);
+                    }
                     r.carveDoor(dir, r.isCleared());
                 }
             }
@@ -135,9 +157,10 @@ public class MapGenerator {
                     bossPoint = p;
                 }
             }
-            Room bossRoom = map.getRoom(bossPoint.x, bossPoint.y);
-            if (bossRoom != null && bossRoom.getRoomType() != Room.RoomType.SPAWN) {
-                bossRoom.setRoomType(Room.RoomType.BOSS);
+            Room foundRoom = map.getRoom(bossPoint.x, bossPoint.y);
+            if (foundRoom != null && foundRoom.getRoomType() != Room.RoomType.SPAWN) {
+                Room bossRoom = new Room(Room.RoomSize.BIG, Room.RoomType.BOSS);
+                map.addRoom(bossPoint.x, bossPoint.y, bossRoom);
             }
         }
     }
