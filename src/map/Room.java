@@ -204,22 +204,22 @@ public class Room {
             // Came from North -> spawn at South entrance on connecting floor tile (height - 2)
             case NORTH -> {
                 int southDoorX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-                yield new Point(southDoorX - 16, (height - 2) * TILE_SIZE - 20);
+                yield new Point(southDoorX - 16, (height - 3) * TILE_SIZE);
             }
             // Came from South -> spawn at North entrance on connecting floor tile (row 1)
             case SOUTH -> {
                 int northDoorX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-                yield new Point(northDoorX - 16, 1 * TILE_SIZE + 4);
+                yield new Point(northDoorX - 16, 1 * TILE_SIZE + 25);
             }
             // Came from West -> spawn at East entrance on connecting floor tile (width - 2)
             case WEST -> {
                 int eastDoorY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-                yield new Point((width - 2) * TILE_SIZE - 20, eastDoorY);
+                yield new Point((width - 2) * TILE_SIZE - 30, eastDoorY);
             }
             // Came from East -> spawn at West entrance on connecting floor tile (column 1)
             case EAST -> {
                 int westDoorY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-                yield new Point(1 * TILE_SIZE + 6, westDoorY);
+                yield new Point(1 * TILE_SIZE + 16, westDoorY);
             }
         };
     }
