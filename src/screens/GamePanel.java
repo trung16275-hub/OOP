@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.swing.*;
 import model.boss.Boss3;
+import model.boss.Boss4;
 public class GamePanel extends JPanel implements Runnable {
     private static final long AK47_FIRE_INTERVAL_MS = 180;
     private static final long BAT_ATTACK_INTERVAL_MS = 450;

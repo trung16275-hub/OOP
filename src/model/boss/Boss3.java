@@ -66,14 +66,20 @@ public void attack(Combatant target) {
         jumpAnimEndTime = System.nanoTime() + JUMP_ANIM_DURATION_NANOS;
     }
 }
+@Override 
+public String getSpritePath() {
+    if (isFiringLaser) return "boss3/super-cool-robot-fire.png";
+    if (isHealing)     return "boss3/super-cool-robot-idle.png";
+    if (System.nanoTime() < jumpAnimEndTime) return "boss3/super-cool-robot-jump.png";
+    return "boss3/super-cool-robot-run.png";
+}
+
 @Override
-public String getAnimState() {
-    if (isFiringLaser) return "jump";
-    if (isHealing) return "idle";
-    if (System.nanoTime() < jumpAnimEndTime) {
-        return "fire";
-    }
-    return "run";
+public int getSpriteFrameCount() {
+    if (isFiringLaser) return 4;
+    if (isHealing)     return 9;
+    if (System.nanoTime() < jumpAnimEndTime) return 7;
+    return 9;
 }
     @Override
     public void updateBehavior(Player player,Room room) {

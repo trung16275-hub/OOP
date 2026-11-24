@@ -7,11 +7,24 @@ public class KeyHandler implements KeyListener {
     public boolean spacePressed;
     private boolean weaponSwitchDown;
     private boolean weaponSwitchPressed;
-
+    // Thêm 2 biến bắt sự kiện bấm 1 lần (dùng cho Nước Hạnh Nhân & vùng thoát)
+    private boolean spaceJustPressed;
+    private int struggleTapCount;
     public boolean consumeWeaponSwitchPress() {
         boolean pressed = weaponSwitchPressed;
         weaponSwitchPressed = false;
         return pressed;
+    }
+    public boolean consumeSpacePress() {
+        boolean pressed = spaceJustPressed;
+        spaceJustPressed = false;
+        return pressed;
+    }
+
+    public int consumeStruggleTaps() {
+        int taps = struggleTapCount;
+        struggleTapCount = 0;
+        return taps;
     }
 
     @Override
@@ -22,6 +35,29 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT)  leftPressed = true;
         if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) rightPressed = true;
         if (code == KeyEvent.VK_SPACE) spacePressed = true;
+        if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+            if (!upPressed) struggleTapCount++;
+            upPressed = true;
+        }
+        if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+            if (!downPressed) struggleTapCount++;
+            downPressed = true;
+        }
+        if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT) {
+            if (!leftPressed) struggleTapCount++;
+            leftPressed = true;
+        }
+        if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) {
+            if (!rightPressed) struggleTapCount++;
+            rightPressed = true;
+        }
+        if (code == KeyEvent.VK_SPACE) {
+            if (!spacePressed) {
+                spaceJustPressed = true;
+                struggleTapCount++;
+            }
+            spacePressed = true;
+        }
         if (code == KeyEvent.VK_T && !weaponSwitchDown) {
             weaponSwitchDown = true;
             weaponSwitchPressed = true;

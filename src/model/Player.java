@@ -1,7 +1,10 @@
 package model;
 
 import model.weapon.Weapon;
-
+import model.weapon.AlmondWater;
+import java.util.Collections;
+import java.util.List;
+import model.boss.Boss4;
 // File: src/player/Player.java
 public class Player extends Combatant {
     // Chỉnh các chỉ số mặc định của Player tại đây.
@@ -13,7 +16,8 @@ public class Player extends Combatant {
     private static final int DEFAULT_HEIGHT = 60;
     private static final double DEFAULT_HITBOX_RADIUS = 60;
     private static final double DEFAULT_DETECTION_RANGE = 250.0;
-
+    private String statusMessage = "";
+    private long statusMessageEndTime = 0L;
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
@@ -135,8 +139,51 @@ public class Player extends Combatant {
     public void attack(Combatant target) {
         if (currentWeapon != null && target != null && currentWeapon.consumeAmmo()) {
             target.takeDamage(currentWeapon.getDamage());
-        }
+    attack(target, null);
+}
     }
+
+// Hàm đầy đủ hỗ trợ vật phẩm diện rộng như Nước Hạnh Nhân
+public void attack(Combatant target, List<Enemy> enemies) {
+    if (currentWeapon == null) {
+        return;
+    }
+
+    // 1. Luồng dùng Nước Hạnh Nhân (không cần target != null)
+    if (currentWeapon instanceof AlmondWater) {
+        AlmondWater water = (AlmondWater) currentWeapon;
+
+        // Phòng trường hợp nơi gọi chưa truyền list enemies nhưng có target là Boss4
+        if (enemies == null && target instanceof Boss4) {
+            enemies = Collections.singletonList((Enemy) target);
+        }
+
+        if (water.use(this, enemies)) {
+            showStatusMessage("Đã dùng Nước Hạnh Nhân! Còn lại: " + water.getUsesLeft() + " chai");
+        } else {
+            showStatusMessage("Đã hết Nước Hạnh Nhân!");
+        }
+        return;
+    }
+
+    // 2. Luồng dùng vũ khí gây sát thương bình thường
+    if (target != null) {
+        target.takeDamage(currentWeapon.getDamage());
+    }
+}
+
+public void showStatusMessage(String msg) {
+    this.statusMessage = msg;
+    this.statusMessageEndTime = System.nanoTime() + 2_000_000_000L; // Hiện trong 2 giây
+    System.out.println(msg); // In thêm ra terminal để dễ kiểm tra
+}
+
+public String getStatusMessage() {
+    if (System.nanoTime() < statusMessageEndTime) {
+        return statusMessage;
+    }
+    return "";
+}
     @Override
     public void takeDamage ( int dmg )
     {
@@ -148,5 +195,8 @@ public class Player extends Combatant {
         armor -= absorbed ;
         super.takeDamage ( dmg - absorbed ) ;
     }
+    private boolean grabbed = false;
 
+public boolean isGrabbed() { return grabbed; }
+public void setGrabbed(boolean grabbed) { this.grabbed = grabbed; }
 }
