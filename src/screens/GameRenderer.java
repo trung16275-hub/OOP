@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.IdentityHashMap;
 
 public class GameRenderer {
     // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
@@ -54,7 +54,11 @@ public class GameRenderer {
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
     private BufferedImage armorImage;
+    private final Map<Enemy, String> lastEnemyStates =
+        new IdentityHashMap<>();
 
+    private final Map<Enemy, Long> enemyStateStartTimes =
+        new IdentityHashMap<>();
     //Light System
     private final LightSystem lightSystem = new LightSystem();
 
@@ -75,6 +79,8 @@ registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
 registerAnim("boss1", "run", "assets/boss1/run.png", 4);
 registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
 registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
+registerAnim("boss1", "hurt",  "assets/boss1/hurt.png", 4);
+registerAnim("boss1", "death", "assets/boss1/death.png", 4);
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
@@ -157,29 +163,43 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         // 3. Render room & entities
         renderRoom(g2, room);
 
-        if (enemy != null && !enemy.isDead()) {
-            renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                    new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                    // Vẽ 4 tia laze dưới thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
+        
+if (enemy != null) {
+
+    // Chỉ vẽ vùng phát hiện khi Enemy còn sống
+    if (!enemy.isDead()) {
+        renderDetectionRange(
+                g2,
+                enemy,
+                enemy.getDetectionRange(),
+                new Color(0, 255, 0, 22),
+                new Color(0, 255, 0, 190)
+        );
+
+        // Hiệu ứng Boss 3
+        if (enemy instanceof Boss3 boss3) {
             if (boss3.isFiringLaser()) {
                 renderBoss3Lasers(g2, boss3);
             }
         }
-            renderEnemy(g2, enemy);
-            // Hiệu ứng riêng của Boss2
-            if (enemy instanceof Boss2 boss2) {
-                renderBoss2Effects(g2, boss2);
-            }
-            // Vẽ vòng sáng hồi máu đè lên thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
+
+        // Hiệu ứng Boss 2
+        if (enemy instanceof Boss2 boss2) {
+            renderBoss2Effects(g2, boss2);
+        }
+
+        // Hiệu ứng hồi máu Boss 3
+        if (enemy instanceof Boss3 boss3) {
             if (boss3.isHealing()) {
                 renderBoss3Healing(g2, boss3);
             }
         }
-        }
+    }
+
+    // Quan trọng: vẫn vẽ Enemy khi đã chết
+    renderEnemy(g2, enemy);
+}
+
         if (player != null && !player.isDead()) {
             renderDetectionRange(g2, player, player.getDetectionRange(),
                     new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
@@ -380,9 +400,19 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
     if (key != null) {
 
-        String state = enemy.getAnimState();
-        BufferedImage[] frames = animations.get(key + "_" + state);
+      String state = enemy.getAnimState();
 
+String previousState = lastEnemyStates.get(enemy);
+
+if (!state.equals(previousState)) {
+    lastEnemyStates.put(enemy, state);
+    enemyStateStartTimes.put(
+            enemy,
+            System.currentTimeMillis()
+    );
+}
+
+BufferedImage[] frames = animations.get(key + "_" + state);
         if (frames != null && frames.length > 0) {
 
             int frameDuration = 100;
@@ -405,13 +435,36 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
                     case "lunge":
                         frameDuration = BOSS1_LUNGE_FRAME_DURATION_MS;
                         break;
+                    case "hurt":
+                        frameDuration = 80;
+    break;
+
+                    case "death":
+                        frameDuration = 150;
+    break;
                 }
             }
 
-            int frameIndex = (int) (
-                    (System.currentTimeMillis() / frameDuration)
-                    % frames.length
+            int frameIndex;
+
+if ("death".equals(state)) {
+    // Death chạy một lần rồi giữ frame cuối
+    long elapsed = System.currentTimeMillis()
+            - enemyStateStartTimes.getOrDefault(
+                    enemy, System.currentTimeMillis()
             );
+
+    frameIndex = Math.min(
+            (int) (elapsed / frameDuration),
+            frames.length - 1
+    );
+} else {
+    // Những animation khác vẫn lặp
+    frameIndex = (int) (
+            (System.currentTimeMillis() / frameDuration)
+            % frames.length
+    );
+}
 
             if (enemy.getFacingX() >= 0) {
                 g2.drawImage(

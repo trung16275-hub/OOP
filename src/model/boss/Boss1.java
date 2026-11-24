@@ -35,7 +35,9 @@ public class Boss1 extends Enemy {
         IDLE,
         CHASE,
         DASH_STRIKE,
-        LUNGE_BITE
+        LUNGE_BITE,
+        HURT,
+        DEATH
     }
 
     private BossState state = BossState.IDLE;
@@ -52,6 +54,11 @@ public class Boss1 extends Enemy {
 
     private boolean dashHit;
     private boolean lungeHit;
+
+    private static final long HURT_DURATION = 300_000_000L;
+
+    private long hurtStartTime;
+    
 
     public Boss1() {
         this(DEFAULT_HITBOX_RADIUS);
@@ -72,64 +79,91 @@ public class Boss1 extends Enemy {
     }
 
     @Override
-    public void updateBehavior(Player player, Room room) {
-
-        if (isDead()) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        if (player == null || player.isDead()) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        long now = System.nanoTime();
-        double distance = distanceTo(player);
-
-        // Ưu tiên hoàn thành skill đang chạy
-        if (state == BossState.DASH_STRIKE) {
-            updateDash(player, room, now);
-            return;
-        }
-
-        if (state == BossState.LUNGE_BITE) {
-            updateLunge(player, room, now);
-            return;
-        }
-
-        // Boss không phát hiện Player
-        if (!canDetect(player)) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        // Chỉ quay hướng Player khi không thực hiện skill
-        faceToward(player);
-
-        // Skill 2: Vồ áp sát
-        if (distance <= LUNGE_TRIGGER_DISTANCE
-                && canUseLunge(now)) {
-
-            startLunge(player, now);
-            updateLunge(player, room, now);
-            return;
-        }
-
-        // Skill 1: Lao tới
-        if (distance >= DASH_MIN_RANGE
-                && distance <= DASH_MAX_RANGE
-                && canUseDash(now)) {
-
-            startDash(player, now);
-            updateDash(player, room, now);
-            return;
-        }
-
-        // Truy đuổi thông thường
-        state = BossState.CHASE;
-        chase(player, room);
+protected void onDamaged() {
+    if (isDead()) {
+        state = BossState.DEATH;
+        
+    } else {
+        state = BossState.HURT;
+        hurtStartTime = System.nanoTime();
     }
+}
+
+  
+  
+@Override
+public void updateBehavior(Player player, Room room) {
+
+    long now = System.nanoTime();
+
+    // 1. Boss đã chết: giữ nguyên trạng thái DEATH
+    if (isDead()) {
+        state = BossState.DEATH;
+        return;
+    }
+
+    // 2. Boss đang bị đánh: ưu tiên animation HURT
+    if (state == BossState.HURT) {
+        if (now - hurtStartTime < HURT_DURATION) {
+            return;
+        }
+
+        // Hết thời gian Hurt, quay lại truy đuổi
+        state = BossState.CHASE;
+    }
+
+    // 3. Player không hợp lệ
+    if (player == null || player.isDead()) {
+        state = BossState.IDLE;
+        return;
+    }
+
+    double distance = distanceTo(player);
+
+    // 4. Ưu tiên hoàn thành skill đang chạy
+    if (state == BossState.DASH_STRIKE) {
+        updateDash(player, room, now);
+        return;
+    }
+
+    if (state == BossState.LUNGE_BITE) {
+        updateLunge(player, room, now);
+        return;
+    }
+
+    // 5. Boss không phát hiện Player
+    if (!canDetect(player)) {
+        state = BossState.IDLE;
+        return;
+    }
+
+    // 6. Chỉ quay hướng Player khi không thực hiện skill
+    faceToward(player);
+
+    // 7. Skill 2: Vồ áp sát
+    if (distance <= LUNGE_TRIGGER_DISTANCE
+            && canUseLunge(now)) {
+
+        startLunge(player, now);
+        updateLunge(player, room, now);
+        return;
+    }
+
+    // 8. Skill 1: Lao tới
+    if (distance >= DASH_MIN_RANGE
+            && distance <= DASH_MAX_RANGE
+            && canUseDash(now)) {
+
+        startDash(player, now);
+        updateDash(player, room, now);
+        return;
+    }
+
+    // 9. Truy đuổi thông thường
+    state = BossState.CHASE;
+    chase(player, room);
+}
+
 
     // =========================
     // SKILL 1: LAO TỚI
@@ -253,6 +287,12 @@ public class Boss1 extends Enemy {
 
             case CHASE:
                 return "run";
+
+                 case HURT:
+            return "hurt";
+
+            case DEATH:
+                return "death";
 
             case IDLE:
             default:

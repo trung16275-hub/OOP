@@ -131,9 +131,22 @@ public abstract class Combatant {
     }
 
     public void takeDamage(int dmg) {
-        if(dmg <= 0) return ;
-        this.hp = Math.max(0, this.hp - dmg);
+    if (dmg <= 0 || isDead()) {
+        return;
     }
+
+    int oldHp = this.hp;
+    this.hp = Math.max(0, this.hp - dmg);
+
+    if (this.hp < oldHp) {
+        onDamaged();
+    }
+}
+
+protected void onDamaged() {
+    // Mặc định không làm gì.
+    // Boss có thể override để xử lý animation Hurt/Death.
+}
 
     public boolean isDead() {
         return hp<=0;
