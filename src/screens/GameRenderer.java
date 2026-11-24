@@ -1,35 +1,31 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
+import map.Direction;
 import model.Combatant;
 import model.Enemy;
 import model.Player;
 import model.Projectile;
-import model.weapon.Ak47;
-import model.boss.Boss3;
-import screens.lighting.*;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import model.boss.Boss3;
+import model.boss.Boss4;
+import screens.lighting.LightSystem;
+
+import java.util.Collections;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
+import java.util.List;
+import javax.imageio.ImageIO;
 
 public class GameRenderer {
-    // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
-    private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
-    private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
-    private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
-
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
@@ -45,28 +41,11 @@ public class GameRenderer {
     private BufferedImage wallCornerBottomRightImage;
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
-    private Map<String, BufferedImage[]> animations = new HashMap<>();
-    private BufferedImage heartImage;
-    private BufferedImage bulletImage;
     private BufferedImage armorImage;
-    private int lastAk47Ammo = 30;
-    private int lastAk47MagazineSize = 30;
-
-    //Light System
-    private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
         // Preload tiles from assets/tiles/
-        registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
-        registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
-        registerPlayerAnim("player_ak47", "attack", "/player/ak47/attack", 4);
-        registerPlayerAnim("player_bat", "idle", "/player/bat/idle", 4);
-        registerPlayerAnim("player_bat", "walk", "/player/bat/walk", 4);
-        registerPlayerAnim("player_bat", "attack", "/player/bat/attack", 4);
-        registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
-    registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
-    registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
-    registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
+        
 
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
@@ -84,127 +63,130 @@ public class GameRenderer {
         wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
         wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
-        heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
-        bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
 
     }
-    // Hàm cắt 1 hàng ngang thành mảng các frame
-private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
-    try {
-        BufferedImage sheet = ImageIO.read(new File(path));
-        int frameWidth = sheet.getWidth() / frameCount;
-        int frameHeight = sheet.getHeight();
-
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
-        }
-        return frames;
-    } catch (IOException e) {
-        System.err.println("Không tìm thấy ảnh: " + path);
-        return null;
-    }
-}
-    // Hàm đăng ký animation cho 1 bộ sprite
-    private void registerAnim(String spriteKey, String state, String path, int frameCount) {
-    BufferedImage[] frames = loadSpriteSheet(path, frameCount);
-    if (frames != null) {
-        animations.put(spriteKey + "_" + state, frames);
-    }
+    
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap, List<Projectile> projectiles) {
+    List<Enemy> enemies = (room != null && room.getEnemies() != null)
+            ? room.getEnemies()
+            : Collections.emptyList();
+    renderScene(g2, player, enemies, room, worldMap, projectiles);
 }
 
-    private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = AssetLoader.loadImage(path + "_" + i + ".png");
-            if (frames[i] == null) {
-                return;
-            }
-        }
-        animations.put(spriteKey + "_" + state, frames);
+public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
+    render(g2, player, enemy, room, null);
+}
+
+public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
+    List<Enemy> enemies = (enemy != null)
+            ? Collections.singletonList(enemy)
+            : Collections.emptyList();
+    renderScene(g2, player, enemies, room, worldMap, null);
+}
+
+private void renderScene(Graphics2D g2, Player player, List<Enemy> enemies,
+                         Room room, WorldMap worldMap, List<Projectile> projectiles) {
+    // 1. Nền tối ngoài bản đồ
+    g2.setColor(Color.BLACK);
+    g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+
+    if (room == null || player == null) return;
+
+    int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
+    int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
+
+    int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
+            ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
+            : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
+    int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
+            ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
+            : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
+
+    // 2. Dịch chuyển camera vào thế giới game
+    g2.translate(-camX, -camY);
+    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+    // 3. Vẽ phòng
+    renderRoom(g2, room);
+
+    // 4. Vẽ toàn bộ quái / Boss trong phòng
+  for (Enemy enemy : enemies) {
+    if (enemy == null || enemy.isDead()) continue;
+
+    boolean boss4Hidden = (enemy instanceof Boss4) && ((Boss4) enemy).isSubmergedInWall();
+
+    if (!boss4Hidden) {
+        renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
+                new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
     }
-    public void render(Graphics2D g2, Player player, Room room) {
-        render(g2, player, room, null);
+
+    if (enemy instanceof Boss3) {
+        Boss3 boss3 = (Boss3) enemy;
+        if (boss3.isFiringLaser()) renderBoss3Lasers(g2, boss3);
+    }
+    if (enemy instanceof Boss4) {
+        renderBoss4SafeZone(g2, (Boss4) enemy);
     }
 
-    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap) {
-        render(g2, player, room, worldMap, java.util.Collections.emptyList());
+    if (boss4Hidden) {
+        renderBoss4WallShadow(g2, (Boss4) enemy);
+    } else {
+        renderEnemy(g2, enemy);
     }
 
-    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
-                       List<Projectile> projectiles) {
-        // 1. Fill entire screen with the abyss/void color BEFORE camera translation
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
-
-        int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
-        int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
-
-        int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
-                ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
-                : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
-        int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
-                ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
-                : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
-        // 2. Translate world
-        g2.translate(-camX, -camY);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        // 3. Render room & entities
-        renderRoom(g2, room);
-
-        for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
-                renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                        new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                // Vẽ 4 tia laze dưới thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isFiringLaser()) {
-                        renderBoss3Lasers(g2, boss3);
-                    }
-                }
-                renderEnemy(g2, enemy);
-                // Vẽ vòng sáng hồi máu đè lên thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isHealing()) {
-                        renderBoss3Healing(g2, boss3);
-                    }
-                }
-            }
-        }
-
-        if (player != null && !player.isDead()) {
-            renderDetectionRange(g2, player, player.getDetectionRange(),
-                    new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
-            renderPlayer(g2, player);
-        }
-        renderProjectiles(g2, projectiles);
-
-        for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
-                renderHitbox(g2, enemy);
-            }
-        }
-
-        if (player != null && !player.isDead()) {
-            renderHitbox(g2, player);
-        }
-
-        g2.translate(camX, camY); // reset before rendering HUD/minimap
-
-        lightSystem.render(g2, player, room, camX, camY);
-
-        if (worldMap != null) {
-            renderMiniMap(g2, worldMap);
-        }
-        if (player != null) {
-            renderPlayerStats(g2, player);
-        }
-
+    if (enemy instanceof Boss3) {
+        Boss3 boss3 = (Boss3) enemy;
+        if (boss3.isHealing()) renderBoss3Healing(g2, boss3);
     }
+    if (enemy instanceof Boss4) {
+        renderBoss4Arm(g2, (Boss4) enemy);
+    }
+}
+
+    // 5. Vẽ Player và đạn
+    if (!player.isDead()) {
+        renderDetectionRange(g2, player, player.getDetectionRange(),
+                new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
+        renderPlayer(g2, player);
+    }
+    renderProjectiles(g2, projectiles);
+
+    // 6. Vẽ hitbox
+    for (Enemy enemy : enemies) {   
+        if (enemy == null || enemy.isDead()) continue;
+        boolean boss4Hidden = (enemy instanceof Boss4) && ((Boss4) enemy).isSubmergedInWall();
+        if (!boss4Hidden) {
+            renderHitbox(g2, enemy);
+        }
+    }
+
+    if (!player.isDead()) {
+        renderHitbox(g2, player);
+    }
+
+    // Reset camera trước khi vẽ HUD / minimap
+    g2.translate(camX, camY);
+
+    if (worldMap != null) {
+        renderMiniMap(g2, worldMap);
+    }
+    renderPlayerStats(g2, player);
+}
+    private final LightSystem lightSystem = new LightSystem();
+
+public LightSystem getLightSystem() {
+    return lightSystem;
+}
+
+    
 
     private void renderPlayerStats(Graphics2D g2, Player player) {
+        String msg = player.getStatusMessage();
+if (!msg.isEmpty()) {
+    g2.setFont(new Font("Arial", Font.BOLD, 14));
+    g2.setColor(new Color(135, 206, 250));
+    g2.drawString(msg, (int) player.getX() - 50, (int) player.getY() - 15);
+}
         Graphics2D hud = (Graphics2D) g2.create();
         try {
             hud.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
@@ -212,7 +194,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             int x = 10;
             int y = 10;
             int width = 200;
-            int height = 80;
+            int height = 72;
 
             // Khung HUD ngoài.
             hud.setColor(new Color(70, 58, 43));
@@ -225,11 +207,9 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.setFont(new Font("Minecraftia", Font.BOLD, 18));
 
             // Thanh HP.
-            if (heartImage != null) {
-                hud.drawImage(heartImage, x + 10, y + 10, 28, 28, null);
-            }
             hud.setColor(Color.BLACK);
-            hud.drawString(player.getHp() + " / " + player.getMaxHp(), x + 43, y + 29);
+            hud.drawString("HP:", x + 12, y + 27);
+            hud.drawString(player.getHp() + "/" + player.getMaxHp(), x + 45, y + 27);
 
             int hpBarX = x + 128;
             int hpBarY = y + 13;
@@ -245,25 +225,18 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.fillRect(hpBarX + 2, hpBarY + 2,
                     (int) ((hpBarWidth - 4) * hpRatio), hpBarHeight - 4);
 
-            // Thanh Armor ở hàng dưới, bên trái.
+            // Thanh Armor.
             hud.setColor(Color.BLACK);
+            hud.drawString("Armor:", x + 12, y + 57);
+            hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
+
+
+            // Icon giáp đơn giản ở góc phải.
+            int iconX = x + 145;
+            int iconY = y + 25;
             if (armorImage != null) {
-                hud.drawImage(armorImage, x + 10, y + 43, 28, 28, null);
+                hud.drawImage(armorImage, iconX, iconY, 40, 50, null);
             }
-            hud.drawString(String.valueOf(player.getArmor()), x + 43, y + 64);
-
-            // Số đạn ở hàng dưới, bên phải.
-            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
-                lastAk47Ammo = ak47.getAmmo();
-                lastAk47MagazineSize = ak47.getMagazineSize();
-            }
-            if (bulletImage != null) {
-                hud.drawImage(bulletImage, x + 100, y + 33, 50, 50, null);
-            }
-            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize,
-                    x + 140, y + 64);
-
-
         } finally {
             hud.dispose();
         }
@@ -331,71 +304,36 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
-        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
-        String state = player.isAttacking() ? "attack" : player.isMoving() ? "walk" : "idle";
-        BufferedImage[] frames = animations.get(spriteKey + "_" + state);
-        int frameDuration = player.isAttacking()
-            ? PLAYER_ATTACK_FRAME_DURATION_MS
-            : player.isMoving() ? PLAYER_WALK_FRAME_DURATION_MS : PLAYER_IDLE_FRAME_DURATION_MS;
-
-        if (frames != null && frames.length > 0) {
-                long animationTime = player.isAttacking()
-                    ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
-                    : System.currentTimeMillis();
-                int frameIndex = (int) ((animationTime / frameDuration) % frames.length);
-            BufferedImage frame = frames[frameIndex];
-            int drawHeight = h;
-            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
-            int drawX = x + (w - drawWidth) / 2;
-            if (player.isFacingLeft()) {
-                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
-            } else {
-                g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
-            }
-        } else {
-            // Fallback when player sprite assets are unavailable.
-            g2.setColor(new Color(52, 152, 219));
-            g2.fillOval(x, y, w, h);
-        }
-    }
-
-    private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
-        g2.setColor(new Color(255, 220, 90));
-        for (Projectile projectile : projectiles) {
-            if (projectile.isActive()) {
-                Rectangle bounds = projectile.getBounds();
-                g2.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
-            }
-        }
-    }
-
-    private void renderEnemy(Graphics2D g2, Enemy enemy) {
-
-        int x = (int) enemy.getX();
-        int y = (int) enemy.getY();
-        int w = enemy.getWidth();
-        int h = enemy.getHeight();
-        String key = enemy.getSpriteKey();
-    if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
-        if (frames != null && frames.length > 0) {
-            int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
-            if(enemy.getFacingX() >= 0) {
-                g2.drawImage(frames[frameIndex], x, y, w, h, null);
-            } else {
-                // Lật ảnh theo chiều ngang
-                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
-            }
-            return;
-
-        }
-    }
-        // Vẽ thân Enemy (khối đỏ)
-        g2.setColor(new Color(231, 76, 60));
+        // Vẽ thân Player (khối xanh)
+        g2.setColor(new Color(52, 152, 219));
         g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, enemy);
+        renderFacingMarker(g2, player);
     }
+    private void renderEnemy(Graphics2D g2, Enemy enemy) {
+    int x = (int) enemy.getX();
+    int y = (int) enemy.getY();
+    int w = enemy.getWidth();
+    int h = enemy.getHeight();
+
+    BufferedImage[] frames = AssetLoader.getSpriteSheet(
+            enemy.getSpritePath(), enemy.getSpriteFrameCount());
+
+    if (frames != null && frames.length > 0) {
+        int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
+        if (enemy.getFacingX() < 0) {
+            g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+        } else {
+            g2.drawImage(frames[frameIndex], x, y, w, h, null);
+        }
+        return;
+    }
+    
+
+    // Fallback: Vẽ khối đỏ cho quái chưa có sprite
+    g2.setColor(new Color(231, 76, 60));
+    g2.fillOval(x, y, w, h);
+    renderFacingMarker(g2, enemy);
+}
 
     private void renderHitbox(Graphics2D g2, Combatant combatant) {
         double radius = combatant.getHitboxRadius();
@@ -506,7 +444,56 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                 }
             }
         }
+    }   
+    private void renderBoss4SafeZone(Graphics2D g2, Boss4 b4) {
+    if (!b4.isSafeZoneActive()) return;
+    Color oldColor = g2.getColor();
+    int r = (int) b4.getSafeZoneRadius();
+    g2.setColor(new Color(100, 200, 255, 55));
+    g2.fillOval((int) b4.getSafeZoneX() - r, (int) b4.getSafeZoneY() - r, r * 2, r * 2);
+    g2.setColor(oldColor);
+}   
+private void renderBoss4WallShadow(Graphics2D g2, Boss4 b4) {
+    Color oldColor = g2.getColor();
+    int cx = (int) (b4.getX() + b4.getWidth() / 2.0);
+    int cy = (int) (b4.getY() + b4.getHeight() / 2.0);
+    int pulse = (int) (Math.sin(System.currentTimeMillis() / 120.0) * 5);
+    int r = 24 + pulse;
+
+    g2.setColor(new Color(15, 10, 25, 150));
+    g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+    g2.setColor(new Color(90, 20, 40, 180));
+    g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+
+    g2.setColor(oldColor);
+}
+
+private void renderBoss4Arm(Graphics2D g2, Boss4 b4) {
+    if (!b4.isArmActive()) return;
+    Stroke oldStroke = g2.getStroke();
+    Color oldColor = g2.getColor();
+
+    g2.setColor(new Color(25, 20, 35));
+    g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+    g2.drawLine((int) b4.getArmStartX(), (int) b4.getArmStartY(),
+                (int) b4.getArmEndX(), (int) b4.getArmEndY());
+    g2.fillOval((int) b4.getArmEndX() - 10, (int) b4.getArmEndY() - 10, 20, 20);
+
+    g2.setStroke(oldStroke);
+    g2.setColor(oldColor);
+}
+
+private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
+    if (projectiles == null) return;
+    Color oldColor = g2.getColor();
+    g2.setColor(Color.YELLOW);
+    for (Projectile p : projectiles) {
+        if (p != null) {
+            g2.fillOval((int) p.getX() - 4, (int) p.getY() - 4, 8, 8);
+        }
     }
+    g2.setColor(oldColor);
+}
         private void renderBoss3Lasers(Graphics2D g2, Boss3 boss) {
         Stroke oldStroke = g2.getStroke();
         Color oldColor = g2.getColor();
@@ -620,7 +607,6 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
     }
 
-    public LightSystem getLightSystem() { return lightSystem; }
 
 }
 
