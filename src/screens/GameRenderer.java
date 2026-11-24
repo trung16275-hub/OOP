@@ -46,7 +46,11 @@ public class GameRenderer {
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
+    private BufferedImage heartImage;
+    private BufferedImage bulletImage;
     private BufferedImage armorImage;
+    private int lastAk47Ammo = 30;
+    private int lastAk47MagazineSize = 30;
 
     //Light System
     private final LightSystem lightSystem = new LightSystem();
@@ -80,6 +84,8 @@ public class GameRenderer {
         wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
         wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
+        heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
+        bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
 
     }
     // Hàm cắt 1 hàng ngang thành mảng các frame
@@ -206,7 +212,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             int x = 10;
             int y = 10;
             int width = 200;
-            int height = 96;
+            int height = 80;
 
             // Khung HUD ngoài.
             hud.setColor(new Color(70, 58, 43));
@@ -219,9 +225,11 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.setFont(new Font("Minecraftia", Font.BOLD, 18));
 
             // Thanh HP.
+            if (heartImage != null) {
+                hud.drawImage(heartImage, x + 10, y + 10, 28, 28, null);
+            }
             hud.setColor(Color.BLACK);
-            hud.drawString("HP:", x + 12, y + 27);
-            hud.drawString(player.getHp() + "/" + player.getMaxHp(), x + 45, y + 27);
+            hud.drawString(player.getHp() + " / " + player.getMaxHp(), x + 43, y + 29);
 
             int hpBarX = x + 128;
             int hpBarY = y + 13;
@@ -237,23 +245,25 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.fillRect(hpBarX + 2, hpBarY + 2,
                     (int) ((hpBarWidth - 4) * hpRatio), hpBarHeight - 4);
 
-            // Thanh Armor.
+            // Thanh Armor ở hàng dưới, bên trái.
             hud.setColor(Color.BLACK);
-            hud.drawString("Armor:", x + 12, y + 57);
-            hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
-
-            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
-                hud.drawString("Ammo: " + ak47.getAmmo() + "/" + ak47.getMagazineSize(),
-                    x + 10, y + 85);
-            }
-
-
-            // Icon giáp đơn giản ở góc phải.
-            int iconX = x + 145;
-            int iconY = y + 25;
             if (armorImage != null) {
-                hud.drawImage(armorImage, iconX, iconY, 40, 50, null);
+                hud.drawImage(armorImage, x + 10, y + 43, 28, 28, null);
             }
+            hud.drawString(String.valueOf(player.getArmor()), x + 43, y + 64);
+
+            // Số đạn ở hàng dưới, bên phải.
+            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
+                lastAk47Ammo = ak47.getAmmo();
+                lastAk47MagazineSize = ak47.getMagazineSize();
+            }
+            if (bulletImage != null) {
+                hud.drawImage(bulletImage, x + 100, y + 33, 50, 50, null);
+            }
+            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize,
+                    x + 140, y + 64);
+
+
         } finally {
             hud.dispose();
         }
