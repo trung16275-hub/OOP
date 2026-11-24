@@ -148,12 +148,4 @@ public class Player extends Combatant {
         armor -= absorbed ;
         super.takeDamage ( dmg - absorbed ) ;
     }
-
-    public boolean isFacingLeft() {
-        return facingLeft;
-    }
-
-    public void setFacingLeft(boolean facingLeft) {
-        this.facingLeft = facingLeft;
-    }
 }

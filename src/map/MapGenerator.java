@@ -4,27 +4,21 @@ import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss3;
-import screens.lighting.*;
+import screens.lighting.LightSource;
 
-import java.awt.Point;
-import java.util.*;
 import java.awt.Color;
 
 /**
- * Bộ tạo bản đồ ngẫu nhiên cho hầm ngục.
- * Tạo ra chuỗi phòng liên kết trên lưới 9x9, xác định phòng Boss, Shop và đặt cửa đối xứng.
+ * Bộ tạo bản đồ cố định cho chế độ test Boss.
+ * Sinh 1 phòng spawn ở giữa và 3 phòng boss kề bên.
  */
 public class MapGenerator {
-    private final Random rand;
-    private final long seed;
 
     public MapGenerator() {
-        this(System.currentTimeMillis());
     }
 
     public MapGenerator(long seed) {
-        this.seed = seed;
-        this.rand = new Random(seed);
+        // Seed được giữ để tương thích API cũ; map test hiện tại không sử dụng seed.
     }
 
     public WorldMap generateFloor(int floorLevel) {
@@ -70,21 +64,14 @@ public class MapGenerator {
                 int ny = r.getGridY() + dir.getDy();
 
                 if (map.hasRoom(nx, ny)) {
-                    // Determine door position using the seed if not already set
+                    // Fixed test layout: keep doors centered.
                     if (!r.getDoors().containsKey(dir)) {
-                        int offset;
-                        if (dir == Direction.NORTH || dir == Direction.SOUTH) {
-                            int minX = r.getPadX() + 3;
-                            int maxX = r.getWidth() - r.getPadX() - 4;
-                            offset = minX + rand.nextInt(Math.max(1, maxX - minX + 1));
-                        } else {
-                            int minY = r.getPadY() + 5;
-                            int maxY = r.getHeight() - r.getPadY() - 4;
-                            offset = minY + rand.nextInt(Math.max(1, maxY - minY + 1));
-                        }
+                        int offset = (dir == Direction.NORTH || dir == Direction.SOUTH)
+                                ? r.getWidth() / 2
+                                : r.getHeight() / 2;
                         r.setDoorOffset(dir, offset);
                     }
-                    r.carveDoor(dir, r.isCleared());
+                    r.carveOpenPath(dir);
                 }
             }
         }
@@ -120,7 +107,40 @@ public class MapGenerator {
         }
     }
 
+    private void populateLights(WorldMap map) {
+        for (Room r : map.getRooms()) {
+            int innerLeftPx = (r.getPadX() + 2) * Room.TILE_SIZE;
+            int innerWidthPx = (r.getWidth() - (r.getPadX() + 2) * 2) * Room.TILE_SIZE;
+            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE;
+
+            int tubeCount = (r.getWidth() - r.getPadX() * 2 <= 22) ? 1 : 2;
+
+            for (int i = 0; i < tubeCount; i++) {
+                double tubeX = innerLeftPx + innerWidthPx * ((i + 1.0) / (tubeCount + 1.0));
+                boolean flickers = false;
+
+                int tileX = (int) tubeX / Room.TILE_SIZE;
+                int tileY = wallY / Room.TILE_SIZE;
+                if (r.getTile(tileX, tileY) == TileType.FLOOR
+                        || r.getTile(tileX - 1, tileY) == TileType.FLOOR
+                        || r.getTile(tileX + 1, tileY) == TileType.FLOOR) {
+                    continue;
+                }
+
+                r.addLight(new screens.lighting.LightSource(
+                        screens.lighting.LightSource.Type.FLUORESCENT_TUBE,
+                        tubeX,
+                        wallY,
+                        170f,
+                        new Color(220, 235, 190),
+                        0.85f,
+                        flickers
+                ));
+            }
+        }
+    }
+
     public long getSeed() {
-        return seed;
+        return 0L;
     }
 }

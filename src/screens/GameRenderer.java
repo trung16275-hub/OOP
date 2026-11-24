@@ -53,7 +53,6 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        playerIdleImage = new ImageIcon("assets/player/ak47/idle.gif");
         // Preload tiles from assets/tiles/
         registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
         registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
@@ -617,6 +616,10 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                             g2.setColor(DOOR_CLOSED_COLOR);
                             g2.fillRect(px, py, tileSize, tileSize);
                         }
+                    }
+                    case PORTAL, VOID -> {
+                        g2.setColor(FLOOR_COLOR);
+                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                 }
             }
