@@ -28,10 +28,12 @@ public class GamePanel extends JPanel implements Runnable {
     private MainGame mainFrame;
     private Thread gameThread;
     private volatile boolean isRunning;
+    private final Object stateLock = new Object();
 
     // Entities
     private Player player;
-    private Enemy currentEnemy;
+
+    // Weapons
     private Ak47 ak47;
     private Bat bat;
     private long nextShotTime;
@@ -76,20 +78,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.setX(180);
         this.player.setY(260);
 
-        // 3. Cập nhật kẻ địch trong phòng hiện tại
-        updateRoomEntities();
-
-
-    }
-
-
-
-    private void updateRoomEntities() {
-        if (room != null && !room.getEnemies().isEmpty()) {
-            this.currentEnemy = room.getEnemies().get(0);
-        } else {
-            this.currentEnemy = null;
-        }
     }
 
     private void toggleWeapon() {
@@ -123,6 +111,12 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        synchronized (stateLock) {
+            updateState();
+        }
+    }
+
+    private void updateState() {
         // Cập nhật trạng thái quái vật, nhân vật di chuyển
 
         //1. Cập nhật nhân vật
@@ -173,9 +167,11 @@ public class GamePanel extends JPanel implements Runnable {
                 nextShotTime = now + AK47_FIRE_INTERVAL_MS;
             } else if (player.getCurrentWeapon() instanceof Bat) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                if (currentEnemy != null && !currentEnemy.isDead()
-                        && player.isWithinHitbox(currentEnemy)) {
-                    player.attack(currentEnemy);
+                for (Enemy e : room.getEnemies()) {
+                    if (e != null && !e.isDead()
+                            && player.isWithinHitbox(e)) {
+                        player.attack(e);
+                    }
                 }
                 nextShotTime = now + BAT_ATTACK_INTERVAL_MS;
             } else {
@@ -196,11 +192,22 @@ public class GamePanel extends JPanel implements Runnable {
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
                 projectiles.clear();
-                updateRoomEntities();
             }
         }
 
-        //3. Cap nhat cua
+
+        //3. Cập nhật Enemy
+
+        if (room.getEnemies()!=null) {
+            room.getEnemies().removeIf(Enemy::isDead);
+            for (Enemy e : room.getEnemies()) {
+                e.updateBehavior(player, room);
+                // player.faceToward(e); // Currently not used
+                // player.resetFacing();
+            }
+        }
+
+        //4. Cap nhat phong
         if (room != null) {
             if (room.getEnemies().isEmpty()) {
                 room.setCleared(true);
@@ -208,18 +215,6 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        //4. Cập nhật Enemy
-        if (currentEnemy != null && !currentEnemy.isDead()) {
-            currentEnemy.updateBehavior(player, room);
-
-            if (player.canDetect(currentEnemy)) {
-                player.faceToward(currentEnemy);
-            } else {
-                player.resetFacing();
-            }
-        } else {
-            player.resetFacing();
-        }
 
         //update light system
         renderer.getLightSystem().update(room, 0.016);
@@ -231,9 +226,12 @@ public class GamePanel extends JPanel implements Runnable {
         while (iterator.hasNext()) {
             Projectile projectile = iterator.next();
             projectile.update(room);
-            if (projectile.isActive() && projectile.hits(currentEnemy)) {
-                currentEnemy.takeDamage(projectile.getDamage());
-                projectile.deactivate();
+            for (Enemy e : room.getEnemies()) {
+                if (projectile.isActive() && projectile.hits(e)) {
+                    e.takeDamage(projectile.getDamage());
+                    projectile.deactivate();
+                    break;
+                }
             }
             if (!projectile.isActive()) {
                 iterator.remove();
@@ -260,6 +258,8 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        renderer.render((Graphics2D) g, player, currentEnemy, room, worldMap, projectiles);
+        synchronized (stateLock) {
+            renderer.render((Graphics2D) g, player, room, worldMap, projectiles);
+        }
     }
 }
