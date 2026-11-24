@@ -6,10 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
-import java.util.HashMap;
-import java.util.Map;
+
 public class AssetLoader {
-    private static final Map<String, BufferedImage[]> SPRITE_CACHE = new HashMap<>();
     public static BufferedImage loadImage(String path) {
         String cleanPath = path.startsWith("/") ? path : "/" + path;
         try (InputStream is = AssetLoader.class.getResourceAsStream(cleanPath)) {
@@ -32,27 +30,5 @@ public class AssetLoader {
 
         System.err.println("Asset not found: " + path);
         return null;
-    }
-    public static BufferedImage[] getSpriteSheet(String path, int frameCount) {
-        if (path == null || frameCount <= 0) return null;
-
-        // Nếu đã load rồi thì trả về ngay từ cache
-        if (SPRITE_CACHE.containsKey(path)) {
-            return SPRITE_CACHE.get(path);
-        }
-
-        // Chưa có thì đọc file, cắt frame rồi lưu vào cache
-        BufferedImage sheet = loadImage(path);
-        if (sheet == null) return null;
-
-        int frameWidth = sheet.getWidth() / frameCount;
-        int frameHeight = sheet.getHeight();
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
-        }
-
-        SPRITE_CACHE.put(path, frames);
-        return frames;
     }
 }
