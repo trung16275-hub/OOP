@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.swing.*;
-
+import model.boss.Boss4;
 public class GamePanel extends JPanel implements Runnable {
 
     private static final long AK47_FIRE_INTERVAL_MS = 180;
@@ -56,6 +56,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Renderer
     private GameRenderer renderer;
+    private Boss4 currentEnemy1;
 
     public GamePanel(MainGame mainFrame) {
         setPreferredSize(new Dimension(
@@ -91,6 +92,13 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.equip(ak47);
         this.player.setX(180);
         this.player.setY(260);
+        Boss4 testBoss = new Boss4(400, 200);
+        this.room.addEnemy(testBoss);
+        if (this.room != null) {
+        this.room.getEnemies().clear();
+        this.room.getEnemies().add(testBoss);
+    }
+    this.currentEnemy1 = testBoss;
 
         // Xóa đạn cũ nếu bắt đầu game mới
         projectiles.clear();

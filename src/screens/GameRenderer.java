@@ -11,7 +11,6 @@ import model.Player;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.boss.Boss3;
-import model.boss.Boss2;
 import screens.lighting.*;
 
 import javax.imageio.ImageIO;
@@ -23,8 +22,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import model.boss.Boss3;
+import model.boss.Boss4;
+import screens.lighting.LightSystem;
 
-
+import java.util.Collections;
 public class GameRenderer {
     // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
     private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
@@ -47,7 +49,11 @@ public class GameRenderer {
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
     private Map<String, BufferedImage[]> animations = new HashMap<>();
+    private BufferedImage heartImage;
+    private BufferedImage bulletImage;
     private BufferedImage armorImage;
+    private int lastAk47Ammo = 30;
+    private int lastAk47MagazineSize = 30;
 
     //Light System
     private final LightSystem lightSystem = new LightSystem();
@@ -81,6 +87,8 @@ public class GameRenderer {
         wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
         wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
+        heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
+        bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
 
     }
     // Hàm cắt 1 hàng ngang thành mảng các frame
@@ -118,85 +126,29 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
         animations.put(spriteKey + "_" + state, frames);
     }
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
-        render(g2, player, enemy, room, null);
+    public void render(Graphics2D g2, Player player, Room room) {
+        render(g2, player, room, null);
     }
 
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
-        render(g2, player, enemy, room, worldMap, java.util.Collections.emptyList());
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap) {
+        render(g2, player, room, worldMap, java.util.Collections.emptyList());
     }
 
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap,
-                       List<Projectile> projectiles) {
-        // 1. Fill entire screen with the abyss/void color BEFORE camera translation
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
-
-        int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
-        int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
-
-        int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
-                ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
-                : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
-        int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
-                ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
-                : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
-        // 2. Translate world
-        g2.translate(-camX, -camY);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        // 3. Render room & entities
-        renderRoom(g2, room);
-
-        if (enemy != null && !enemy.isDead()) {
-            renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                    new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                    // Vẽ 4 tia laze dưới thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
-            if (boss3.isFiringLaser()) {
-                renderBoss3Lasers(g2, boss3);
-            }
-        }
-            renderEnemy(g2, enemy);
-            // Hiệu ứng riêng của Boss2
-            if (enemy instanceof Boss2 boss2) {
-                renderBoss2Effects(g2, boss2);
-            }
-            // Vẽ vòng sáng hồi máu đè lên thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
-            if (boss3.isHealing()) {
-                renderBoss3Healing(g2, boss3);
-            }
-        }
-        }
-        if (player != null && !player.isDead()) {
-            renderDetectionRange(g2, player, player.getDetectionRange(),
-                    new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
-            renderPlayer(g2, player);
-        }
-        renderProjectiles(g2, projectiles);
-        if (enemy != null && !enemy.isDead()) {
-            renderHitbox(g2, enemy);
-        }
-        if (player != null && !player.isDead()) {
-            renderHitbox(g2, player);
-        }
-
-        g2.translate(camX, camY); // reset before rendering HUD/minimap
-
-        lightSystem.render(g2, player, room, camX, camY);
-
-        if (worldMap != null) {
-            renderMiniMap(g2, worldMap);
-        }
-        if (player != null) {
-            renderPlayerStats(g2, player);
-        }
-
-    }
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                   List<Projectile> projectiles) {
+    List<Enemy> enemies = (room != null && room.getEnemies() != null)
+            ? room.getEnemies()
+            : Collections.emptyList();
+    renderScene(g2, player, enemies, room, worldMap, projectiles);
+}
 
     private void renderPlayerStats(Graphics2D g2, Player player) {
+        String msg = player.getStatusMessage();
+if (!msg.isEmpty()) {
+    g2.setFont(new Font("Arial", Font.BOLD, 14));
+    g2.setColor(new Color(135, 206, 250));
+    g2.drawString(msg, (int) player.getX() - 50, (int) player.getY() - 15);
+}
         Graphics2D hud = (Graphics2D) g2.create();
         try {
             hud.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
@@ -204,7 +156,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             int x = 10;
             int y = 10;
             int width = 200;
-            int height = 96;
+            int height = 80;
 
             // Khung HUD ngoài.
             hud.setColor(new Color(70, 58, 43));
@@ -217,9 +169,11 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.setFont(new Font("Minecraftia", Font.BOLD, 18));
 
             // Thanh HP.
+            if (heartImage != null) {
+                hud.drawImage(heartImage, x + 10, y + 10, 28, 28, null);
+            }
             hud.setColor(Color.BLACK);
-            hud.drawString("HP:", x + 12, y + 27);
-            hud.drawString(player.getHp() + "/" + player.getMaxHp(), x + 45, y + 27);
+            hud.drawString(player.getHp() + " / " + player.getMaxHp(), x + 43, y + 29);
 
             int hpBarX = x + 128;
             int hpBarY = y + 13;
@@ -235,23 +189,25 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             hud.fillRect(hpBarX + 2, hpBarY + 2,
                     (int) ((hpBarWidth - 4) * hpRatio), hpBarHeight - 4);
 
-            // Thanh Armor.
+            // Thanh Armor ở hàng dưới, bên trái.
             hud.setColor(Color.BLACK);
-            hud.drawString("Armor:", x + 12, y + 57);
-            hud.drawString(String.valueOf(player.getArmor()), x + 75, y + 57);
-
-            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
-                hud.drawString("Ammo: " + ak47.getAmmo() + "/" + ak47.getMagazineSize(),
-                    x + 10, y + 85);
-            }
-
-
-            // Icon giáp đơn giản ở góc phải.
-            int iconX = x + 145;
-            int iconY = y + 25;
             if (armorImage != null) {
-                hud.drawImage(armorImage, iconX, iconY, 40, 50, null);
+                hud.drawImage(armorImage, x + 10, y + 43, 28, 28, null);
             }
+            hud.drawString(String.valueOf(player.getArmor()), x + 43, y + 64);
+
+            // Số đạn ở hàng dưới, bên phải.
+            if (player.getCurrentWeapon() instanceof Ak47 ak47) {
+                lastAk47Ammo = ak47.getAmmo();
+                lastAk47MagazineSize = ak47.getMagazineSize();
+            }
+            if (bulletImage != null) {
+                hud.drawImage(bulletImage, x + 100, y + 33, 50, 50, null);
+            }
+            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize,
+                    x + 140, y + 64);
+
+
         } finally {
             hud.dispose();
         }
@@ -349,6 +305,8 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     }
 
     private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
+        if (projectiles == null) return;
+    
         g2.setColor(new Color(255, 220, 90));
         for (Projectile projectile : projectiles) {
             if (projectile.isActive()) {
@@ -364,9 +322,9 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         int y = (int) enemy.getY();
         int w = enemy.getWidth();
         int h = enemy.getHeight();
-        String key = enemy.getSpriteKey();
+        String key = enemy.getSpritePath();
     if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
+        BufferedImage[] frames = animations.get(key + "_" + enemy.getSpriteFrameCount());
         if (frames != null && frames.length > 0) {
             int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
             if(enemy.getFacingX() >= 0) {
@@ -379,137 +337,24 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
 
         }
     }
-        // Vẽ hình dáng riêng cho Boss2
-        if (enemy instanceof Boss2) {
-            renderBoss2(g2, enemy);
-            return;
-        }
+    
+    BufferedImage[] frames = AssetLoader.getSpriteSheet(
+            enemy.getSpritePath(), enemy.getSpriteFrameCount());
 
-// Enemy thông thường
-        g2.setColor(new Color(231, 76, 60));
-        g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, enemy);
+    if (frames != null && frames.length > 0) {
+        int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
+        if (enemy.getFacingX() < 0) {
+            g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+        } else {
+            g2.drawImage(frames[frameIndex], x, y, w, h, null);
+        }
+        return;
     }
 
-    // Vẽ Boss2 theo hình dáng quái vật bò bằng bốn chân
-    private void renderBoss2(Graphics2D g2, Enemy enemy) {
-        Graphics2D g = (Graphics2D) g2.create();
-
-        try {
-            int x = (int) enemy.getX();
-            int y = (int) enemy.getY();
-            int w = enemy.getWidth();
-            int h = enemy.getHeight();
-
-            // Bốn chân
-            g.setColor(new Color(75, 65, 48));
-            g.setStroke(new BasicStroke(7f, BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND));
-
-            g.drawLine(x + 12, y + h - 15, x + 4, y + h + 5);
-            g.drawLine(x + 25, y + h - 12, x + 20, y + h + 7);
-            g.drawLine(x + w - 25, y + h - 12, x + w - 20, y + h + 7);
-            g.drawLine(x + w - 12, y + h - 15, x + w - 4, y + h + 5);
-
-            // Thân quái vật
-            g.setColor(new Color(100, 85, 62));
-            g.fillOval(x + 5, y + 12, w - 10, h - 18);
-
-            // Đầu
-            int headX = enemy.getFacingX() >= 0 ? x + w - 20 : x - 5;
-            g.setColor(new Color(65, 58, 45));
-            g.fillOval(headX, y + 15, 25, 25);
-
-            // Các bọc mủ trên lưng
-            g.setColor(new Color(145, 115, 65));
-            g.fillOval(x + 15, y + 8, 13, 13);
-            g.fillOval(x + 32, y + 3, 15, 15);
-            g.fillOval(x + 49, y + 9, 12, 12);
-
-            // Chi tiết các bọc mủ
-            g.setColor(new Color(190, 145, 75));
-            g.fillOval(x + 19, y + 11, 5, 5);
-            g.fillOval(x + 37, y + 7, 5, 5);
-            g.fillOval(x + 53, y + 12, 4, 4);
-
-            // Mắt
-            g.setColor(Color.RED);
-            int eyeX = enemy.getFacingX() >= 0 ? headX + 15 : headX + 5;
-            g.fillOval(eyeX, y + 23, 5, 5);
-
-        } finally {
-            g.dispose();
-        }
-    }
-
-    // Hiệu ứng nổ axit và lớp kén của Boss2
-    private void renderBoss2Effects(Graphics2D g2, Boss2 boss) {
-        Graphics2D g = (Graphics2D) g2.create();
-
-        try {
-            double centerX = boss.getX() + boss.getWidth() / 2.0;
-            double centerY = boss.getY() + boss.getHeight() / 2.0;
-
-            // Hiệu ứng vụ nổ
-            if (boss.isExploding()) {
-                double elapsed = System.nanoTime() - boss.getExplosionStart();
-
-                if (elapsed < 500_000_000L) {
-                    float progress = (float) (elapsed / 500_000_000.0);
-                    double radius = boss.getExplosionRadius() * progress;
-
-                    g.setColor(new Color(100, 220, 40, 65));
-                    g.fillOval(
-                            (int) (centerX - radius),
-                            (int) (centerY - radius),
-                            (int) (radius * 2),
-                            (int) (radius * 2)
-                    );
-
-                    g.setColor(new Color(150, 255, 50, 210));
-                    g.setStroke(new BasicStroke(4f));
-                    g.drawOval(
-                            (int) (centerX - radius),
-                            (int) (centerY - radius),
-                            (int) (radius * 2),
-                            (int) (radius * 2)
-                    );
-                }
-            }
-
-            // Lớp kén khi Boss2 còn ít máu
-            if (boss.isCocooned()) {
-                int x = (int) boss.getX() - 8;
-                int y = (int) boss.getY() - 8;
-                int w = boss.getWidth() + 16;
-                int h = boss.getHeight() + 16;
-
-                g.setColor(new Color(110, 95, 55, 190));
-                g.fillOval(x, y, w, h);
-
-                g.setColor(new Color(210, 185, 110));
-                g.setStroke(new BasicStroke(4f));
-                g.drawOval(x, y, w, h);
-
-                // Thanh HP kén
-                int barWidth = 70;
-                int barX = (int) centerX - barWidth / 2;
-                int barY = y - 12;
-
-                double ratio = (double) boss.getCocoonHP()
-                        / boss.getCocoonMaxHP();
-
-                g.setColor(Color.BLACK);
-                g.fillRect(barX, barY, barWidth, 7);
-
-                g.setColor(new Color(190, 160, 80));
-                g.fillRect(barX, barY,
-                        (int) (barWidth * ratio), 7);
-            }
-
-        } finally {
-            g.dispose();
-        }
+    // Vẽ thân Enemy (khối đỏ) when no sprite is available.
+    g2.setColor(new Color(231, 76, 60));
+    g2.fillOval(x, y, w, h);
+    renderFacingMarker(g2, enemy);
     }
     private void renderHitbox(Graphics2D g2, Combatant combatant) {
         double radius = combatant.getHitboxRadius();
@@ -616,10 +461,6 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
                             g2.setColor(DOOR_CLOSED_COLOR);
                             g2.fillRect(px, py, tileSize, tileSize);
                         }
-                    }
-                    case PORTAL, VOID -> {
-                        g2.setColor(FLOOR_COLOR);
-                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                 }
             }
@@ -739,6 +580,142 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     }
 
     public LightSystem getLightSystem() { return lightSystem; }
+    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
+    List<Enemy> enemies = (enemy != null)
+            ? Collections.singletonList(enemy)
+            : Collections.emptyList();
+    renderScene(g2, player, enemies, room, worldMap, null);
+}
+private void renderScene(Graphics2D g2, Player player, List<Enemy> enemies,
+                         Room room, WorldMap worldMap, List<Projectile> projectiles) {
+    // 1. Nền tối ngoài bản đồ
+    g2.setColor(Color.BLACK);
+    g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+    if (room == null || player == null) return;
+    int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
+    int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
+    int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
+            ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
+            : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
+    int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
+            ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
+            : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
+            // 2. Dịch chuyển camera vào thế giới game
+    g2.translate(-camX, -camY);
+    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    // 3. Vẽ phòng
+    renderRoom(g2, room);
+    // 4. Vẽ toàn bộ quái / Boss trong phòng
+  for (Enemy enemy : enemies) {
+    if (enemy == null || enemy.isDead()) continue;
+    boolean boss4Hidden = (enemy instanceof Boss4) && ((Boss4) enemy).isSubmergedInWall();
+if (!boss4Hidden) {
+        renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
+                new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
+    }
+
+    if (enemy instanceof Boss3) {
+        Boss3 boss3 = (Boss3) enemy;
+        if (boss3.isFiringLaser()) renderBoss3Lasers(g2, boss3);
+    }
+    if (enemy instanceof Boss4) {
+        renderBoss4SafeZone(g2, (Boss4) enemy);
+    }
+
+    if (boss4Hidden) {
+        renderBoss4WallShadow(g2, (Boss4) enemy);
+    } else {
+        renderEnemy(g2, enemy);
+    }
+
+    if (enemy instanceof Boss3) {
+        Boss3 boss3 = (Boss3) enemy;
+        if (boss3.isHealing()) renderBoss3Healing(g2, boss3);
+    }
+    if (enemy instanceof Boss4) {
+        renderBoss4Arm(g2, (Boss4) enemy);
+    }
+}
+
+    // 5. Vẽ Player và đạn
+    if (!player.isDead()) {
+        renderDetectionRange(g2, player, player.getDetectionRange(),
+                new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
+        renderPlayer(g2, player);
+    }
+    renderProjectiles(g2, projectiles);
+
+    // 6. Vẽ hitbox
+    for (Enemy enemy : enemies) {   
+        if (enemy == null || enemy.isDead()) continue;
+        boolean boss4Hidden = (enemy instanceof Boss4) && ((Boss4) enemy).isSubmergedInWall();
+        if (!boss4Hidden) {
+            renderHitbox(g2, enemy);
+            }
+        }
+    if (!player.isDead()) {
+        renderHitbox(g2, player);
+    }
+
+    // Reset camera trước khi vẽ HUD / minimap
+    g2.translate(camX, camY);
+    lightSystem.render(g2, player, room, camX, camY);
+
+    if (worldMap != null) {
+        renderMiniMap(g2, worldMap);
+    }
+    renderPlayerStats(g2, player);
+    if (worldMap != null) {
+        renderMiniMap(g2, worldMap);
+    }
+    renderPlayerStats(g2, player);
+}
+    
+private void renderBoss4SafeZone(Graphics2D g2, Boss4 b4) {
+    if (!b4.isSafeZoneActive()) return;
+    Color oldColor = g2.getColor();
+    int r = (int) b4.getSafeZoneRadius();
+    g2.setColor(new Color(100, 200, 255, 55));
+    g2.fillOval((int) b4.getSafeZoneX() - r, (int) b4.getSafeZoneY() - r, r * 2, r * 2);
+    g2.setColor(oldColor);
+}   
+private void renderBoss4WallShadow(Graphics2D g2, Boss4 b4) {
+    Color oldColor = g2.getColor();
+    int cx = (int) (b4.getX() + b4.getWidth() / 2.0);
+    int cy = (int) (b4.getY() + b4.getHeight() / 2.0);
+    int pulse = (int) (Math.sin(System.currentTimeMillis() / 120.0) * 5);
+    int r = 24 + pulse;
+
+    g2.setColor(new Color(15, 10, 25, 150));
+    g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+    g2.setColor(new Color(90, 20, 40, 180));
+    g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+
+    g2.setColor(oldColor);
+}
+
+private void renderBoss4Arm(Graphics2D g2, Boss4 b4) {
+    if (!b4.isArmActive()) return;
+    Stroke oldStroke = g2.getStroke();
+    Color oldColor = g2.getColor();
+    int sx = (int) b4.getArmStartX(), sy = (int) b4.getArmStartY();
+    int ex = (int) b4.getArmEndX(), ey = (int) b4.getArmEndY();
+    g2.setColor(new Color(140, 40, 60, 180));
+    g2.setStroke(new BasicStroke(12f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+    g2.drawLine(sx, sy, ex, ey);
+
+    // Viền đỏ sẫm giúp cánh tay nổi bật trong bóng tối
+    g2.setColor(new Color(25, 20, 35));
+    g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+    g2.drawLine((int) b4.getArmStartX(), (int) b4.getArmStartY(),
+                (int) b4.getArmEndX(), (int) b4.getArmEndY());
+    g2.fillOval((int) b4.getArmEndX() - 10, (int) b4.getArmEndY() - 10, 20, 20);
+
+    g2.setStroke(oldStroke);
+    g2.setColor(oldColor);
+}
+
+
 
 }
 
