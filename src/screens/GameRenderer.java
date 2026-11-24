@@ -104,13 +104,14 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         System.err.println("Không tìm thấy ảnh: " + path);
         return null;
     }
+}
     // Hàm đăng ký animation cho 1 bộ sprite
     private void registerAnim(String spriteKey, String state, String path, int frameCount) {
     BufferedImage[] frames = loadSpriteSheet(path, frameCount);
     if (frames != null) {
         animations.put(spriteKey + "_" + state, frames);
     }
-     
+}
     public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap, List<Projectile> projectiles) {
     List<Enemy> enemies = (room != null && room.getEnemies() != null)
             ? room.getEnemies()
