@@ -148,5 +148,4 @@ public class Player extends Combatant {
         armor -= absorbed ;
         super.takeDamage ( dmg - absorbed ) ;
     }
-
 }
