@@ -117,15 +117,15 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
         animations.put(spriteKey + "_" + state, frames);
     }
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room) {
-        render(g2, player, enemy, room, null);
+    public void render(Graphics2D g2, Player player, Room room) {
+        render(g2, player, room, null);
     }
 
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap) {
-        render(g2, player, enemy, room, worldMap, java.util.Collections.emptyList());
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap) {
+        render(g2, player, room, worldMap, java.util.Collections.emptyList());
     }
 
-    public void render(Graphics2D g2, Player player, Enemy enemy, Room room, WorldMap worldMap,
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                        List<Projectile> projectiles) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
@@ -146,34 +146,41 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         // 3. Render room & entities
         renderRoom(g2, room);
 
-        if (enemy != null && !enemy.isDead()) {
-            renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                    new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                    // Vẽ 4 tia laze dưới thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
-            if (boss3.isFiringLaser()) {
-                renderBoss3Lasers(g2, boss3);
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy != null && !enemy.isDead()) {
+                renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
+                        new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
+                // Vẽ 4 tia laze dưới thân Boss3
+                if (enemy instanceof Boss3) {
+                    Boss3 boss3 = (Boss3) enemy;
+                    if (boss3.isFiringLaser()) {
+                        renderBoss3Lasers(g2, boss3);
+                    }
+                }
+                renderEnemy(g2, enemy);
+                // Vẽ vòng sáng hồi máu đè lên thân Boss3
+                if (enemy instanceof Boss3) {
+                    Boss3 boss3 = (Boss3) enemy;
+                    if (boss3.isHealing()) {
+                        renderBoss3Healing(g2, boss3);
+                    }
+                }
             }
         }
-            renderEnemy(g2, enemy);
-            // Vẽ vòng sáng hồi máu đè lên thân Boss3
-        if (enemy instanceof Boss3) {
-            Boss3 boss3 = (Boss3) enemy;
-            if (boss3.isHealing()) {
-                renderBoss3Healing(g2, boss3);
-            }
-        }
-        }
+
         if (player != null && !player.isDead()) {
             renderDetectionRange(g2, player, player.getDetectionRange(),
                     new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
             renderPlayer(g2, player);
         }
         renderProjectiles(g2, projectiles);
-        if (enemy != null && !enemy.isDead()) {
-            renderHitbox(g2, enemy);
+
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy != null && !enemy.isDead()) {
+                renderHitbox(g2, enemy);
+            }
         }
+
         if (player != null && !player.isDead()) {
             renderHitbox(g2, player);
         }
