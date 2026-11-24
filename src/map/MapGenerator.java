@@ -4,9 +4,11 @@ import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss3;
+import screens.lighting.*;
 
 import java.awt.Point;
 import java.util.*;
+import java.awt.Color;
 
 /**
  * Bộ tạo bản đồ ngẫu nhiên cho hầm ngục.
@@ -52,6 +54,9 @@ public class MapGenerator {
         carveDoors(map);
         populateEnemies(map, floorLevel);
 
+        // them den
+        populateLights(map);
+
         return map;
     }
 
@@ -65,6 +70,20 @@ public class MapGenerator {
                 int ny = r.getGridY() + dir.getDy();
 
                 if (map.hasRoom(nx, ny)) {
+                    // Determine door position using the seed if not already set
+                    if (!r.getDoors().containsKey(dir)) {
+                        int offset;
+                        if (dir == Direction.NORTH || dir == Direction.SOUTH) {
+                            int minX = r.getPadX() + 3;
+                            int maxX = r.getWidth() - r.getPadX() - 4;
+                            offset = minX + rand.nextInt(Math.max(1, maxX - minX + 1));
+                        } else {
+                            int minY = r.getPadY() + 5;
+                            int maxY = r.getHeight() - r.getPadY() - 4;
+                            offset = minY + rand.nextInt(Math.max(1, maxY - minY + 1));
+                        }
+                        r.setDoorOffset(dir, offset);
+                    }
                     r.carveDoor(dir, r.isCleared());
                 }
             }
