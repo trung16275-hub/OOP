@@ -31,6 +31,12 @@ public class GameRenderer {
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
 
+    // Animation Boss 1
+    private static final int BOSS1_IDLE_FRAME_DURATION_MS = 250;
+    private static final int BOSS1_RUN_FRAME_DURATION_MS = 120;
+    private static final int BOSS1_DASH_FRAME_DURATION_MS = 70;
+    private static final int BOSS1_LUNGE_FRAME_DURATION_MS = 90;
+
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
@@ -64,7 +70,11 @@ public class GameRenderer {
     registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
     registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
-
+        // Boss 1
+registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
+registerAnim("boss1", "run", "assets/boss1/run.png", 4);
+registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
+registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
@@ -358,38 +368,81 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
     }
 
-    private void renderEnemy(Graphics2D g2, Enemy enemy) {
+    
+private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
-        int x = (int) enemy.getX();
-        int y = (int) enemy.getY();
-        int w = enemy.getWidth();
-        int h = enemy.getHeight();
-        String key = enemy.getSpriteKey();
+    int x = (int) enemy.getX();
+    int y = (int) enemy.getY();
+    int w = enemy.getWidth();
+    int h = enemy.getHeight();
+
+    String key = enemy.getSpriteKey();
+
     if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
+
+        String state = enemy.getAnimState();
+        BufferedImage[] frames = animations.get(key + "_" + state);
+
         if (frames != null && frames.length > 0) {
-            int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
-            if(enemy.getFacingX() >= 0) {
-                g2.drawImage(frames[frameIndex], x, y, w, h, null);
-            } else {
-                // Lật ảnh theo chiều ngang
-                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+
+            int frameDuration = 100;
+
+            // Tốc độ animation Boss 1
+            if ("boss1".equals(key)) {
+                switch (state) {
+                    case "idle":
+                        frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
+                        break;
+
+                    case "run":
+                        frameDuration = BOSS1_RUN_FRAME_DURATION_MS;
+                        break;
+
+                    case "dash":
+                        frameDuration = BOSS1_DASH_FRAME_DURATION_MS;
+                        break;
+
+                    case "lunge":
+                        frameDuration = BOSS1_LUNGE_FRAME_DURATION_MS;
+                        break;
+                }
             }
-            return;
 
+            int frameIndex = (int) (
+                    (System.currentTimeMillis() / frameDuration)
+                    % frames.length
+            );
+
+            if (enemy.getFacingX() >= 0) {
+                g2.drawImage(
+                        frames[frameIndex],
+                        x, y, w, h,
+                        null
+                );
+            } else {
+                g2.drawImage(
+                        frames[frameIndex],
+                        x + w, y, -w, h,
+                        null
+                );
+            }
+
+            return;
         }
     }
-        // Vẽ hình dáng riêng cho Boss2
-        if (enemy instanceof Boss2) {
-            renderBoss2(g2, enemy);
-            return;
-        }
 
-// Enemy thông thường
-        g2.setColor(new Color(231, 76, 60));
-        g2.fillOval(x, y, w, h);
-        renderFacingMarker(g2, enemy);
+    // Vẽ Boss2 theo hình dáng riêng
+    if (enemy instanceof Boss2) {
+        renderBoss2(g2, enemy);
+        return;
     }
+
+    // Enemy thông thường
+    g2.setColor(new Color(231, 76, 60));
+    g2.fillOval(x, y, w, h);
+    renderFacingMarker(g2, enemy);
+}
+
 
     // Vẽ Boss2 theo hình dáng quái vật bò bằng bốn chân
     private void renderBoss2(Graphics2D g2, Enemy enemy) {
