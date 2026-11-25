@@ -13,15 +13,10 @@ import model.boss.Boss3;
 import model.player.Player;
 import screens.lighting.*;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 public class GameRenderer {
@@ -45,7 +40,7 @@ public class GameRenderer {
     private BufferedImage wallCornerBottomRightImage;
     private BufferedImage wallCornerTopLeftImage;
     private BufferedImage wallCornerTopRightImage;
-    private Map<String, BufferedImage[]> animations = new HashMap<>();
+    private final AnimationCatalog animations = AnimationCatalog.getInstance();
     private BufferedImage heartImage;
     private BufferedImage bulletImage;
     private BufferedImage armorImage;
@@ -56,18 +51,6 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        // Preload tiles from assets/tiles/
-        registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
-        registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
-        registerPlayerAnim("player_ak47", "attack", "/player/ak47/attack", 4);
-        registerPlayerAnim("player_bat", "idle", "/player/bat/idle", 4);
-        registerPlayerAnim("player_bat", "walk", "/player/bat/walk", 4);
-        registerPlayerAnim("player_bat", "attack", "/player/bat/attack", 4);
-        registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
-    registerAnim("boss3", "run",  "assets/boss3/super-cool-robot-run.png", 9);
-    registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
-    registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
-
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
@@ -86,42 +69,6 @@ public class GameRenderer {
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
-
-    }
-    // Hàm cắt 1 hàng ngang thành mảng các frame
-    private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
-        try {
-            BufferedImage sheet = ImageIO.read(new File(path));
-            int frameWidth = sheet.getWidth() / frameCount;
-            int frameHeight = sheet.getHeight();
-
-            BufferedImage[] frames = new BufferedImage[frameCount];
-            for (int i = 0; i < frameCount; i++) {
-                frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
-            }
-            return frames;
-        } catch (IOException e) {
-            System.err.println("Không tìm thấy ảnh: " + path);
-            return null;
-        }
-    }
-        // Hàm đăng ký animation cho 1 bộ sprite
-    private void registerAnim(String spriteKey, String state, String path, int frameCount) {
-        BufferedImage[] frames = loadSpriteSheet(path, frameCount);
-        if (frames != null) {
-            animations.put(spriteKey + "_" + state, frames);
-        }
-    }
-
-    private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = AssetLoader.loadImage(path + "_" + i + ".png");
-            if (frames[i] == null) {
-                return;
-            }
-        }
-        animations.put(spriteKey + "_" + state, frames);
     }
     public void render(Graphics2D g2, Player player, Room room) {
         render(g2, player, room, null);
@@ -210,7 +157,7 @@ public class GameRenderer {
             int x = 10;
             int y = 10;
             int width = 200;
-            int height = 80;
+            int height = 104;
 
             // Khung HUD ngoài.
             hud.setColor(new Color(70, 58, 43));
@@ -260,6 +207,22 @@ public class GameRenderer {
             }
             hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize,
                     x + 140, y + 64);
+
+                // Dash cooldown indicator: empty while recharging, full when Q is ready.
+                int dashBarX = x + 48;
+                int dashBarY = y + 83;
+                int dashBarWidth = 138;
+                int dashBarHeight = 12;
+                double dashProgress = player.getDashCooldownProgress();
+                hud.setFont(new Font("Minecraftia", Font.BOLD, 12));
+                hud.setColor(Color.BLACK);
+                hud.setColor(new Color(45, 32, 25));
+                hud.fillRoundRect(dashBarX, dashBarY, dashBarWidth, dashBarHeight, 6, 6);
+                hud.setColor(dashProgress >= 1.0
+                    ? new Color(65, 190, 105)
+                    : new Color(70, 145, 190));
+                hud.fillRoundRect(dashBarX + 2, dashBarY + 2,
+                    (int) ((dashBarWidth - 4) * dashProgress), dashBarHeight - 4, 5, 5);
 
 
         } finally {
@@ -331,17 +294,30 @@ public class GameRenderer {
         int h = player.getHeight();
         String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
         String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
-        String state = player.isAttacking() ? "attack" : player.isMoving() ? "walk" : "idle";
-        BufferedImage[] frames = animations.get(spriteKey + "_" + state);
-        int frameDuration = player.isAttacking()
-            ? PLAYER_ATTACK_FRAME_DURATION_MS
-            : player.isMoving() ? PLAYER_WALK_FRAME_DURATION_MS : PLAYER_IDLE_FRAME_DURATION_MS;
+        String state = player.isDashing() ? "dash"
+                : player.isAttacking() ? "attack"
+                : player.isMoving() ? "walk" : "idle";
+        String animationKey = player.isDashing()
+            ? "player.dash"
+            : spriteKey + "." + state;
+        BufferedImage[] frames = animations.getFrames(animationKey);
+        int frameDuration = switch (state) {
+            case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
+            case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;
+            default -> PLAYER_IDLE_FRAME_DURATION_MS;
+        };
 
         if (frames != null && frames.length > 0) {
-                long animationTime = player.isAttacking()
+                long animationTime = player.isDashing()
+                    ? System.currentTimeMillis() - player.getDashStartTime()
+                    : player.isAttacking()
                     ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
                     : System.currentTimeMillis();
-                int frameIndex = (int) ((animationTime / frameDuration) % frames.length);
+                int frameIndex = state.equals("dash")
+                    ? Math.min((int) (animationTime * frames.length / Player.DASH_DURATION_MS), frames.length - 1)
+                    : state.equals("attack")
+                        ? Math.min((int) (animationTime / frameDuration), frames.length - 1)
+                        : (int) ((animationTime / frameDuration) % frames.length);
             BufferedImage frame = frames[frameIndex];
             int drawHeight = h;
             int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
@@ -376,7 +352,7 @@ public class GameRenderer {
         int h = enemy.getHeight();
         String key = enemy.getSpriteKey();
     if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getAnimState());
+        BufferedImage[] frames = animations.getFrames(key + "." + enemy.getAnimState());
         if (frames != null && frames.length > 0) {
             int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
             if(enemy.getFacingX() >= 0) {
@@ -418,8 +394,8 @@ public class GameRenderer {
     private void renderPlayerHitboxes(Graphics2D g2, Player player) {
         Graphics2D debug = (Graphics2D) g2.create();
         try {
-            Rectangle movementBounds = player.getMovementHitbox().getBounds(player.getX(), player.getY());
-            Rectangle hurtBounds = player.getHurtBox().getBounds(player.getX(), player.getY());
+            Rectangle movementBounds = player.getMovementBounds();
+            Rectangle hurtBounds = player.getHurtBounds();
 
             debug.setStroke(new BasicStroke(2f));
             debug.setColor(new Color(52, 220, 255, 210));

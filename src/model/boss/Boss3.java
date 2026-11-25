@@ -166,7 +166,7 @@ public String getAnimState() {
 
         double bossCenterX = getX() + getWidth() / 2.0;
         double bossCenterY = getY() + getHeight() / 2.0;
-        java.awt.Rectangle playerHurtBounds = player.getHurtBox().getBounds(player.getX(), player.getY());
+        java.awt.Rectangle playerHurtBounds = player.getHurtBounds();
 
         // Kiểm tra từng tia trong 4 tia (cách nhau 90 độ = PI/2)
         for (int i = 0; i < LASER_COUNT; i++) {

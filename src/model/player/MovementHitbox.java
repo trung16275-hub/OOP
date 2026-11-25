@@ -19,8 +19,9 @@ public final class MovementHitbox {
         this.height = height;
     }
 
-    public Rectangle getBounds(double playerX, double playerY) {
-        return new Rectangle((int) Math.round(playerX + offsetX),
+    public Rectangle getBounds(double playerX, double playerY, int spriteWidth, boolean facingLeft) {
+        int horizontalOffset = facingLeft ? spriteWidth - offsetX - width : offsetX;
+        return new Rectangle((int) Math.round(playerX + horizontalOffset),
                 (int) Math.round(playerY + offsetY), width, height);
     }
 }
