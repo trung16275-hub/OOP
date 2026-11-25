@@ -122,11 +122,6 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        if(worldMap.getBossRoom()!=null && worldMap.isBossRoomUnlocked()) {
-
-        }
-
-
         if (keyH.consumeWeaponSwitchPress()) {
             toggleWeapon();
         }
