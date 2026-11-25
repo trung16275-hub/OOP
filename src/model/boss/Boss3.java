@@ -2,8 +2,9 @@ package model.boss;
 
 import model.Enemy;
 import model.Combatant;
-import model.Player;
+import player.Player;
 import map.Room;
+import java.awt.geom.Line2D;
 public class Boss3 extends Enemy {
     // Chỉnh các chỉ số mặc định của Boss 3 tại đây.
     private static final String DEFAULT_NAME = "ChatGPT";
@@ -165,9 +166,7 @@ public String getAnimState() {
 
         double bossCenterX = getX() + getWidth() / 2.0;
         double bossCenterY = getY() + getHeight() / 2.0;
-        double playerCenterX = player.getX() + player.getWidth() / 2.0;
-        double playerCenterY = player.getY() + player.getHeight() / 2.0;
-        double playerRadius = Math.max(player.getWidth(), player.getHeight()) / 2.0;
+        java.awt.Rectangle playerHurtBounds = player.getHurtBox().getBounds(player.getX(), player.getY());
 
         // Kiểm tra từng tia trong 4 tia (cách nhau 90 độ = PI/2)
         for (int i = 0; i < LASER_COUNT; i++) {
@@ -175,27 +174,12 @@ public String getAnimState() {
             double endX = bossCenterX + Math.cos(angle) * LASER_LENGTH;
             double endY = bossCenterY + Math.sin(angle) * LASER_LENGTH;
 
-            if (distancePointToSegment(playerCenterX, playerCenterY, bossCenterX, bossCenterY, endX, endY) <= playerRadius) {
+            if (new Line2D.Double(bossCenterX, bossCenterY, endX, endY).intersects(playerHurtBounds)) {
                 player.takeDamage(LASER_DAMAGE);
                 hasHitPlayerWithLaser = true;
                 break;
             }
         }
-    }
-
-    // Tính khoảng cách ngắn nhất từ tâm Player đến đoạn thẳng tia laze
-    private double distancePointToSegment(double px, double py, double x1, double y1, double x2, double y2) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double lenSq = dx * dx + dy * dy;
-        if (lenSq == 0) {
-            return Math.hypot(px - x1, py - y1);
-        }
-        double t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
-        t = Math.max(0.0, Math.min(1.0, t));
-        double projX = x1 + t * dx;
-        double projY = y1 + t * dy;
-        return Math.hypot(px - projX, py - projY);
     }
 
     // Getter để lớp Renderer/View vẽ 4 tia laze lên màn hình

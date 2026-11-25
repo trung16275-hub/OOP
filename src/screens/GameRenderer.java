@@ -7,10 +7,10 @@ import map.TileType;
 import map.WorldMap;
 import model.Combatant;
 import model.Enemy;
-import model.Player;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.boss.Boss3;
+import player.Player;
 import screens.lighting.*;
 
 import javax.imageio.ImageIO;
@@ -188,7 +188,7 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
 
         if (player != null && !player.isDead()) {
-            renderHitbox(g2, player);
+            renderPlayerHitboxes(g2, player);
         }
 
         g2.translate(camX, camY); // reset before rendering HUD/minimap
@@ -412,6 +412,22 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
             debug.setColor(Color.YELLOW);
             debug.setStroke(new BasicStroke(2f));
             debug.draw(hitbox);
+        } finally {
+            debug.dispose();
+        }
+    }
+
+    private void renderPlayerHitboxes(Graphics2D g2, Player player) {
+        Graphics2D debug = (Graphics2D) g2.create();
+        try {
+            Rectangle movementBounds = player.getMovementHitbox().getBounds(player.getX(), player.getY());
+            Rectangle hurtBounds = player.getHurtBox().getBounds(player.getX(), player.getY());
+
+            debug.setStroke(new BasicStroke(2f));
+            debug.setColor(new Color(52, 220, 255, 210));
+            debug.draw(movementBounds);
+            debug.setColor(new Color(255, 80, 80, 220));
+            debug.draw(hurtBounds);
         } finally {
             debug.dispose();
         }
