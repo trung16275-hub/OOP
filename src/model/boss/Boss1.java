@@ -2,7 +2,7 @@ package model.boss;
 
 import map.Room;
 import model.Enemy;
-import model.Player;
+import model.player.Player;
 
 public class Boss1 extends Enemy {
     // Thông số riêng của Boss1
@@ -35,7 +35,7 @@ public class Boss1 extends Enemy {
     public void updateBehavior(Player player, Room room) {
         super.updateBehavior(player,room);
 
-        if (isWithinHitbox(player)) { /// Trong class Combatant co
+        if (player != null && player.intersectsHurtBox(this)) {
             specialAttack(player);
         }
     }

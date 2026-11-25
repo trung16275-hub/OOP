@@ -1,6 +1,7 @@
 package model;
 
 import map.Room;
+import model.player.Player;
 
 // File: src/enemy/Enemy.java
 public abstract class Enemy extends Combatant {
@@ -15,7 +16,7 @@ public abstract class Enemy extends Combatant {
             return;
         }
 
-        if (!isWithinHitbox(player)) {
+        if (!player.intersectsHurtBox(this)) {
             return;
         }
 
