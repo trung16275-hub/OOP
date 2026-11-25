@@ -1,18 +1,24 @@
+
 package screens;
 
 import game.MainGame;
 import map.Direction;
 import map.MapGenerator;
 import map.Room;
-import map.TileType;
 import map.WorldMap;
+
 import model.Enemy;
 import model.Player;
 import model.Projectile;
 import model.AcidProjectile;
+
 import model.boss.Boss2;
+import model.boss.Boss2Minion;
+import model.boss.AcidTrail;
+
 import model.weapon.Ak47;
 import model.weapon.Bat;
+
 import screens.input.KeyHandler;
 import screens.lighting.*;
 
@@ -20,10 +26,17 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.awt.geom.Point2D;
+
 import javax.swing.*;
+
 import model.boss.Boss3;
 import model.boss.Boss4;
+
 public class GamePanel extends JPanel implements Runnable {
+
     private static final long AK47_FIRE_INTERVAL_MS = 180;
     private static final long BAT_ATTACK_INTERVAL_MS = 450;
     private static final int PLAYER_ATTACK_ANIMATION_MS = 320;
@@ -41,10 +54,26 @@ public class GamePanel extends JPanel implements Runnable {
     private Ak47 ak47;
     private Bat bat;
     private long nextShotTime;
+
     private final List<Projectile> projectiles = new ArrayList<>();
+
     private static final double PROJECTILE_SPEED = 12.0;
+
     // Đạn axit của Boss2
     private final List<AcidProjectile> acidProjectiles = new ArrayList<>();
+
+    // Vệt axit do Boss2 Minion tạo ra
+    private final List<AcidTrail> acidTrails = new ArrayList<>();
+
+    // Lưu vị trí Minion tạo vệt axit gần nhất
+    private final Map<Boss2Minion, Point2D.Double> lastTrailPositions =
+            new HashMap<>();
+
+    // Hiệu ứng làm chậm Player
+    private static final long SLOW_DURATION_NANOS = 2_000_000_000L;
+    private static final double SLOW_MULTIPLIER = 0.5;
+
+    private long slowEffectEndTimeNanos;
 
     // Map System
     private MapGenerator mapGenerator;
@@ -58,60 +87,91 @@ public class GamePanel extends JPanel implements Runnable {
     private GameRenderer renderer;
 
     public GamePanel(MainGame mainFrame) {
-        setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
+
+        setPreferredSize(new Dimension(
+                MainGame.WINDOW_WIDTH,
+                MainGame.WINDOW_HEIGHT
+        ));
+
         this.mainFrame = mainFrame;
         this.renderer = new GameRenderer();
         this.mapGenerator = new MapGenerator();
+
         this.addKeyListener(keyH);
 
         setFocusable(true);
-        // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
+
         initNewGame();
     }
 
+    // =========================
+    // KHỞI TẠO GAME
+    // =========================
+
     public void initNewGame() {
+
         projectiles.clear();
         acidProjectiles.clear();
-        // 1. Tạo tầng hầm ngục ngẫu nhiên (Tầng 1, 8 phòng)
+        acidTrails.clear();
+        lastTrailPositions.clear();
+
+        slowEffectEndTimeNanos = 0L;
+
         this.worldMap = mapGenerator.generateFloor(1, 8);
         this.room = worldMap.getCurrentRoom();
+
         if (this.room != null) {
             this.room.setVisited(true);
         }
 
         this.player = new Player();
+
         this.ak47 = new Ak47();
         this.bat = new Bat();
+
         this.player.equip(ak47);
+
         this.player.setX(180);
         this.player.setY(260);
-        
     }
 
+    // =========================
+    // ĐỔI VŨ KHÍ
+    // =========================
+
     private void toggleWeapon() {
+
         if (player.getCurrentWeapon() instanceof Ak47) {
             player.equip(bat);
         } else {
             player.equip(ak47);
         }
+
         player.stopAttackAnimation();
     }
 
+    // =========================
+    // GAME LOOP
+    // =========================
+
     public void startGameLoop() {
+
         isRunning = true;
+
         gameThread = new Thread(this);
         gameThread.start();
     }
 
     @Override
     public void run() {
-        // Vòng lặp game (Game Loop)
+
         while (isRunning) {
-            update(); // Cập nhật logic (tọa độ, máu, va chạm)
-            repaint(); // Vẽ lại mọi thứ ra màn hình
+
+            update();
+            repaint();
 
             try {
-                Thread.sleep(16); // Giới hạn tốc độ khung hình (khoảng 60 FPS)
+                Thread.sleep(16);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -119,15 +179,18 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
+
         synchronized (stateLock) {
             updateState();
         }
     }
 
-    private void updateState() {
-        // Cập nhật trạng thái quái vật, nhân vật di chuyển
+    // =========================
+    // CẬP NHẬT GAME
+    // =========================
 
-        //1. Cập nhật nhân vật
+    private void updateState() {
+
         if (player.isDead()) {
             endGame();
             return;
@@ -137,100 +200,186 @@ public class GamePanel extends JPanel implements Runnable {
             toggleWeapon();
         }
 
+        // =========================
+        // 1. DI CHUYỂN PLAYER
+        // =========================
+
         double moveX = 0;
         double moveY = 0;
 
-        if (keyH.upPressed)    moveY -=1;
-        if (keyH.downPressed)  moveY +=1;
-        if (keyH.leftPressed)  moveX -=1;
-        if (keyH.rightPressed) moveX +=1;
+        if (keyH.upPressed) {
+            moveY -= 1;
+        }
 
-        if (moveX != 0 && moveY !=0) {
+        if (keyH.downPressed) {
+            moveY += 1;
+        }
+
+        if (keyH.leftPressed) {
+            moveX -= 1;
+        }
+
+        if (keyH.rightPressed) {
+            moveX += 1;
+        }
+
+        if (moveX != 0 && moveY != 0) {
             moveX *= 0.7071;
             moveY *= 0.7071;
         }
-        // Đạn chỉ bắn ngang; phím lên/xuống không đổi hướng bắn.
+
+        // Làm chậm Player khi dính axit
+        if (System.nanoTime() < slowEffectEndTimeNanos) {
+            moveX *= SLOW_MULTIPLIER;
+            moveY *= SLOW_MULTIPLIER;
+        }
+
+        // Đạn chỉ bắn ngang
         if (moveX != 0) {
             player.setAimDirection(moveX, 0);
         }
 
         double previousX = player.getX();
         double previousY = player.getY();
+
         player.move(moveX, moveY, room);
+
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
+
         player.setMoving(movedX != 0 || movedY != 0);
+
         if (movedX != 0) {
             player.setFacingLeft(movedX < 0);
         }
 
+        // =========================
+        // 2. TẤN CÔNG
+        // =========================
+
         long now = System.currentTimeMillis();
+
         if (keyH.spacePressed && now >= nextShotTime) {
-            if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
+
+            if (player.getCurrentWeapon() instanceof Ak47 ak47
+                    && ak47.consumeAmmo()) {
+
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                double bulletX = player.getX() + player.getWidth() / 2.0;
-                double bulletY = player.getY() + player.getHeight() / 2.0;
-                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY(),
-                        PROJECTILE_SPEED, ak47.getDamage()));
+
+                double bulletX =
+                        player.getX() + player.getWidth() / 2.0;
+
+                double bulletY =
+                        player.getY() + player.getHeight() / 2.0;
+
+                projectiles.add(new Projectile(
+                        bulletX,
+                        bulletY,
+                        player.getAimX(),
+                        player.getAimY(),
+                        PROJECTILE_SPEED,
+                        ak47.getDamage()
+                ));
+
                 nextShotTime = now + AK47_FIRE_INTERVAL_MS;
+
             } else if (player.getCurrentWeapon() instanceof Bat) {
+
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
+
                 for (Enemy e : room.getEnemies()) {
-                    if (e != null && !e.isDead()
+
+                    if (e != null
+                            && !e.isDead()
                             && player.isWithinHitbox(e)) {
+
                         player.attack(e);
                     }
                 }
+
                 nextShotTime = now + BAT_ATTACK_INTERVAL_MS;
+
             } else {
+
                 player.stopAttackAnimation();
             }
         }
 
         updateProjectiles();
 
-        // 2. Kiểm tra chuyển phòng
-        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        // =========================
+        // 3. CHUYỂN PHÒNG
+        // =========================
+
+        Direction doorDir = room.checkDoorTrigger(
+                player.getX(),
+                player.getY(),
+                player.getWidth(),
+                player.getHeight()
+        );
+
         if (doorDir != null) {
+
             Room nextRoom = worldMap.moveTo(doorDir);
+
             if (nextRoom != room) {
+
                 this.room = nextRoom;
                 this.room.setVisited(true);
+
                 Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
+
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
+
                 projectiles.clear();
                 acidProjectiles.clear();
+                acidTrails.clear();
+                lastTrailPositions.clear();
+
+                slowEffectEndTimeNanos = 0L;
             }
         }
 
-
-        // 3. Cập nhật Enemy
+        // =========================
+        // 4. CẬP NHẬT ENEMY
+        // =========================
 
         if (room.getEnemies() != null) {
 
-            room.getEnemies().removeIf(Enemy::isDead);
+            List<Enemy> enemies = room.getEnemies();
 
-            for (Enemy e : room.getEnemies()) {
+            enemies.removeIf(Enemy::isDead);
 
-                // Cập nhật hành vi của Enemy
+            // Danh sách Boss2 đã hoàn thành phân thân
+            List<Boss2> bossesToSplit = new ArrayList<>();
+
+            for (Enemy e : enemies) {
+
                 e.updateBehavior(player, room);
 
-                // Nếu là Boss2 và Boss yêu cầu phun axit
+                // -------------------------
+                // BOSS2 PHUN AXIT
+                // -------------------------
+
                 if (e instanceof Boss2 boss2
                         && boss2.consumeAcidAttackRequest()) {
 
-                    double bossCenterX = boss2.getX() + boss2.getWidth() / 2.0;
-                    double bossCenterY = boss2.getY() + boss2.getHeight() / 2.0;
+                    double bossCenterX =
+                            boss2.getX() + boss2.getWidth() / 2.0;
 
-                    double playerCenterX = player.getX() + player.getWidth() / 2.0;
-                    double playerCenterY = player.getY() + player.getHeight() / 2.0;
+                    double bossCenterY =
+                            boss2.getY() + boss2.getHeight() / 2.0;
 
-                    // Hướng từ Boss2 đến Player
+                    double playerCenterX =
+                            player.getX() + player.getWidth() / 2.0;
+
+                    double playerCenterY =
+                            player.getY() + player.getHeight() / 2.0;
+
                     double directionX = playerCenterX - bossCenterX;
                     double directionY = playerCenterY - bossCenterY;
 
-                    // Tạo đạn axit tại vị trí trung tâm Boss2
                     AcidProjectile acid = new AcidProjectile(
                             bossCenterX - 6,
                             bossCenterY - 6,
@@ -241,44 +390,168 @@ public class GamePanel extends JPanel implements Runnable {
 
                     acidProjectiles.add(acid);
                 }
+
+                // -------------------------
+                // KIỂM TRA BOSS2 PHÂN THÂN
+                // -------------------------
+
+                if (e instanceof Boss2 boss2
+                        && boss2.isSplitAnimationFinished()) {
+
+                    bossesToSplit.add(boss2);
+                }
+
+                // -------------------------
+                // MINION ĐỂ LẠI VỆT AXIT
+                // -------------------------
+
+                if (e instanceof Boss2Minion minion
+                        && !minion.isDead()) {
+
+                    updateMinionTrail(minion);
+                }
             }
+
+            // -------------------------
+            // THỰC HIỆN PHÂN THÂN
+            // -------------------------
+
+            for (Boss2 boss2 : bossesToSplit) {
+
+                double bossX = boss2.getX();
+                double bossY = boss2.getY();
+
+                enemies.remove(boss2);
+
+                Boss2Minion minion1 = new Boss2Minion(
+                        bossX - 20,
+                        bossY + 15
+                );
+
+                Boss2Minion minion2 = new Boss2Minion(
+                        bossX + 55,
+                        bossY + 15
+                );
+
+                enemies.add(minion1);
+                enemies.add(minion2);
+
+                lastTrailPositions.put(
+                        minion1,
+                        new Point2D.Double(minion1.getX(), minion1.getY())
+                );
+
+                lastTrailPositions.put(
+                        minion2,
+                        new Point2D.Double(minion2.getX(), minion2.getY())
+                );
+            }
+
+            // Xóa dữ liệu của Minion không còn trong phòng
+            lastTrailPositions.keySet().removeIf(
+                    minion -> !enemies.contains(minion)
+            );
         }
 
-// Cập nhật đạn axit
+        // =========================
+        // 5. CẬP NHẬT ĐẠN AXIT
+        // =========================
+
         updateAcidProjectiles();
 
-        //4. Cap nhat phong
+        // =========================
+        // 6. CẬP NHẬT VỆT AXIT
+        // =========================
+
+        updateAcidTrails();
+
+        // =========================
+        // 7. KIỂM TRA PHÒNG
+        // =========================
+
         if (room != null && room.getEnemies() != null) {
+
             if (room.getEnemies().isEmpty()) {
+
                 room.setCleared(true);
                 room.openDoors();
             }
         }
 
+        // =========================
+        // 8. CẬP NHẬT ÁNH SÁNG
+        // =========================
 
-        //update light system
         renderer.getLightSystem().update(room, 0.016);
-
     }
 
+    // =========================
+    // MINION TẠO VỆT AXIT
+    // =========================
+
+    private void updateMinionTrail(Boss2Minion minion) {
+
+        Point2D.Double lastPosition = lastTrailPositions.get(minion);
+
+        if (lastPosition == null) {
+
+            lastTrailPositions.put(
+                    minion,
+                    new Point2D.Double(minion.getX(), minion.getY())
+            );
+
+            return;
+        }
+
+        double dx = minion.getX() - lastPosition.x;
+        double dy = minion.getY() - lastPosition.y;
+
+        double distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Cứ di chuyển đủ 20 pixel thì để lại một vệt axit
+        if (distance >= 20) {
+
+            acidTrails.add(new AcidTrail(
+                    lastPosition.x + minion.getWidth() / 2.0,
+                    lastPosition.y + minion.getHeight() / 2.0
+            ));
+
+            lastTrailPositions.put(
+                    minion,
+                    new Point2D.Double(minion.getX(), minion.getY())
+            );
+        }
+    }
+
+    // =========================
+    // CẬP NHẬT ĐẠN PLAYER
+    // =========================
 
     private void updateProjectiles() {
-        if (room == null || room.getEnemies() == null) return;
+
+        if (room == null || room.getEnemies() == null) {
+            return;
+        }
 
         Iterator<Projectile> iterator = projectiles.iterator();
 
         while (iterator.hasNext()) {
+
             Projectile projectile = iterator.next();
 
             projectile.update(room);
 
             for (Enemy e : room.getEnemies()) {
-                if (e != null && !e.isDead()
+
+                if (e != null
+                        && !e.isDead()
                         && projectile.isActive()
                         && projectile.hits(e)) {
 
                     e.takeDamage(projectile.getDamage());
+
                     projectile.deactivate();
+
                     break;
                 }
             }
@@ -289,37 +562,91 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    // Cập nhật đạn axit của Boss2
+    // =========================
+    // CẬP NHẬT ĐẠN AXIT BOSS2
+    // =========================
+
     private void updateAcidProjectiles() {
 
-        Iterator<AcidProjectile> iterator = acidProjectiles.iterator();
+        Iterator<AcidProjectile> iterator =
+                acidProjectiles.iterator();
 
         while (iterator.hasNext()) {
 
             AcidProjectile acid = iterator.next();
 
-            // Cập nhật vị trí đạn và kiểm tra va chạm với tường
             acid.update(room);
 
-            // Kiểm tra va chạm với Player
             if (acid.isActive() && acid.hits(player)) {
 
                 player.takeDamage(acid.getDamage());
 
+                // Làm chậm Player trong 2 giây
+                applySlowEffect();
+
                 acid.deactivate();
             }
 
-            // Xóa đạn đã va chạm hoặc không còn hoạt động
             if (!acid.isActive()) {
                 iterator.remove();
             }
         }
     }
 
+    // =========================
+    // CẬP NHẬT VỆT AXIT
+    // =========================
+
+    private void updateAcidTrails() {
+
+        Iterator<AcidTrail> iterator = acidTrails.iterator();
+
+        Rectangle playerBounds = new Rectangle(
+                (int) Math.floor(player.getX()),
+                (int) Math.floor(player.getY()),
+                player.getWidth(),
+                player.getHeight()
+        );
+
+        while (iterator.hasNext()) {
+
+            AcidTrail trail = iterator.next();
+
+            // Vệt axit gây sát thương khi Player đứng trên nó
+            trail.update(player);
+
+            // Kiểm tra Player có đang đứng trong vệt axit không
+            if (trail.getBounds().intersects(playerBounds)) {
+
+                applySlowEffect();
+            }
+
+            if (trail.isExpired()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    // =========================
+    // LÀM CHẬM PLAYER
+    // =========================
+
+    private void applySlowEffect() {
+
+        slowEffectEndTimeNanos =
+                System.nanoTime() + SLOW_DURATION_NANOS;
+    }
+
+    // =========================
+    // GAME OVER
+    // =========================
+
     private void endGame() {
+
         isRunning = false;
-        // Swing screen changes must run on the event dispatch thread.
+
         SwingUtilities.invokeLater(() -> {
+
             if (mainFrame.getContentPane() == this) {
                 mainFrame.showGameOver();
             }
@@ -328,21 +655,31 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     public void removeNotify() {
+
         isRunning = false;
+
         super.removeNotify();
     }
 
+    // =========================
+    // RENDER
+    // =========================
+
     @Override
     protected void paintComponent(Graphics g) {
+
         super.paintComponent(g);
+
         synchronized (stateLock) {
+
             renderer.render(
                     (Graphics2D) g,
                     player,
                     room,
                     worldMap,
                     projectiles,
-                    acidProjectiles
+                    acidProjectiles,
+                    acidTrails
             );
         }
     }

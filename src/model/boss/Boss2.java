@@ -30,7 +30,6 @@ public class Boss2 extends Enemy {
     private long lastAcidAttack;
     private boolean acidAttackRequested;
 
-    // Thời gian hiển thị animation tấn công
     private static final long ATTACK_ANIMATION_DURATION = 450_000_000L;
     private long attackAnimationEnd;
 
@@ -50,15 +49,15 @@ public class Boss2 extends Enemy {
     private boolean exploding;
 
     // =========================
-    // TRẠNG THÁI HÓA KÉN
+    // KỸ NĂNG TÁCH ĐÔI
     // =========================
 
-    private static final double COCOON_HP_THRESHOLD = 0.30;
-    private static final int COCOON_MAX_HP = 70;
+    private static final double SPLIT_HP_THRESHOLD = 0.30;
+    private static final long SPLIT_ANIMATION_DURATION = 700_000_000L;
 
-    private int cocoonHP = COCOON_MAX_HP;
-    private boolean cocooned;
-    private boolean cocoonActivated;
+    private boolean splitTriggered;
+    private boolean splitRequested;
+    private long splitAnimationEnd;
 
     // =========================
     // TRẠNG THÁI ANIMATION
@@ -100,36 +99,31 @@ public class Boss2 extends Enemy {
 
         long now = System.nanoTime();
 
-        // Cập nhật trạng thái vụ nổ
         if (exploding && now - explosionStart >= EXPLOSION_DURATION) {
             exploding = false;
         }
 
-        // Boss không thể hoạt động khi chết
         if (isDead()) {
             moving = false;
             return;
         }
 
-        // Không có Player
         if (player == null) {
             moving = false;
             return;
         }
 
-        // Khi hóa kén, Boss không di chuyển hoặc tấn công
-        if (cocooned) {
+        // Đang thực hiện tách đôi
+        if (splitTriggered) {
             moving = false;
             return;
         }
 
-        // Không phát hiện Player
         if (!canDetect(player)) {
             moving = false;
             return;
         }
 
-        // Quay mặt về phía Player
         faceToward(player);
 
         double bossCenterX = getX() + getWidth() / 2.0;
@@ -169,7 +163,6 @@ public class Boss2 extends Enemy {
 
         if (distance > EXPLOSION_TRIGGER_RANGE) {
 
-            // Giữ khoảng cách với Player
             if (distance > 140) {
 
                 double oldX = getX();
@@ -177,20 +170,17 @@ public class Boss2 extends Enemy {
 
                 chase(player, room);
 
-                // Kiểm tra Boss có thực sự di chuyển không
                 moving = getX() != oldX || getY() != oldY;
 
             } else {
                 moving = false;
             }
 
-            // Yêu cầu GamePanel tạo đạn axit
             if (now - lastAcidAttack >= ACID_COOLDOWN) {
 
                 acidAttackRequested = true;
                 lastAcidAttack = now;
 
-                // Kích hoạt animation phun axit
                 attackAnimationEnd = now + ATTACK_ANIMATION_DURATION;
             }
 
@@ -206,45 +196,34 @@ public class Boss2 extends Enemy {
     @Override
     public void takeDamage(int damage) {
 
-        if (damage <= 0 || isDead()) {
+        if (damage <= 0 || isDead() || splitTriggered) {
             return;
         }
 
-        // Khi hóa kén, sát thương tác động lên kén trước
-        if (cocooned) {
-
-            cocoonHP -= damage;
-
-            if (cocoonHP <= 0) {
-                cocoonHP = 0;
-                cocooned = false;
-            }
-
-            return;
-        }
-
-        // Boss nhận sát thương bình thường
         super.takeDamage(damage);
 
-        // Kích hoạt animation bị thương
-        if (!isDead()) {
-            hurtAnimationEnd = System.nanoTime() + HURT_ANIMATION_DURATION;
+        if (isDead()) {
+            moving = false;
+            return;
         }
 
-        // Hóa kén duy nhất một lần khi HP còn 30%
-        if (!isDead()
-                && !cocoonActivated
-                && getHp() <= DEFAULT_MAX_HP * COCOON_HP_THRESHOLD) {
+        hurtAnimationEnd = System.nanoTime() + HURT_ANIMATION_DURATION;
 
-            cocooned = true;
-            cocoonActivated = true;
+        // Kích hoạt tách đôi khi HP còn 30%
+        if (getHp() <= DEFAULT_MAX_HP * SPLIT_HP_THRESHOLD) {
+
+            splitTriggered = true;
+            splitRequested = true;
 
             moving = false;
+
+            splitAnimationEnd =
+                    System.nanoTime() + SPLIT_ANIMATION_DURATION;
         }
     }
 
     // =========================
-    // CÁC PHƯƠNG THỨC HỖ TRỢ GAMEPANEL
+    // HỖ TRỢ GAMEPANEL
     // =========================
 
     public boolean consumeAcidAttackRequest() {
@@ -269,20 +248,24 @@ public class Boss2 extends Enemy {
         return exploding;
     }
 
-    public boolean isCocooned() {
-        return cocooned;
+    public boolean consumeSplitRequest() {
+
+        if (!splitRequested) {
+            return false;
+        }
+
+        splitRequested = false;
+        return true;
     }
 
-    public int getCocoonHP() {
-        return cocoonHP;
+    public boolean isSplitTriggered() {
+        return splitTriggered;
     }
 
-    public int getCocoonMaxHP() {
-        return COCOON_MAX_HP;
-    }
-
-    public long getExplosionStart() {
-        return explosionStart;
+    // Kiểm tra hoạt ảnh phân thân đã kết thúc
+    public boolean isSplitAnimationFinished() {
+        return splitTriggered
+                && System.nanoTime() >= splitAnimationEnd;
     }
 
     // =========================
@@ -304,32 +287,26 @@ public class Boss2 extends Enemy {
 
         long now = System.nanoTime();
 
-        // Ưu tiên trạng thái hóa kén
-        if (cocooned) {
-            return "cocoon";
+        if (splitTriggered && now < splitAnimationEnd) {
+            return "split";
         }
 
-        // Animation nổ axit từ các túi axit phía sau
         if (exploding) {
             return "back_burst";
         }
 
-        // Animation bị thương
         if (now < hurtAnimationEnd) {
             return "hurt";
         }
 
-        // Animation phun axit
         if (now < attackAnimationEnd) {
             return "attack";
         }
 
-        // Animation di chuyển
         if (moving) {
             return "run";
         }
 
-        // Trạng thái mặc định
         return "idle";
     }
 }
