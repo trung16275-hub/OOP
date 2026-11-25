@@ -11,6 +11,7 @@ Game Rules :
 # TO DO LIST :
 ## Sprint 1:
 ### QAnh
+- (new Class) Prop.Java, PickupItem.java 
 - Ammo, Almond Water, Armor, Objective item, etc... sẽ được rải rác quanh map , ở những chỗ như ngăn tủ , máy tính , thùng rác.
 - Nhân vật chuyển động ( Dùng gif ở trong  có sẵn ) . Bao gồm : Di chuyển , đứng yên , bị đánh, tấn công ( ở cả 2 dạng ), (new) die and dash.
 ### 3 bạn Trung
