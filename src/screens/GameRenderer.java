@@ -175,8 +175,6 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         }
 
         if (player != null && !player.isDead()) {
-            renderDetectionRange(g2, player, player.getDetectionRange(),
-                    new Color(52, 152, 219, 22), new Color(52, 152, 219, 190));
             renderPlayer(g2, player);
         }
         renderProjectiles(g2, projectiles);

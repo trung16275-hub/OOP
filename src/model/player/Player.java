@@ -14,12 +14,10 @@ public class Player extends Combatant {
     private static final int DEFAULT_WIDTH = 60;
     private static final int DEFAULT_HEIGHT = 60;
     private static final double DEFAULT_HITBOX_RADIUS = 60;
-    private static final double DEFAULT_DETECTION_RANGE = 250.0;
 
     private final HurtBox hurtBox = new HurtBox(0, 0, 35, 60);
     private final MovementHitbox movementHitbox = new MovementHitbox(14, 20, 30, 42);
     private int armor = DEFAULT_ARMOR;
-    private double detectionRange = DEFAULT_DETECTION_RANGE;
     private Weapon currentWeapon;
     private boolean moving;
     private boolean facingLeft;
@@ -127,30 +125,6 @@ public class Player extends Combatant {
 
     public int getArmor() {
         return armor;
-    }
-
-    public double getDetectionRange() {
-        return detectionRange;
-    }
-
-    public void setDetectionRange(double detectionRange) {
-        if (!Double.isFinite(detectionRange) || detectionRange < 0) {
-            throw new IllegalArgumentException("Detection range must be a finite, non-negative value.");
-        }
-        this.detectionRange = detectionRange;
-    }
-
-    public boolean canDetect(Enemy enemy) {
-        if (enemy == null || enemy.isDead() || isDead()) {
-            return false;
-        }
-
-        double dx = (enemy.getX() + enemy.getWidth() / 2.0)
-                  - (getX() + getWidth() / 2.0);
-        double dy = (enemy.getY() + enemy.getHeight() / 2.0)
-                  - (getY() + getHeight() / 2.0);
-
-        return dx * dx + dy * dy <= detectionRange * detectionRange;
     }
 
     public void equip(Weapon weapon) {
