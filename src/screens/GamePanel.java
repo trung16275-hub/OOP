@@ -33,6 +33,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Entities
     private Player player;
+    private Enemy currentEnemy;
 
     // Weapons
     private Ak47 ak47;
@@ -80,7 +81,10 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.setX(180);
         this.player.setY(260);
         
+<<<<<<< HEAD
 
+=======
+>>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
     }
 
     private void toggleWeapon() {

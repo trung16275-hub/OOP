@@ -81,6 +81,20 @@ public class Room {
         generateDefaultRoom();
     }
 
+    public Room(int width, int height, RoomType type) {
+        this(resolveRoomSize(width, height), type);
+    }
+
+    private static RoomSize resolveRoomSize(int width, int height) {
+        if (width == RoomSize.SMALL.width && height == RoomSize.SMALL.height) {
+            return RoomSize.SMALL;
+        }
+        if (width == RoomSize.BIG.width && height == RoomSize.BIG.height) {
+            return RoomSize.BIG;
+        }
+        return RoomSize.SCREEN;
+    }
+
     public void generateDefaultRoom() {
         int floorMinX = padX + 2;
         int floorMaxX = width - padX - 3;
@@ -239,6 +253,46 @@ public class Room {
         }
 
         return false;
+    }
+
+    public void carveOpenPath(Direction dir) {
+        doors.put(dir, true);
+        int offset = getDoorOffset(dir);
+
+        switch (dir) {
+            case NORTH -> {
+                for (int x = offset - 1; x <= offset + 1; x++) {
+                    tiles[x][0] = TileType.FLOOR;
+                    for (int y = 1; y <= padY + 3; y++) {
+                        tiles[x][y] = TileType.FLOOR;
+                    }
+                }
+            }
+            case SOUTH -> {
+                for (int x = offset - 1; x <= offset + 1; x++) {
+                    for (int y = height - padY - 2; y < height - 1; y++) {
+                        tiles[x][y] = TileType.FLOOR;
+                    }
+                    tiles[x][height - 1] = TileType.FLOOR;
+                }
+            }
+            case WEST -> {
+                for (int y = offset - 1; y <= offset + 1; y++) {
+                    tiles[0][y] = TileType.FLOOR;
+                    for (int x = 1; x <= padX + 1; x++) {
+                        tiles[x][y] = TileType.FLOOR;
+                    }
+                }
+            }
+            case EAST -> {
+                for (int y = offset - 1; y <= offset + 1; y++) {
+                    for (int x = width - padX - 2; x < width - 1; x++) {
+                        tiles[x][y] = TileType.FLOOR;
+                    }
+                    tiles[width - 1][y] = TileType.FLOOR;
+                }
+            }
+        }
     }
 
     public int getWidth() { return width; }

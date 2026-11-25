@@ -16,7 +16,6 @@ import model.boss.Boss3;
 import model.boss.Boss4;
 import screens.lighting.LightSystem;
 import model.weapon.Ak47;
-import model.boss.Boss3;
 import screens.lighting.*;
 import java.util.Collections;
 import java.awt.image.BufferedImage;
@@ -32,14 +31,12 @@ public class GameRenderer {
     private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
-    private BufferedImage basefloorImage;
-    private BufferedImage basewallImage;
-    private BufferedImage wallTopRimImage;
-    private BufferedImage wallBotRimImage;
-    private BufferedImage doorOpenedImage;
-    private BufferedImage doorClosedImage;
-    private BufferedImage wallGrimeImage;
-    private BufferedImage wallBorderBottomImage;
+
+    // Animation Boss 1
+    private static final int BOSS1_IDLE_FRAME_DURATION_MS = 250;
+    private static final int BOSS1_RUN_FRAME_DURATION_MS = 120;
+    private static final int BOSS1_DASH_FRAME_DURATION_MS = 70;
+    private static final int BOSS1_LUNGE_FRAME_DURATION_MS = 90;
     private BufferedImage wallBorderLeftImage;
     private BufferedImage wallBorderRightImage;
     private BufferedImage wallBorderTopImage;
@@ -53,7 +50,14 @@ private Map<String, BufferedImage[]> animations = new HashMap<>();
     private BufferedImage bulletImage;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
-
+private BufferedImage basefloorImage;
+    private BufferedImage basewallImage;
+    private BufferedImage wallTopRimImage;
+    private BufferedImage wallBotRimImage;
+    private BufferedImage doorOpenedImage;
+    private BufferedImage doorClosedImage;
+    private BufferedImage wallGrimeImage;
+    private BufferedImage wallBorderBottomImage;
     //Light System
     private final LightSystem lightSystem = new LightSystem();
     public GameRenderer() {
@@ -431,6 +435,8 @@ if (!msg.isEmpty()) {
     renderFacingMarker(g2, enemy);
 }
 
+    
+    
     private void renderHitbox(Graphics2D g2, Combatant combatant) {
         double radius = combatant.getHitboxRadius();
         double diameter = radius * 2;
@@ -536,6 +542,14 @@ if (!msg.isEmpty()) {
                             g2.setColor(DOOR_CLOSED_COLOR);
                             g2.fillRect(px, py, tileSize, tileSize);
                         }
+                    }
+                    case PORTAL -> {
+                        g2.setColor(new Color(125, 80, 180));
+                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                    case VOID -> {
+                        g2.setColor(Color.BLACK);
+                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                 }
             }
@@ -702,8 +716,6 @@ private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
             g2.fillRect(px, py, tileSize, tileSize);
         }
     }
-
-
 }
 
 

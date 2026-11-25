@@ -9,7 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
-
+import java.util.HashMap;
+import java.util.Map;
 public class AssetLoader {
     private static final Map<String, BufferedImage[]> SPRITE_CACHE = new HashMap<>();
     public static BufferedImage loadImage(String path) {

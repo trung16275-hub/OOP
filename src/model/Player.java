@@ -2,6 +2,10 @@ package model;
 
 import model.weapon.AlmondWater;
 import model.weapon.Weapon;
+<<<<<<< HEAD
+=======
+import model.weapon.AlmondWater;
+>>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
 import java.util.Collections;
 import java.util.List;
 import model.boss.Boss4;
@@ -139,6 +143,7 @@ public class Player extends Combatant {
 
     
     public void attack(Combatant target) {
+<<<<<<< HEAD
     attack(target, null);
 }
 
@@ -148,6 +153,20 @@ public void attack(Combatant target, List<Enemy> enemies) {
         return;
     }
 
+=======
+        if (currentWeapon != null && target != null && currentWeapon.consumeAmmo()) {
+            target.takeDamage(currentWeapon.getDamage());
+    attack(target, null);
+}
+    }
+
+// Hàm đầy đủ hỗ trợ vật phẩm diện rộng như Nước Hạnh Nhân
+public void attack(Combatant target, List<Enemy> enemies) {
+    if (currentWeapon == null) {
+        return;
+    }
+
+>>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
     // 1. Luồng dùng Nước Hạnh Nhân (không cần target != null)
     if (currentWeapon instanceof AlmondWater) {
         AlmondWater water = (AlmondWater) currentWeapon;
@@ -194,9 +213,13 @@ public String getStatusMessage() {
         armor -= absorbed ;
         super.takeDamage ( dmg - absorbed ) ;
     }
+    private boolean grabbed = false;
 
+<<<<<<< HEAD
 private boolean grabbed = false;
 
+=======
+>>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
 public boolean isGrabbed() { return grabbed; }
 public void setGrabbed(boolean grabbed) { this.grabbed = grabbed; }
 }
