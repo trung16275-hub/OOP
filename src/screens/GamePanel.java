@@ -58,7 +58,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.renderer = new GameRenderer();
         this.mapGenerator = new MapGenerator();
         this.addKeyListener(keyH);
-        this.currentFloor = 1;
 
         setFocusable(true);
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
@@ -66,6 +65,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
+        this.currentFloor = 1;
         createFloor();
 
         this.player = new Player();
