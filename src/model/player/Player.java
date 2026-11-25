@@ -48,19 +48,19 @@ public class Player extends Combatant {
         setHeight(DEFAULT_HEIGHT);
     }
 
-    public HurtBox getHurtBox() {
-        return hurtBox;
+    public Rectangle getHurtBounds() {
+        return hurtBox.getBounds(getX(), getY(), getWidth(), facingLeft);
     }
 
-    public MovementHitbox getMovementHitbox() {
-        return movementHitbox;
+    public Rectangle getMovementBounds() {
+        return getMovementBounds(getX(), getY());
     }
 
     public boolean intersectsHurtBox(Combatant attacker) {
         if (attacker == null || attacker == this) {
             return false;
         }
-        return hurtBox.getBounds(getX(), getY()).intersects(
+        return getHurtBounds().intersects(
             new Rectangle(
                         (int) Math.floor(attacker.getX()),
                         (int) Math.floor(attacker.getY()),
@@ -70,7 +70,7 @@ public class Player extends Combatant {
 
     @Override
     protected Rectangle getMovementBounds(double candidateX, double candidateY) {
-        return movementHitbox.getBounds(candidateX, candidateY);
+        return movementHitbox.getBounds(candidateX, candidateY, getWidth(), facingLeft);
     }
 
     public Weapon getCurrentWeapon() {

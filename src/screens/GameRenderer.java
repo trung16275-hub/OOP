@@ -394,8 +394,8 @@ public class GameRenderer {
     private void renderPlayerHitboxes(Graphics2D g2, Player player) {
         Graphics2D debug = (Graphics2D) g2.create();
         try {
-            Rectangle movementBounds = player.getMovementHitbox().getBounds(player.getX(), player.getY());
-            Rectangle hurtBounds = player.getHurtBox().getBounds(player.getX(), player.getY());
+            Rectangle movementBounds = player.getMovementBounds();
+            Rectangle hurtBounds = player.getHurtBounds();
 
             debug.setStroke(new BasicStroke(2f));
             debug.setColor(new Color(52, 220, 255, 210));
