@@ -75,7 +75,7 @@ public class MapGenerator {
         }
 
         // Chọn 1 phòng bình thường xa spawn nhất làm boss room
-        setBossRoom(map, roomPositions, spawnRoom);
+        setBossRoom(map, spawnRoom);
 
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);
@@ -123,7 +123,14 @@ public class MapGenerator {
                         }
                         r.setDoorOffset(dir, offset);
                     }
-                    r.carveDoor(dir, r.isCleared());
+
+                    boolean leadsToBoss = !map.isBossRoomUnlocked() && map.leadsToBoss(r, dir);
+                    if (leadsToBoss) {
+                        r.lockDoor(dir);
+                        r.carveDoor(dir, false);
+                    } else {
+                        r.carveDoor(dir, r.isCleared());
+                    }
                 }
             }
         }
@@ -180,23 +187,40 @@ public class MapGenerator {
         }
     }
 
-    public void setBossRoom(WorldMap map, List<Point> roomPositions, Room spawnRoom) { //phong xa nhat vs spawn
-        if (roomPositions.size() > 1) {
-            Point spawnPoint = new Point(spawnRoom.getGridX(),spawnRoom.getGridY());
-            Point bossPoint = spawnPoint;
-            double currentBest = Double.NEGATIVE_INFINITY;
-            double dist;
-            for (Point p : roomPositions) {
-                dist = p.distance(spawnPoint);
-                if (dist > currentBest) {
-                    currentBest = dist;
-                    bossPoint = p;
+    public void setBossRoom(WorldMap map, Room spawnRoom) { //Now use BFS
+        if (spawnRoom == null) return;
+
+        Point start = new Point(spawnRoom.getGridX(), spawnRoom.getGridY());
+        Queue<Point> queue = new LinkedList<>();
+        Set<Point> visited = new HashSet<>();
+
+        queue.offer(start);
+        visited.add(start);
+
+        Point furthestPoint = start;
+
+        while (!queue.isEmpty()) {
+            Point current = queue.poll();
+            furthestPoint = current;
+
+            for (Direction dir : Direction.values()) {
+                int nextX = current.x + dir.getDx();
+                int nextY = current.y + dir.getDy();
+                Point neighbor = new Point(nextX, nextY);
+
+                // Check if a room exists at (nextX, nextY) and hasn't been visited
+                if (!visited.contains(neighbor) && map.getRoom(nextX, nextY) != null) {
+                    visited.add(neighbor);
+                    queue.offer(neighbor);
                 }
             }
-            Room foundRoom = map.getRoom(bossPoint.x, bossPoint.y);
+        }
+
+        if (!furthestPoint.equals(start)) {
+            Room foundRoom = map.getRoom(furthestPoint.x, furthestPoint.y);
             if (foundRoom != null && foundRoom.getRoomType() != Room.RoomType.SPAWN) {
                 Room bossRoom = new Room(Room.RoomSize.BIG, Room.RoomType.BOSS);
-                map.addRoom(bossPoint.x, bossPoint.y, bossRoom);
+                map.addRoom(furthestPoint.x, furthestPoint.y, bossRoom);
             }
         }
     }

@@ -3,9 +3,9 @@ package map;
 import java.awt.*;
 
 public enum FloorTheme {
-    LEVEL_0_OFFICE(1, "The Lobby", "/tiles/", new Color(45, 42, 24)),
-    LEVEL_2_PIPEDREAM(2, "Pipe Dreams", "tiles", new Color(28, 16, 12)),
-    LEVEL_52_SCHOOL(3, "School Halls", new Color(18, 26, 36));
+    LEVEL_0_OFFICE(1, "The Lobby", "", new Color(45, 42, 24)),
+    LEVEL_2_PIPEDREAM(2, "Pipe Dreams", "", new Color(28, 16, 12)),
+    LEVEL_52_SCHOOL(3, "School Halls", "", new Color(18, 26, 36));
 
     private final int floorLevel;
     private final String floorName;

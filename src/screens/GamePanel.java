@@ -44,6 +44,7 @@ public class GamePanel extends JPanel implements Runnable {
     private MapGenerator mapGenerator;
     private WorldMap worldMap;
     private Room room;
+    private int currentFloor;
 
     // Key Handling
     private KeyHandler keyH = new KeyHandler();
@@ -57,6 +58,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.renderer = new GameRenderer();
         this.mapGenerator = new MapGenerator();
         this.addKeyListener(keyH);
+        this.currentFloor = 1;
 
         setFocusable(true);
         // Khởi tạo nhân vật, tải file map, load hội thoại cốt truyện đầu game ở đây
@@ -124,6 +126,11 @@ public class GamePanel extends JPanel implements Runnable {
             endGame();
             return;
         }
+
+        if(worldMap.getBossRoom()!=null && worldMap.isBossRoomUnlocked()) {
+
+        }
+
 
         if (keyH.consumeWeaponSwitchPress()) {
             toggleWeapon();

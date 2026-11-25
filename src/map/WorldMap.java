@@ -5,16 +5,28 @@ import java.util.List;
 
 public class WorldMap {
     public static final int GRID_SIZE = 7;
+    private final int keysRequired = 3;
 
-    private final int floorLevel;
+    private FloorTheme theme;
+    private int keysCollected;
+
     private final Room[][] grid;
     private final List<Room> rooms;
 
     private Room currentRoom;
     private Room spawnRoom;
 
+    private boolean bossRoomUnlocked;
+
     public WorldMap(int floorLevel) {
-        this.floorLevel = floorLevel;
+        switch (floorLevel) {
+            case 1 -> theme = FloorTheme.LEVEL_0_OFFICE;
+            case 2 -> theme = FloorTheme.LEVEL_2_PIPEDREAM;
+            case 3 -> theme = FloorTheme.LEVEL_52_SCHOOL;
+        }
+        this.keysCollected = 0;
+        this.bossRoomUnlocked = false;
+
         this.grid = new Room[GRID_SIZE][GRID_SIZE];
         this.rooms = new ArrayList<>();
     }
@@ -74,7 +86,7 @@ public class WorldMap {
     }
 
     public int getFloorLevel() {
-        return floorLevel;
+        return theme.getFloorLevel();
     }
 
     public List<Room> getRooms () {
@@ -99,6 +111,53 @@ public class WorldMap {
             }
         }
         return spawnRoom;
+    }
+
+    public Room getBossRoom() {
+        for (Room r : rooms) {
+            if (r.getRoomType() == Room.RoomType.BOSS) return r;
+        }
+        return null;
+    }
+
+    public void collectKey () {
+        keysCollected ++;
+    }
+
+    public boolean isBossRoomUnlocked() {
+        return bossRoomUnlocked;
+    }
+
+    public boolean leadsToBoss(Room room, Direction dir) {
+        if (room == null || dir == null) return false;
+        Room neighbor = getRoom(room.getGridX() + dir.getDx(), room.getGridY() + dir.getDy());
+        return neighbor != null && neighbor.getRoomType() == Room.RoomType.BOSS;
+    }
+
+    public boolean isConnectedToBoss (Room room) {
+        if (room == null) return false;
+        for (Direction dir : room.getDoors().keySet()) {
+            if (leadsToBoss(room, dir)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void unlockBossRoom() {
+        this.bossRoomUnlocked = true;
+        Room bossRoom = getBossRoom();
+        if (bossRoom == null) return;
+        for (Direction dir : Direction.values()) {
+            Room neighbor = getRoom(bossRoom.getGridX() + dir.getDx(), bossRoom.getGridY() + dir.getDy());
+            if (neighbor != null) {
+                Direction doorToBoss = dir.opposite();
+                neighbor.unlockDoor(doorToBoss);
+                if (neighbor.isCleared()) {
+                    neighbor.carveDoor(doorToBoss, true);
+                }
+            }
+        }
     }
 
     public void setSpawnRoom(Room spawnRoom) {
