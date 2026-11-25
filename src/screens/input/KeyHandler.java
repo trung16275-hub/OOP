@@ -1,6 +1,7 @@
 package screens.input;
 
 import java.awt.event.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KeyHandler implements KeyListener {
     public boolean upPressed, downPressed, rightPressed, leftPressed;
@@ -9,6 +10,12 @@ public class KeyHandler implements KeyListener {
     private boolean dashPressed;
     private boolean weaponSwitchDown;
     private boolean weaponSwitchPressed;
+    private boolean pickupDown;
+    private final AtomicBoolean pickupPressed = new AtomicBoolean();
+
+    public boolean consumePickupPress() {
+        return pickupPressed.getAndSet(false);
+    }
 
     public boolean consumeWeaponSwitchPress() {
         boolean pressed = weaponSwitchPressed;
@@ -38,6 +45,10 @@ public class KeyHandler implements KeyListener {
             weaponSwitchDown = true;
             weaponSwitchPressed = true;
         }
+        if (code == KeyEvent.VK_F && !pickupDown) {
+            pickupDown = true;
+            pickupPressed.set(true);
+        }
     }
     @Override
     public void keyReleased(KeyEvent e) {
@@ -49,6 +60,7 @@ public class KeyHandler implements KeyListener {
         if (code == KeyEvent.VK_SPACE) spacePressed = false;
         if (code == KeyEvent.VK_Q) dashDown = false;
         if (code == KeyEvent.VK_T) weaponSwitchDown = false;
+        if (code == KeyEvent.VK_F) pickupDown = false;
     }
     @Override
     public void keyTyped(KeyEvent e) {} // Not needed

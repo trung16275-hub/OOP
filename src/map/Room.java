@@ -1,8 +1,7 @@
 package map;
 
 import model.Enemy;
-import model.world.PickupItem;
-import model.world.Prop;
+import model.prop.*;
 import screens.lighting.*;
 
 import java.awt.*;
@@ -49,13 +48,14 @@ public class Room {
     private RoomType roomType;
     private final TileType[][] tiles;
     private List<Prop> props;
-    private List<PickupItem> items;
 
     private boolean cleared;
     private boolean visited;
     private boolean bossLocked;
 
     private final List<Enemy> enemies = new ArrayList<>();
+    private final List<AmmoPickup> ammoPickups = new ArrayList<>();
+    private LiquidPain liquidPain;
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
     private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
 
@@ -320,9 +320,44 @@ public class Room {
         return lights;
     }
 
-    public void addLight(LightSource light) {
-        lights.add(light);
+    public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
+
+    public LiquidPain getLiquidPain() { return liquidPain; }
+    public void setLiquidPain(LiquidPain liquidPain) { this.liquidPain = liquidPain; }
+
+    public boolean isLiquidPainNearest(Rectangle playerBounds, int nearestAmmoIndex) {
+        if (liquidPain == null) {
+            return false;
+        }
+        double distance = pickupDistance(playerBounds, liquidPain.prop().getBounds());
+        return distance <= AmmoPickup.PICKUP_RANGE_PIXELS
+                && (nearestAmmoIndex < 0 || distance < pickupDistance(
+                        playerBounds, ammoPickups.get(nearestAmmoIndex).prop().getBounds()));
     }
+
+    public int findNearestAmmoPickup(Rectangle playerBounds) {
+        int nearest = -1;
+        double nearestDistance = AmmoPickup.PICKUP_RANGE_PIXELS;
+        for (int i = 0; i < ammoPickups.size(); i++) {
+            double distance = pickupDistance(playerBounds, ammoPickups.get(i).prop().getBounds());
+            if (distance <= nearestDistance && (nearest == -1 || distance < nearestDistance)) {
+                nearestDistance = distance;
+                nearest = i;
+            }
+        }
+        return nearest;
+    }
+
+    private double pickupDistance(Rectangle playerBounds, Rectangle bounds) {
+        double dx = Math.max(0, Math.max(bounds.getMinX() - playerBounds.getMaxX(),
+                playerBounds.getMinX() - bounds.getMaxX()));
+        double dy = Math.max(0, Math.max(bounds.getMinY() - playerBounds.getMaxY(),
+                playerBounds.getMinY() - bounds.getMaxY()));
+        return Math.hypot(dx, dy);
+    }
+
+    public List<LightSource> getLights() { return lights; }
+    public void addLight(LightSource light) { lights.add(light); }
 
     public TileType getTile(int x, int y) {
         if (x < 0 || x >= width || y < 0 || y >= height) return TileType.WALL;

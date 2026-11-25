@@ -8,6 +8,9 @@ import map.WorldMap;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
+import model.prop.AmmoPickup;
+import model.prop.LiquidPain;
+import model.prop.Prop;
 import model.weapon.Ak47;
 import model.boss.Boss3;
 import model.player.Player;
@@ -50,6 +53,8 @@ public class GameRenderer {
     private BufferedImage heartImage;
     private BufferedImage bulletImage;
     private BufferedImage armorImage;
+    private final BufferedImage rifleAmmoImage = AssetLoader.loadImage(AmmoPickup.SPRITE_PATH);
+    private final BufferedImage liquidPainImage = AssetLoader.loadImage(LiquidPain.SPRITE_PATH);
     private BufferedImage floorWearPatch;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
@@ -108,6 +113,16 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 3. Render room & entities
         renderRoom(g2, room);
+        if (room.getLiquidPain() != null && liquidPainImage != null) {
+            Prop prop = room.getLiquidPain().prop();
+            g2.drawImage(liquidPainImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
+        }
+        if (rifleAmmoImage != null) {
+            for (AmmoPickup pickup : room.getAmmoPickups()) {
+                Prop prop = pickup.prop();
+                g2.drawImage(rifleAmmoImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
+            }
+        }
 
         renderWallAmbientOcclusion(g2, room);
 
@@ -151,6 +166,16 @@ public class GameRenderer {
         g2.translate(camX, camY); // reset before rendering HUD/minimap
 
         lightSystem.render(g2, player, room, camX, camY);
+        if (player != null && !player.isDead()) {
+            Rectangle playerBounds = player.getMovementBounds();
+            int index = room.findNearestAmmoPickup(playerBounds);
+            if (room.isLiquidPainNearest(playerBounds, index)) {
+                renderPickupPrompt(g2, LiquidPain.DISPLAY_NAME + " · -" + LiquidPain.HP_COST + " HP");
+            } else if (index >= 0) {
+                AmmoPickup pickup = room.getAmmoPickups().get(index);
+                renderPickupPrompt(g2, AmmoPickup.DISPLAY_NAME + " · " + pickup.rounds() + " viên");
+            }
+        }
 
         if (worldMap != null) {
             renderMiniMap(g2, worldMap);
@@ -159,6 +184,31 @@ public class GameRenderer {
             renderPlayerStats(g2, player);
         }
 
+    }
+
+    private void renderPickupPrompt(Graphics2D g2, String text) {
+        Graphics2D prompt = (Graphics2D) g2.create();
+        try {
+            prompt.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+            String key = "[F]";
+            FontMetrics metrics = prompt.getFontMetrics();
+            int infoOffset = 16 + metrics.stringWidth(key) + 14;
+            int width = infoOffset + metrics.stringWidth(text) + 16;
+            int height = metrics.getHeight() + 12;
+            int x = (MainGame.WINDOW_WIDTH - width) / 2;
+            int y = MainGame.WINDOW_HEIGHT - height - 24;
+            int baseline = y + 6 + metrics.getAscent();
+
+            prompt.setColor(new Color(0, 0, 0, 185));
+            prompt.fillRect(x, y, width, height);
+            prompt.setColor(new Color(95, 222, 129));
+            prompt.fillRect(x, y, width, 1);
+            prompt.drawString(key, x + 16, baseline);
+            prompt.setColor(Color.WHITE);
+            prompt.drawString(text, x + infoOffset, baseline);
+        } finally {
+            prompt.dispose();
+        }
     }
 
     private void renderPlayerStats(Graphics2D g2, Player player) {
@@ -306,10 +356,11 @@ public class GameRenderer {
         int h = player.getHeight();
         String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
         String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
-        String state = player.isDashing() ? "dash"
+        String state = player.isHurt() ? "hurt"
+                : player.isDashing() ? "dash"
                 : player.isAttacking() ? "attack"
                 : player.isMoving() ? "walk" : "idle";
-        String animationKey = player.isDashing()
+        String animationKey = state.equals("dash")
             ? "player.dash"
             : spriteKey + "." + state;
         BufferedImage[] frames = animations.getFrames(animationKey);
@@ -320,16 +371,17 @@ public class GameRenderer {
         };
 
         if (frames != null && frames.length > 0) {
-                long animationTime = player.isDashing()
-                    ? System.currentTimeMillis() - player.getDashStartTime()
-                    : player.isAttacking()
-                    ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
-                    : System.currentTimeMillis();
-                int frameIndex = state.equals("dash")
-                    ? Math.min((int) (animationTime * frames.length / Player.DASH_DURATION_MS), frames.length - 1)
-                    : state.equals("attack")
-                        ? Math.min((int) (animationTime / frameDuration), frames.length - 1)
-                        : (int) ((animationTime / frameDuration) % frames.length);
+            long now = System.currentTimeMillis();
+            int lastFrame = frames.length - 1;
+            int frameIndex = switch (state) {
+                case "hurt" -> Math.min((int) ((now - player.getHurtAnimationStartTime())
+                        * frames.length / Player.HURT_ANIMATION_DURATION_MS), lastFrame);
+                case "dash" -> Math.min((int) ((now - player.getDashStartTime())
+                        * frames.length / Player.DASH_DURATION_MS), lastFrame);
+                case "attack" -> Math.min((int) ((now - player.getAttackAnimationStartTime())
+                        / frameDuration), lastFrame);
+                default -> (int) ((now / frameDuration) % frames.length);
+            };
             BufferedImage frame = frames[frameIndex];
             int drawHeight = h;
             int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());

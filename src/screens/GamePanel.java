@@ -8,6 +8,8 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
+import model.prop.AmmoPickup;
+import model.prop.LiquidPain;
 import model.weapon.Ak47;
 import model.weapon.Bat;
 import screens.input.KeyHandler;
@@ -74,6 +76,14 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.equip(ak47);
         this.player.setX(180);
         this.player.setY(260);
+
+        if (room != null) {
+            int x = (int) player.getX() + player.getWidth() + 8;
+            int y = (int) player.getY() + player.getHeight() - 30;
+            room.getAmmoPickups().add(new AmmoPickup(x, y));
+            room.setLiquidPain(new LiquidPain((int) player.getX() + 19,
+                    (int) player.getY() + player.getHeight() + 32));
+        }
 
     }
 
@@ -151,6 +161,9 @@ public class GamePanel extends JPanel implements Runnable {
         double previousX = player.getX();
         double previousY = player.getY();
         player.move(moveX, moveY, room);
+        if (keyH.consumePickupPress()) {
+            interactWithPickup();
+        }
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
         player.setMoving(movedX != 0 || movedY != 0);
@@ -243,6 +256,28 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
+    private void interactWithPickup() {
+        Rectangle playerBounds = player.getMovementBounds();
+        int index = room.findNearestAmmoPickup(playerBounds);
+        if (room.isLiquidPainNearest(playerBounds, index)) {
+            player.takeDirectDamage(LiquidPain.HP_COST);
+            room.setLiquidPain(null);
+            return;
+        }
+        if (index < 0) {
+            return;
+        }
+
+        List<AmmoPickup> pickups = room.getAmmoPickups();
+        AmmoPickup pickup = pickups.get(index);
+        int added = ak47.addAmmo(pickup.rounds());
+        if (added == pickup.rounds()) {
+            pickups.remove(index);
+        } else if (added > 0) {
+            pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
+        }
+    }
+      
     private void createFloor() {
         this.worldMap = mapGenerator.generateFloor(currentFloor, 8);
         this.room = worldMap.getCurrentRoom();
