@@ -7,7 +7,6 @@ import map.Room;
 import map.TileType;
 import map.WorldMap;
 import model.Enemy;
-import model.Player;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.weapon.Bat;
@@ -20,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.swing.*;
 import model.boss.Boss3;
+import model.player.Player;
 public class GamePanel extends JPanel implements Runnable {
     private static final long AK47_FIRE_INTERVAL_MS = 180;
     private static final long BAT_ATTACK_INTERVAL_MS = 450;
@@ -141,11 +141,6 @@ public class GamePanel extends JPanel implements Runnable {
             moveX *= 0.7071;
             moveY *= 0.7071;
         }
-        // Đạn chỉ bắn ngang; phím lên/xuống không đổi hướng bắn.
-        if (moveX != 0) {
-            player.setAimDirection(moveX, 0);
-        }
-
         double previousX = player.getX();
         double previousY = player.getY();
         player.move(moveX, moveY, room);
@@ -153,9 +148,12 @@ public class GamePanel extends JPanel implements Runnable {
         double movedY = player.getY() - previousY;
         player.setMoving(movedX != 0 || movedY != 0);
         if (movedX != 0) {
+            // Chỉ đổi hướng ngắm khi nhân vật thực sự di chuyển ngang, không phải khi bị tường chặn.
+            player.setAimDirection(movedX, 0);
             player.setFacingLeft(movedX < 0);
         }
 
+        // Fire input is processed independently of movement collision, so touching a wall does not block shooting.
         long now = System.currentTimeMillis();
         if (keyH.spacePressed && now >= nextShotTime) {
             if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {

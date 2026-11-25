@@ -1,9 +1,9 @@
 package test;
 
-import model.Player;
 import model.weapon.Weapon;
 import model.weapon.Ak47;
 import model.boss.Boss1;
+import model.player.Player;
 
 public class CombatTest {
     public static void main(String[] args) {

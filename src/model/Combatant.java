@@ -146,31 +146,36 @@ public abstract class Combatant {
     }
 
     public abstract void attack(Combatant target) ;
+
+    protected Rectangle getMovementBounds(double candidateX, double candidateY) {
+        return new Rectangle((int) Math.round(candidateX), (int) Math.round(candidateY), width, height);
+    }
+
     public void move(double dx, double dy, Room room) {
 
         double stepX = dx * speed;
         double stepY = dy * speed;
 
-        Rectangle boxX = new Rectangle((int) Math.round(x + stepX), (int) Math.round(y), width, height);
+        Rectangle boxX = getMovementBounds(x + stepX, y);
         if (!room.checkCollision(boxX)) {
             x += stepX;
         } else {
             double signX = Math.signum(stepX);
             while (Math.abs(stepX) >= 1.0) {
-                Rectangle microX = new Rectangle((int) Math.round(x + signX), (int) Math.round(y), width, height);
+                Rectangle microX = getMovementBounds(x + signX, y);
                 if (room.checkCollision(microX)) break;
                 x += signX;
                 stepX -= signX;
             }
         }
 
-        Rectangle boxY = new Rectangle((int) Math.round(x), (int) Math.round(y + stepY), width, height);
+        Rectangle boxY = getMovementBounds(x, y + stepY);
         if (!room.checkCollision(boxY)) {
             y += stepY;
         } else {
             double signY = Math.signum(stepY);
             while (Math.abs(stepY) >= 1.0) {
-                Rectangle microY = new Rectangle((int) Math.round(x), (int) Math.round(y + signY), width, height);
+                Rectangle microY = getMovementBounds(x, y + signY);
                 if (room.checkCollision(microY)) break;
                 y += signY;
                 stepY -= signY;
