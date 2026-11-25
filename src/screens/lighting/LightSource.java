@@ -5,7 +5,8 @@ import java.awt.Color;
 public class LightSource {
     public enum Type {
         POINT,              // Circular glow (lanterns, orbs, player halo)
-        FLUORESCENT_TUBE    // Wide downward pool on North wall + floor
+        FLUORESCENT_TUBE,   // Wide downward pool on North wall + floor
+        OVERHEAD_PANEL      // Oblique elliptical light pool from unseen ceiling panels
     }
 
     private final Type type;

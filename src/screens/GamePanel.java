@@ -44,6 +44,7 @@ public class GamePanel extends JPanel implements Runnable {
     private MapGenerator mapGenerator;
     private WorldMap worldMap;
     private Room room;
+    private int currentFloor;
 
     // Key Handling
     private KeyHandler keyH = new KeyHandler();
@@ -64,12 +65,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
-        // 1. Tạo tầng hầm ngục ngẫu nhiên (Tầng 1, 8 phòng)
-        this.worldMap = mapGenerator.generateFloor(1, 8);
-        this.room = worldMap.getCurrentRoom();
-        if (this.room != null) {
-            this.room.setVisited(true);
-        }
+        this.currentFloor = 1;
+        createFloor();
 
         this.player = new Player();
         this.ak47 = new Ak47();
@@ -141,6 +138,16 @@ public class GamePanel extends JPanel implements Runnable {
             moveX *= 0.7071;
             moveY *= 0.7071;
         }
+
+        if (keyH.consumeDashPress()) {
+            player.startDash(moveX, moveY);
+        }
+
+        boolean dashing = player.isDashing();
+        if (dashing) {
+            moveX = player.getDashDirectionX() * Player.DASH_SPEED_MULTIPLIER;
+            moveY = player.getDashDirectionY() * Player.DASH_SPEED_MULTIPLIER;
+        }
         double previousX = player.getX();
         double previousY = player.getY();
         player.move(moveX, moveY, room);
@@ -155,7 +162,9 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Fire input is processed independently of movement collision, so touching a wall does not block shooting.
         long now = System.currentTimeMillis();
-        if (keyH.spacePressed && now >= nextShotTime) {
+        if (player.isDashing()) {
+            player.stopAttackAnimation();
+        } else if (keyH.spacePressed && now >= nextShotTime) {
             if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
                 double bulletX = player.getX() + player.getWidth() / 2.0;
@@ -211,12 +220,35 @@ public class GamePanel extends JPanel implements Runnable {
                 room.setCleared(true);
                 room.openDoors();
             }
+            if (room.getRoomType() == Room.RoomType.BOSS &&
+                    room.getEnemies().isEmpty() && !worldMap.isFloorCleared()) {
+                room.spawnPortal();
+                worldMap.setFloorCleared(true);
+            }
         }
+
+        //5. Cap nhat chuyen floor
+        if (worldMap.isFloorCleared() && room.getTile( (int) player.getX() / Room.TILE_SIZE,
+                (int) player.getY() / Room.TILE_SIZE) == TileType.PORTAL) {
+            if (currentFloor <= 3){
+                currentFloor++ ;
+                createFloor();
+            } else {/*show winning screen*/ }
+        }
+
 
 
         //update light system
         renderer.getLightSystem().update(room, 0.016);
 
+    }
+
+    private void createFloor() {
+        this.worldMap = mapGenerator.generateFloor(currentFloor, 8);
+        this.room = worldMap.getCurrentRoom();
+        if (this.room != null) {
+            this.room.setVisited(true);
+        }
     }
 
     private void updateProjectiles() {
