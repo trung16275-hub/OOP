@@ -9,11 +9,14 @@ import java.awt.Rectangle;
 public class Player extends Combatant {
     private static final String DEFAULT_NAME = "Hero";
     private static final int DEFAULT_MAX_HP = 100;
-    private static final int DEFAULT_SPEED = 4;
+    private static final int DEFAULT_SPEED = 3;
     private static final int DEFAULT_ARMOR = 30;
     private static final int DEFAULT_WIDTH = 60;
     private static final int DEFAULT_HEIGHT = 60;
     private static final double DEFAULT_HITBOX_RADIUS = 60;
+    public static final double DASH_SPEED_MULTIPLIER = 1.7;
+    public static final long DASH_DURATION_MS = 600;
+    private static final long DASH_COOLDOWN_MS = 800;
 
     private final HurtBox hurtBox = new HurtBox(0, 0, 35, 60);
     private final MovementHitbox movementHitbox = new MovementHitbox(14, 20, 30, 42);
@@ -23,6 +26,11 @@ public class Player extends Combatant {
     private boolean facingLeft;
     private long attackAnimationStartTime;
     private long attackAnimationEndTime;
+    private long dashStartTime;
+    private long dashEndTime;
+    private long nextDashAvailableTime;
+    private double dashDirectionX;
+    private double dashDirectionY;
     private double aimX = 1;
     private double aimY;
 
@@ -103,6 +111,54 @@ public class Player extends Combatant {
         if (directionX != 0) {
             facingLeft = directionX < 0;
         }
+    }
+
+    public boolean startDash(double directionX, double directionY) {
+        long now = System.currentTimeMillis();
+        if (isDead() || now < nextDashAvailableTime) {
+            return false;
+        }
+
+        if (directionX == 0 && directionY == 0) {
+            directionX = aimX;
+            directionY = aimY;
+        }
+        double length = Math.hypot(directionX, directionY);
+        if (length == 0 || !Double.isFinite(length)) {
+            return false;
+        }
+
+        dashDirectionX = directionX / length;
+        dashDirectionY = directionY / length;
+        dashStartTime = now;
+        dashEndTime = now + DASH_DURATION_MS;
+        nextDashAvailableTime = now + DASH_COOLDOWN_MS;
+        stopAttackAnimation();
+        if (dashDirectionX != 0) {
+            facingLeft = dashDirectionX < 0;
+        }
+        return true;
+    }
+
+    public boolean isDashing() {
+        return System.currentTimeMillis() < dashEndTime;
+    }
+
+    public double getDashCooldownProgress() {
+        long remainingMs = Math.max(0, nextDashAvailableTime - System.currentTimeMillis());
+        return Math.max(0.0, Math.min(1.0, 1.0 - remainingMs / (double) DASH_COOLDOWN_MS));
+    }
+
+    public long getDashStartTime() {
+        return dashStartTime;
+    }
+
+    public double getDashDirectionX() {
+        return dashDirectionX;
+    }
+
+    public double getDashDirectionY() {
+        return dashDirectionY;
     }
 
     public void playAttackAnimation(int durationMs) {

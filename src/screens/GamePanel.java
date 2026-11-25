@@ -141,6 +141,16 @@ public class GamePanel extends JPanel implements Runnable {
             moveX *= 0.7071;
             moveY *= 0.7071;
         }
+
+        if (keyH.consumeDashPress()) {
+            player.startDash(moveX, moveY);
+        }
+
+        boolean dashing = player.isDashing();
+        if (dashing) {
+            moveX = player.getDashDirectionX() * Player.DASH_SPEED_MULTIPLIER;
+            moveY = player.getDashDirectionY() * Player.DASH_SPEED_MULTIPLIER;
+        }
         double previousX = player.getX();
         double previousY = player.getY();
         player.move(moveX, moveY, room);
@@ -155,7 +165,9 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Fire input is processed independently of movement collision, so touching a wall does not block shooting.
         long now = System.currentTimeMillis();
-        if (keyH.spacePressed && now >= nextShotTime) {
+        if (player.isDashing()) {
+            player.stopAttackAnimation();
+        } else if (keyH.spacePressed && now >= nextShotTime) {
             if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
                 double bulletX = player.getX() + player.getWidth() / 2.0;
