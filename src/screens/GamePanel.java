@@ -9,6 +9,8 @@ import map.WorldMap;
 import model.Enemy;
 import model.Player;
 import model.Projectile;
+import model.AcidProjectile;
+import model.boss.Boss2;
 import model.weapon.Ak47;
 import model.weapon.Bat;
 import screens.input.KeyHandler;
@@ -41,6 +43,8 @@ public class GamePanel extends JPanel implements Runnable {
     private long nextShotTime;
     private final List<Projectile> projectiles = new ArrayList<>();
     private static final double PROJECTILE_SPEED = 12.0;
+    // Đạn axit của Boss2
+    private final List<AcidProjectile> acidProjectiles = new ArrayList<>();
 
     // Map System
     private MapGenerator mapGenerator;
@@ -66,6 +70,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
+        projectiles.clear();
+        acidProjectiles.clear();
         // 1. Tạo tầng hầm ngục ngẫu nhiên (Tầng 1, 8 phòng)
         this.worldMap = mapGenerator.generateFloor(1, 8);
         this.room = worldMap.getCurrentRoom();
@@ -194,23 +200,55 @@ public class GamePanel extends JPanel implements Runnable {
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
                 projectiles.clear();
+                acidProjectiles.clear();
             }
         }
 
 
-        //3. Cập nhật Enemy
+        // 3. Cập nhật Enemy
 
-        if (room.getEnemies()!=null) {
+        if (room.getEnemies() != null) {
+
             room.getEnemies().removeIf(Enemy::isDead);
+
             for (Enemy e : room.getEnemies()) {
+
+                // Cập nhật hành vi của Enemy
                 e.updateBehavior(player, room);
-                // player.faceToward(e); // Currently not used
-                // player.resetFacing();
+
+                // Nếu là Boss2 và Boss yêu cầu phun axit
+                if (e instanceof Boss2 boss2
+                        && boss2.consumeAcidAttackRequest()) {
+
+                    double bossCenterX = boss2.getX() + boss2.getWidth() / 2.0;
+                    double bossCenterY = boss2.getY() + boss2.getHeight() / 2.0;
+
+                    double playerCenterX = player.getX() + player.getWidth() / 2.0;
+                    double playerCenterY = player.getY() + player.getHeight() / 2.0;
+
+                    // Hướng từ Boss2 đến Player
+                    double directionX = playerCenterX - bossCenterX;
+                    double directionY = playerCenterY - bossCenterY;
+
+                    // Tạo đạn axit tại vị trí trung tâm Boss2
+                    AcidProjectile acid = new AcidProjectile(
+                            bossCenterX - 6,
+                            bossCenterY - 6,
+                            directionX,
+                            directionY,
+                            boss2.getAcidDamage()
+                    );
+
+                    acidProjectiles.add(acid);
+                }
             }
         }
+
+// Cập nhật đạn axit
+        updateAcidProjectiles();
 
         //4. Cap nhat phong
-        if (room != null) {
+        if (room != null && room.getEnemies() != null) {
             if (room.getEnemies().isEmpty()) {
                 room.setCleared(true);
                 room.openDoors();
@@ -223,19 +261,56 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
+
     private void updateProjectiles() {
+        if (room == null || room.getEnemies() == null) return;
+
         Iterator<Projectile> iterator = projectiles.iterator();
+
         while (iterator.hasNext()) {
             Projectile projectile = iterator.next();
+
             projectile.update(room);
+
             for (Enemy e : room.getEnemies()) {
-                if (projectile.isActive() && projectile.hits(e)) {
+                if (e != null && !e.isDead()
+                        && projectile.isActive()
+                        && projectile.hits(e)) {
+
                     e.takeDamage(projectile.getDamage());
                     projectile.deactivate();
                     break;
                 }
             }
+
             if (!projectile.isActive()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    // Cập nhật đạn axit của Boss2
+    private void updateAcidProjectiles() {
+
+        Iterator<AcidProjectile> iterator = acidProjectiles.iterator();
+
+        while (iterator.hasNext()) {
+
+            AcidProjectile acid = iterator.next();
+
+            // Cập nhật vị trí đạn và kiểm tra va chạm với tường
+            acid.update(room);
+
+            // Kiểm tra va chạm với Player
+            if (acid.isActive() && acid.hits(player)) {
+
+                player.takeDamage(acid.getDamage());
+
+                acid.deactivate();
+            }
+
+            // Xóa đạn đã va chạm hoặc không còn hoạt động
+            if (!acid.isActive()) {
                 iterator.remove();
             }
         }
@@ -261,7 +336,14 @@ public class GamePanel extends JPanel implements Runnable {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         synchronized (stateLock) {
-            renderer.render((Graphics2D) g, player, room, worldMap, projectiles);
+            renderer.render(
+                    (Graphics2D) g,
+                    player,
+                    room,
+                    worldMap,
+                    projectiles,
+                    acidProjectiles
+            );
         }
     }
 }

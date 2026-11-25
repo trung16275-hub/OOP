@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import model.AcidProjectile;
+import model.boss.Boss2;
 import model.boss.Boss3;
 import model.boss.Boss4;
 import screens.lighting.LightSystem;
@@ -38,6 +40,14 @@ public class GameRenderer {
     private static final int BOSS1_RUN_FRAME_DURATION_MS = 120;
     private static final int BOSS1_DASH_FRAME_DURATION_MS = 70;
     private static final int BOSS1_LUNGE_FRAME_DURATION_MS = 90;
+
+    // Animation Boss2
+    private static final int BOSS2_IDLE_FRAME_DURATION_MS = 220;
+    private static final int BOSS2_RUN_FRAME_DURATION_MS = 110;
+    private static final int BOSS2_ATTACK_FRAME_DURATION_MS = 90;
+    private static final int BOSS2_BACK_BURST_FRAME_DURATION_MS = 90;
+    private static final int BOSS2_COCOON_FRAME_DURATION_MS = 220;
+    private static final int BOSS2_HURT_FRAME_DURATION_MS = 80;
 
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
@@ -81,6 +91,15 @@ registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
 registerAnim("boss1", "run", "assets/boss1/run.png", 4);
 registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
 registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
+
+// Boss 2
+        registerAnim("boss2", "idle", "assets/boss2/idle.png", 4);
+        registerAnim("boss2", "run", "assets/boss2/run.png", 4);
+        registerAnim("boss2", "attack", "assets/boss2/attack.png", 4);
+        registerAnim("boss2", "back_burst", "assets/boss2/back_burst.png", 4);
+        registerAnim("boss2", "cocoon", "assets/boss2/cocoon.png", 4);
+        registerAnim("boss2", "hurt", "assets/boss2/hurt.png", 4);
+
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
@@ -145,12 +164,24 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
     }
 
     public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
-                   List<Projectile> projectiles) {
-    List<Enemy> enemies = (room != null && room.getEnemies() != null)
-            ? room.getEnemies()
-            : Collections.emptyList();
-    renderScene(g2, player, enemies, room, worldMap, projectiles);
-}
+                       List<Projectile> projectiles) {
+
+        render(g2, player, room, worldMap, projectiles,
+                Collections.emptyList());
+    }
+
+    // Phiên bản render có cả đạn của Player và đạn axit Boss2
+    public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                       List<Projectile> projectiles,
+                       List<AcidProjectile> acidProjectiles) {
+
+        List<Enemy> enemies = (room != null && room.getEnemies() != null)
+                ? room.getEnemies()
+                : Collections.emptyList();
+
+        renderScene(g2, player, enemies, room, worldMap,
+                projectiles, acidProjectiles);
+    }
 
     private void renderPlayerStats(Graphics2D g2, Player player) {
         String msg = player.getStatusMessage();
@@ -280,30 +311,51 @@ if (!msg.isEmpty()) {
         g2.setColor(new Color(25, 25, 30));
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
     }
+
     private void renderPlayer(Graphics2D g2, Player player) {
         int x = (int) player.getX();
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
-        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
-        String state = player.isAttacking() ? "attack" : player.isMoving() ? "walk" : "idle";
+
+        String weaponName = player.getCurrentWeapon() == null
+                ? "AK47"
+                : player.getCurrentWeapon().getName();
+
+        String spriteKey = "Bat".equalsIgnoreCase(weaponName)
+                ? "player_bat"
+                : "player_ak47";
+
+        String state = player.isAttacking()
+                ? "attack"
+                : player.isMoving() ? "walk" : "idle";
+
         BufferedImage[] frames = animations.get(spriteKey + "_" + state);
+
         int frameDuration = player.isAttacking()
-            ? PLAYER_ATTACK_FRAME_DURATION_MS
-            : player.isMoving() ? PLAYER_WALK_FRAME_DURATION_MS : PLAYER_IDLE_FRAME_DURATION_MS;
+                ? PLAYER_ATTACK_FRAME_DURATION_MS
+                : player.isMoving()
+                ? PLAYER_WALK_FRAME_DURATION_MS
+                : PLAYER_IDLE_FRAME_DURATION_MS;
 
         if (frames != null && frames.length > 0) {
-                long animationTime = player.isAttacking()
+            long animationTime = player.isAttacking()
                     ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
                     : System.currentTimeMillis();
-                int frameIndex = (int) ((animationTime / frameDuration) % frames.length);
+
+            int frameIndex = (int) ((animationTime / frameDuration) % frames.length);
+
             BufferedImage frame = frames[frameIndex];
             int drawHeight = h;
-            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+            int drawWidth = Math.round(
+                    (float) frame.getWidth() * drawHeight / frame.getHeight()
+            );
+
             int drawX = x + (w - drawWidth) / 2;
+
             if (player.isFacingLeft()) {
-                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
+                g2.drawImage(frame, drawX + drawWidth, y,
+                        -drawWidth, drawHeight, null);
             } else {
                 g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
             }
@@ -314,20 +366,73 @@ if (!msg.isEmpty()) {
         }
     }
 
+    // Vẽ đạn của Player
     private void renderProjectiles(Graphics2D g2, List<Projectile> projectiles) {
         if (projectiles == null) return;
-    
+
         g2.setColor(new Color(255, 220, 90));
+
         for (Projectile projectile : projectiles) {
-            if (projectile.isActive()) {
+            if (projectile != null && projectile.isActive()) {
                 Rectangle bounds = projectile.getBounds();
-                g2.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
+                g2.fillOval(
+                        bounds.x,
+                        bounds.y,
+                        bounds.width,
+                        bounds.height
+                );
             }
         }
     }
 
-    
-private void renderEnemy(Graphics2D g2, Enemy enemy) {
+    // Vẽ đạn axit của Boss2
+    private void renderAcidProjectiles(
+            Graphics2D g2,
+            List<AcidProjectile> acidProjectiles) {
+
+        if (acidProjectiles == null) return;
+
+        for (AcidProjectile acid : acidProjectiles) {
+            if (acid == null || !acid.isActive()) continue;
+
+            Rectangle bounds = acid.getBounds();
+            Graphics2D acidGraphics = (Graphics2D) g2.create();
+
+            try {
+                // Lớp phát sáng bên ngoài
+                acidGraphics.setColor(new Color(50, 255, 50, 70));
+                acidGraphics.fillOval(
+                        bounds.x - 5,
+                        bounds.y - 5,
+                        bounds.width + 10,
+                        bounds.height + 10
+                );
+
+                // Lớp axit chính
+                acidGraphics.setColor(new Color(80, 220, 30));
+                acidGraphics.fillOval(
+                        bounds.x,
+                        bounds.y,
+                        bounds.width,
+                        bounds.height
+                );
+
+                // Phần lõi sáng
+                acidGraphics.setColor(new Color(190, 255, 80));
+                acidGraphics.fillOval(
+                        bounds.x + 3,
+                        bounds.y + 3,
+                        Math.max(2, bounds.width - 6),
+                        Math.max(2, bounds.height - 6)
+                );
+            } finally {
+                acidGraphics.dispose();
+            }
+        }
+    }
+
+
+    private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
@@ -350,21 +455,44 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
                     case "idle":
                         frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
                         break;
-
                     case "run":
                         frameDuration = BOSS1_RUN_FRAME_DURATION_MS;
                         break;
-
                     case "dash":
                         frameDuration = BOSS1_DASH_FRAME_DURATION_MS;
                         break;
-
                     case "lunge":
                         frameDuration = BOSS1_LUNGE_FRAME_DURATION_MS;
                         break;
-
                     default:
                         frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
+                        break;
+                }
+            }
+
+            // Tốc độ animation Boss 2
+            else if ("boss2".equals(key)) {
+                switch (state) {
+                    case "idle":
+                        frameDuration = BOSS2_IDLE_FRAME_DURATION_MS;
+                        break;
+                    case "run":
+                        frameDuration = BOSS2_RUN_FRAME_DURATION_MS;
+                        break;
+                    case "attack":
+                        frameDuration = BOSS2_ATTACK_FRAME_DURATION_MS;
+                        break;
+                    case "back_burst":
+                        frameDuration = BOSS2_BACK_BURST_FRAME_DURATION_MS;
+                        break;
+                    case "cocoon":
+                        frameDuration = BOSS2_COCOON_FRAME_DURATION_MS;
+                        break;
+                    case "hurt":
+                        frameDuration = BOSS2_HURT_FRAME_DURATION_MS;
+                        break;
+                    default:
+                        frameDuration = BOSS2_IDLE_FRAME_DURATION_MS;
                         break;
                 }
             }
@@ -646,10 +774,13 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
     List<Enemy> enemies = (enemy != null)
             ? Collections.singletonList(enemy)
             : Collections.emptyList();
-    renderScene(g2, player, enemies, room, worldMap, null);
+        renderScene(g2, player, enemies, room, worldMap,
+                null, Collections.emptyList());
 }
-private void renderScene(Graphics2D g2, Player player, List<Enemy> enemies,
-                         Room room, WorldMap worldMap, List<Projectile> projectiles) {
+    private void renderScene(Graphics2D g2, Player player, List<Enemy> enemies,
+                             Room room, WorldMap worldMap,
+                             List<Projectile> projectiles,
+                             List<AcidProjectile> acidProjectiles) {
     // 1. Nền tối ngoài bản đồ
     g2.setColor(Color.BLACK);
     g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -706,6 +837,7 @@ if (!boss4Hidden) {
         renderPlayer(g2, player);
     }
     renderProjectiles(g2, projectiles);
+    renderAcidProjectiles(g2, acidProjectiles);
 
     // 6. Vẽ hitbox
     for (Enemy enemy : enemies) {   
