@@ -17,6 +17,7 @@ public class WorldMap {
     private Room spawnRoom;
 
     private boolean bossRoomUnlocked;
+    private boolean floorCleared;
 
     public WorldMap(int floorLevel) {
         switch (floorLevel) {
@@ -25,7 +26,8 @@ public class WorldMap {
             case 3 -> theme = FloorTheme.LEVEL_52_SCHOOL;
         }
         this.keysCollected = 0;
-        this.bossRoomUnlocked = false;
+        this.bossRoomUnlocked = true; // Turn into false later when prop and item ready
+        this.floorCleared = false;
 
         this.grid = new Room[GRID_SIZE][GRID_SIZE];
         this.rooms = new ArrayList<>();
@@ -119,6 +121,9 @@ public class WorldMap {
         }
         return null;
     }
+
+    public void setFloorCleared (boolean floorCleared) { this.floorCleared = floorCleared; }
+    public boolean isFloorCleared () { return floorCleared; }
 
     public void collectKey () {
         keysCollected ++;
