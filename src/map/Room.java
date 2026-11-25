@@ -1,15 +1,12 @@
 package map;
 
 import model.Enemy;
-import model.prop.AmmoPickup;
-import model.prop.LiquidPain;
+import model.prop.*;
 import screens.lighting.*;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class Room {
 
@@ -26,11 +23,12 @@ public class Room {
 
     public enum RoomSize {
         SMALL(20, 14),
-        SCREEN(32,18),
-        BIG(48,28);
+        SCREEN(32, 18),
+        BIG(48, 28);
 
         public final int width;
         public final int height;
+
         RoomSize(int width, int height) {
             this.width = width;
             this.height = height;
@@ -49,14 +47,18 @@ public class Room {
 
     private RoomType roomType;
     private final TileType[][] tiles;
+    private List<Prop> props;
 
     private boolean cleared;
     private boolean visited;
+    private boolean bossLocked;
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<AmmoPickup> ammoPickups = new ArrayList<>();
     private LiquidPain liquidPain;
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
+    private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
+
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
     private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
 
@@ -80,6 +82,8 @@ public class Room {
 
         this.roomType = type;
         this.cleared = false;
+        this.bossLocked = roomType == RoomType.BOSS ? true : false;
+
         this.tiles = new TileType[width][height];
 
         generateDefaultRoom();
@@ -157,7 +161,9 @@ public class Room {
 
     public void openDoors() {
         for (Direction dir : doors.keySet()) {
-            carveDoor(dir, true);
+            if (!lockedDoors.contains(dir)) {
+                carveDoor(dir, true);
+            }
         }
     }
 
@@ -227,6 +233,7 @@ public class Room {
             }
         };
     }
+
     public boolean checkCollision(Rectangle bounds) {
         int minTileX = Math.max(0, bounds.x / TILE_SIZE);
         int maxTileX = Math.min(width - 1, (bounds.x + bounds.width - 1) / TILE_SIZE);
@@ -235,7 +242,7 @@ public class Room {
 
         for (int tx = minTileX; tx <= maxTileX; tx++) {
             for (int ty = minTileY; ty <= maxTileY; ty++) {
-                if(isTileSolid(tx,ty)) {
+                if (isTileSolid(tx, ty)) {
                     Rectangle tileRec = new Rectangle(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     if (bounds.intersects(tileRec)) return true;
                 }
@@ -245,29 +252,73 @@ public class Room {
         return false;
     }
 
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
+    public int getWidth() {
+        return width;
+    }
 
-    public int getGridX() { return gridX; }
-    public void setGridX(int gridX) { this.gridX = gridX; }
+    public int getHeight() {
+        return height;
+    }
 
-    public int getGridY() { return gridY; }
-    public void setGridY(int gridY) { this.gridY = gridY; }
+    public int getGridX() {
+        return gridX;
+    }
 
-    public int getPadX() { return padX; }
-    public int getPadY() { return padY; }
+    public void setGridX(int gridX) {
+        this.gridX = gridX;
+    }
 
-    public boolean isVisited() {return visited;}
-    public void setVisited(boolean visited) {this.visited = visited;}
+    public int getGridY() {
+        return gridY;
+    }
 
-    public RoomType getRoomType() { return roomType; }
-    public void setRoomType(RoomType roomType) { this.roomType = roomType; }
+    public void setGridY(int gridY) {
+        this.gridY = gridY;
+    }
 
-    public Map<Direction, Boolean> getDoors() { return doors; }
-    public boolean hasDoor(Direction dir) { return doors.containsKey(dir); }
+    public int getPadX() {
+        return padX;
+    }
 
-    public List<Enemy> getEnemies() { return enemies; }
-    public void addEnemy(Enemy enemy) { enemies.add(enemy); }
+    public int getPadY() {
+        return padY;
+    }
+
+    public boolean isVisited() {
+        return visited;
+    }
+
+    public void setVisited(boolean visited) {
+        this.visited = visited;
+    }
+
+    public RoomType getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(RoomType roomType) {
+        this.roomType = roomType;
+    }
+
+    public Map<Direction, Boolean> getDoors() {
+        return doors;
+    }
+
+    public boolean hasDoor(Direction dir) {
+        return doors.containsKey(dir);
+    }
+
+    public List<Enemy> getEnemies() {
+        return enemies;
+    }
+
+    public void addEnemy(Enemy enemy) {
+        enemies.add(enemy);
+    }
+
+    public List<LightSource> getLights() {
+        return lights;
+    }
 
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
 
@@ -309,15 +360,16 @@ public class Room {
     public void addLight(LightSource light) { lights.add(light); }
 
     public TileType getTile(int x, int y) {
-        if (x<0||x>=width||y<0||y>=height) return TileType.WALL;
+        if (x < 0 || x >= width || y < 0 || y >= height) return TileType.WALL;
         return tiles[x][y];
     }
 
-    public void setTile (int x, int y, TileType tile) {
+    public void setTile(int x, int y, TileType tile) {
         if (x < 0 || x >= width || y < 0 || y >= height) {
             throw new IndexOutOfBoundsException(
                     String.format("Tile coordinates (%d, %d) out of bounds for grid size (%d, %d)", x, y, width, height));
-            };
+        }
+        ;
         tiles[x][y] = tile;
     }
 
@@ -332,8 +384,27 @@ public class Room {
         return cleared;
     }
 
-    public void setCleared (boolean cleared) {
+    public void setCleared(boolean cleared) {
         this.cleared = cleared;
     }
 
+    public void spawnPortal() {
+        int midX = width / 2;
+        int midY = height / 2;
+        tiles[midX][midY] = TileType.PORTAL;
+        tiles[midX][midY - 1] = TileType.PORTAL;
+        tiles[midX - 1][midY] = TileType.PORTAL;
+        tiles[midX - 1][midY - 1] = TileType.PORTAL;
+    }
+
+    public void lockDoor(Direction dir) {
+        lockedDoors.add(dir);
+        if (doors.containsKey(dir)) {
+            carveDoor(dir, false);
+        }
+    }
+
+    public void unlockDoor(Direction dir) {
+        lockedDoors.remove(dir);
+    }
 }

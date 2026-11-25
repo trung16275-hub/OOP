@@ -75,7 +75,7 @@ public class MapGenerator {
         }
 
         // Chọn 1 phòng bình thường xa spawn nhất làm boss room
-        setBossRoom(map, roomPositions, spawnRoom);
+        setBossRoom(map, spawnRoom);
 
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);
@@ -123,7 +123,14 @@ public class MapGenerator {
                         }
                         r.setDoorOffset(dir, offset);
                     }
-                    r.carveDoor(dir, r.isCleared());
+
+                    boolean leadsToBoss = !map.isBossRoomUnlocked() && map.leadsToBoss(r, dir);
+                    if (leadsToBoss) {
+                        r.lockDoor(dir);
+                        r.carveDoor(dir, false);
+                    } else {
+                        r.carveDoor(dir, r.isCleared());
+                    }
                 }
             }
         }
@@ -154,9 +161,8 @@ public class MapGenerator {
         for (Room r : map.getRooms()) {
             int innerLeftPx = (r.getPadX() + 2) * Room.TILE_SIZE;
             int innerWidthPx = (r.getWidth() - (r.getPadX() + 2) * 2) * Room.TILE_SIZE;
-            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE; // Middle of North wall
+            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE;
 
-            // Place 2 tubes for normal/big rooms, 1 for small rooms
             int tubeCount = (r.getWidth() - r.getPadX() * 2 <= 22) ? 1 : 2;
 
             for (int i = 0; i < tubeCount; i++) {
@@ -177,26 +183,78 @@ public class MapGenerator {
                         flickers
                 ));
             }
+
+            int innerTopPx = (r.getPadY() + 4) * Room.TILE_SIZE;
+            int innerHeightPx = (r.getHeight() - (r.getPadY() + 4) - (r.getPadY() + 2)) * Room.TILE_SIZE;
+            int innerWidthTiles = r.getWidth() - (r.getPadX() + 2) * 2;
+            int innerHeightTiles = r.getHeight() - (r.getPadY() + 4) - (r.getPadY() + 2);
+
+            int cols = innerWidthTiles >= 36 ? 3 : (innerWidthTiles >= 22 ? 2 : 1);
+            int rows = innerHeightTiles >= 18 ? 2 : 1;
+            float overheadRadius = innerWidthTiles >= 36 ? 190f : (innerWidthTiles >= 22 ? 170f : 155f);
+
+            int maxLightCount = 3;
+            int curLightCount = 0;
+
+            for (int row = 0; row < rows; row++) {
+                double yFrac = (rows == 1) ? 0.58 : (row == 0 ? 0.38 : 0.75);
+                double poolY = innerTopPx + innerHeightPx * yFrac + rand.nextInt(-50, 51);
+
+                for (int col = 0; col < cols; col++) {
+                    if (curLightCount > maxLightCount) continue;
+                    if (rand.nextInt(6) < 2) continue;
+                    double poolX = innerLeftPx + innerWidthPx * ((col + 1.0) / (cols + 1.0)) + rand.nextInt(-50, 51);
+                    boolean flickers = (r.getRoomType() == Room.RoomType.BOSS && rand.nextInt(10) < 4)
+                            || (rand.nextInt(10) < 2);
+
+                    r.addLight(new LightSource(
+                            LightSource.Type.OVERHEAD_PANEL,
+                            poolX,
+                            poolY,
+                            overheadRadius,
+                            new Color(255, 242, 200),
+                            (rand.nextInt(2) < 2) ? 0.82f : 0.35f,
+                            flickers
+                    ));
+                }
+            }
         }
     }
 
-    public void setBossRoom(WorldMap map, List<Point> roomPositions, Room spawnRoom) { //phong xa nhat vs spawn
-        if (roomPositions.size() > 1) {
-            Point spawnPoint = new Point(spawnRoom.getGridX(),spawnRoom.getGridY());
-            Point bossPoint = spawnPoint;
-            double currentBest = Double.NEGATIVE_INFINITY;
-            double dist;
-            for (Point p : roomPositions) {
-                dist = p.distance(spawnPoint);
-                if (dist > currentBest) {
-                    currentBest = dist;
-                    bossPoint = p;
+    public void setBossRoom(WorldMap map, Room spawnRoom) { //Now use BFS
+        if (spawnRoom == null) return;
+
+        Point start = new Point(spawnRoom.getGridX(), spawnRoom.getGridY());
+        Queue<Point> queue = new LinkedList<>();
+        Set<Point> visited = new HashSet<>();
+
+        queue.offer(start);
+        visited.add(start);
+
+        Point furthestPoint = start;
+
+        while (!queue.isEmpty()) {
+            Point current = queue.poll();
+            furthestPoint = current;
+
+            for (Direction dir : Direction.values()) {
+                int nextX = current.x + dir.getDx();
+                int nextY = current.y + dir.getDy();
+                Point neighbor = new Point(nextX, nextY);
+
+                // Check if a room exists at (nextX, nextY) and hasn't been visited
+                if (!visited.contains(neighbor) && map.getRoom(nextX, nextY) != null) {
+                    visited.add(neighbor);
+                    queue.offer(neighbor);
                 }
             }
-            Room foundRoom = map.getRoom(bossPoint.x, bossPoint.y);
+        }
+
+        if (!furthestPoint.equals(start)) {
+            Room foundRoom = map.getRoom(furthestPoint.x, furthestPoint.y);
             if (foundRoom != null && foundRoom.getRoomType() != Room.RoomType.SPAWN) {
                 Room bossRoom = new Room(Room.RoomSize.BIG, Room.RoomType.BOSS);
-                map.addRoom(bossPoint.x, bossPoint.y, bossRoom);
+                map.addRoom(furthestPoint.x, furthestPoint.y, bossRoom);
             }
         }
     }
