@@ -22,6 +22,12 @@ public class Ak47 extends Weapon {
         return ammo > 0;
     }
 
+    public int addAmmo(int rounds) {
+        int added = Math.min(Math.max(0, rounds), MAGAZINE_SIZE - ammo);
+        ammo += added;
+        return added;
+    }
+
     /** Consumes one round and returns false if the magazine is empty. */
     @Override
     public boolean consumeAmmo() {

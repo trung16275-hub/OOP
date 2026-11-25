@@ -8,6 +8,7 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
+import model.prop.AmmoPickup;
 import model.weapon.Ak47;
 import model.weapon.Bat;
 import screens.input.KeyHandler;
@@ -77,6 +78,12 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.equip(ak47);
         this.player.setX(180);
         this.player.setY(260);
+
+        if (room != null) {
+            int x = (int) player.getX() + player.getWidth() + 8;
+            int y = (int) player.getY() + player.getHeight() - 30;
+            room.getAmmoPickups().add(new AmmoPickup(x, y));
+        }
 
     }
 
@@ -154,6 +161,9 @@ public class GamePanel extends JPanel implements Runnable {
         double previousX = player.getX();
         double previousY = player.getY();
         player.move(moveX, moveY, room);
+        if (keyH.consumePickupPress()) {
+            pickUpAmmo();
+        }
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
         player.setMoving(movedX != 0 || movedY != 0);
@@ -229,6 +239,22 @@ public class GamePanel extends JPanel implements Runnable {
         //update light system
         renderer.getLightSystem().update(room, 0.016);
 
+    }
+
+    private void pickUpAmmo() {
+        int index = room.findNearestAmmoPickup(player.getMovementBounds());
+        if (index < 0) {
+            return;
+        }
+
+        List<AmmoPickup> pickups = room.getAmmoPickups();
+        AmmoPickup pickup = pickups.get(index);
+        int added = ak47.addAmmo(pickup.rounds());
+        if (added == pickup.rounds()) {
+            pickups.remove(index);
+        } else if (added > 0) {
+            pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
+        }
     }
 
     private void updateProjectiles() {

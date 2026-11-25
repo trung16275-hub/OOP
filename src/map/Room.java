@@ -1,6 +1,7 @@
 package map;
 
 import model.Enemy;
+import model.prop.AmmoPickup;
 import screens.lighting.*;
 
 import java.awt.*;
@@ -52,6 +53,7 @@ public class Room {
     private boolean visited;
 
     private final List<Enemy> enemies = new ArrayList<>();
+    private final List<AmmoPickup> ammoPickups = new ArrayList<>();
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
     private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
@@ -264,6 +266,26 @@ public class Room {
 
     public List<Enemy> getEnemies() { return enemies; }
     public void addEnemy(Enemy enemy) { enemies.add(enemy); }
+
+    public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
+
+    public int findNearestAmmoPickup(Rectangle playerBounds) {
+        int nearest = -1;
+        double nearestDistance = AmmoPickup.PICKUP_RANGE_PIXELS;
+        for (int i = 0; i < ammoPickups.size(); i++) {
+            Rectangle bounds = ammoPickups.get(i).prop().getBounds();
+            double dx = Math.max(0, Math.max(bounds.getMinX() - playerBounds.getMaxX(),
+                    playerBounds.getMinX() - bounds.getMaxX()));
+            double dy = Math.max(0, Math.max(bounds.getMinY() - playerBounds.getMaxY(),
+                    playerBounds.getMinY() - bounds.getMaxY()));
+            double distance = Math.hypot(dx, dy);
+            if (distance <= nearestDistance && (nearest == -1 || distance < nearestDistance)) {
+                nearestDistance = distance;
+                nearest = i;
+            }
+        }
+        return nearest;
+    }
 
     public List<LightSource> getLights() { return lights; }
     public void addLight(LightSource light) { lights.add(light); }
