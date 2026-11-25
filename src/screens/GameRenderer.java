@@ -378,7 +378,6 @@ public class GameRenderer {
         };
 
         if (frames != null && frames.length > 0) {
-            long now = System.currentTimeMillis();
             int lastFrame = frames.length - 1;
             int frameIndex = switch (state) {
                 case "hurt" -> Math.min((int) ((now - player.getHurtAnimationStartTime())
