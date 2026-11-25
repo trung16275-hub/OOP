@@ -1,4 +1,4 @@
-package player;
+package model.player;
 
 import model.Combatant;
 import model.Enemy;
@@ -16,7 +16,7 @@ public class Player extends Combatant {
     private static final double DEFAULT_HITBOX_RADIUS = 60;
     private static final double DEFAULT_DETECTION_RANGE = 250.0;
 
-    private final HurtBox hurtBox = new HurtBox(12, 8, 36, 44);
+    private final HurtBox hurtBox = new HurtBox(0, 0, 35, 60);
     private final MovementHitbox movementHitbox = new MovementHitbox(14, 20, 30, 42);
     private int armor = DEFAULT_ARMOR;
     private double detectionRange = DEFAULT_DETECTION_RANGE;

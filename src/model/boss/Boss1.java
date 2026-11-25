@@ -2,7 +2,7 @@ package model.boss;
 
 import map.Room;
 import model.Enemy;
-import player.Player;
+import model.player.Player;
 
 public class Boss1 extends Enemy {
     // Thông số riêng của Boss1

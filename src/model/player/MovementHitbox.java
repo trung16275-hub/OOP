@@ -1,17 +1,17 @@
-package player;
+package model.player;
 
 import java.awt.Rectangle;
 
-/** Defines the player area that can receive attacks, relative to the sprite origin. */
-public final class HurtBox {
+/** Defines the smaller area used to keep the player clear of solid map tiles. */
+public final class MovementHitbox {
     private final int offsetX;
     private final int offsetY;
     private final int width;
     private final int height;
 
-    public HurtBox(int offsetX, int offsetY, int width, int height) {
+    public MovementHitbox(int offsetX, int offsetY, int width, int height) {
         if (offsetX < 0 || offsetY < 0 || width <= 0 || height <= 0) {
-            throw new IllegalArgumentException("Hurt box offsets must be non-negative and dimensions positive.");
+            throw new IllegalArgumentException("Movement hitbox offsets must be non-negative and dimensions positive.");
         }
         this.offsetX = offsetX;
         this.offsetY = offsetY;

@@ -2,7 +2,7 @@ package screens.lighting;
 
 import game.MainGame;
 import map.Room;
-import player.Player;
+import model.player.Player;
 import screens.AssetLoader;
 
 import java.awt.*;

@@ -10,7 +10,6 @@ import model.Enemy;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.weapon.Bat;
-import player.Player;
 import screens.input.KeyHandler;
 import screens.lighting.*;
 
@@ -20,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.swing.*;
 import model.boss.Boss3;
+import model.player.Player;
 public class GamePanel extends JPanel implements Runnable {
     private static final long AK47_FIRE_INTERVAL_MS = 180;
     private static final long BAT_ATTACK_INTERVAL_MS = 450;

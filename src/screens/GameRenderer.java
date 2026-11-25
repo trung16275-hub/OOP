@@ -10,7 +10,7 @@ import model.Enemy;
 import model.Projectile;
 import model.weapon.Ak47;
 import model.boss.Boss3;
-import player.Player;
+import model.player.Player;
 import screens.lighting.*;
 
 import javax.imageio.ImageIO;

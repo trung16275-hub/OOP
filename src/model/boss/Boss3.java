@@ -1,8 +1,8 @@
 package model.boss;
 
 import model.Enemy;
+import model.player.Player;
 import model.Combatant;
-import player.Player;
 import map.Room;
 import java.awt.geom.Line2D;
 public class Boss3 extends Enemy {

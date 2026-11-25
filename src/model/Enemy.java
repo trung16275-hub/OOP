@@ -1,7 +1,7 @@
 package model;
 
 import map.Room;
-import player.Player;
+import model.player.Player;
 
 // File: src/enemy/Enemy.java
 public abstract class Enemy extends Combatant {
