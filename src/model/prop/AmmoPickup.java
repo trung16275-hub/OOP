@@ -3,7 +3,7 @@ package model.prop;
 /** A rifle ammo box placed in a room. */
 public record AmmoPickup(Prop prop, int rounds) {
     public static final int MAX_ROUNDS = 5;
-    public static final int PICKUP_RANGE_PIXELS = 48;
+    public static final int PICKUP_RANGE_PIXELS = 20;
     public static final String DISPLAY_NAME = "Hộp đạn súng Ak47";
     public static final String SPRITE_PATH = "/pickups/pickup_ammo_rifle.png";
 

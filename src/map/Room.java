@@ -2,6 +2,7 @@ package map;
 
 import model.Enemy;
 import model.prop.AmmoPickup;
+import model.prop.LiquidPain;
 import screens.lighting.*;
 
 import java.awt.*;
@@ -54,6 +55,7 @@ public class Room {
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<AmmoPickup> ammoPickups = new ArrayList<>();
+    private LiquidPain liquidPain;
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
     private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
@@ -269,22 +271,38 @@ public class Room {
 
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
 
+    public LiquidPain getLiquidPain() { return liquidPain; }
+    public void setLiquidPain(LiquidPain liquidPain) { this.liquidPain = liquidPain; }
+
+    public boolean isLiquidPainNearest(Rectangle playerBounds, int nearestAmmoIndex) {
+        if (liquidPain == null) {
+            return false;
+        }
+        double distance = pickupDistance(playerBounds, liquidPain.prop().getBounds());
+        return distance <= AmmoPickup.PICKUP_RANGE_PIXELS
+                && (nearestAmmoIndex < 0 || distance < pickupDistance(
+                        playerBounds, ammoPickups.get(nearestAmmoIndex).prop().getBounds()));
+    }
+
     public int findNearestAmmoPickup(Rectangle playerBounds) {
         int nearest = -1;
         double nearestDistance = AmmoPickup.PICKUP_RANGE_PIXELS;
         for (int i = 0; i < ammoPickups.size(); i++) {
-            Rectangle bounds = ammoPickups.get(i).prop().getBounds();
-            double dx = Math.max(0, Math.max(bounds.getMinX() - playerBounds.getMaxX(),
-                    playerBounds.getMinX() - bounds.getMaxX()));
-            double dy = Math.max(0, Math.max(bounds.getMinY() - playerBounds.getMaxY(),
-                    playerBounds.getMinY() - bounds.getMaxY()));
-            double distance = Math.hypot(dx, dy);
+            double distance = pickupDistance(playerBounds, ammoPickups.get(i).prop().getBounds());
             if (distance <= nearestDistance && (nearest == -1 || distance < nearestDistance)) {
                 nearestDistance = distance;
                 nearest = i;
             }
         }
         return nearest;
+    }
+
+    private double pickupDistance(Rectangle playerBounds, Rectangle bounds) {
+        double dx = Math.max(0, Math.max(bounds.getMinX() - playerBounds.getMaxX(),
+                playerBounds.getMinX() - bounds.getMaxX()));
+        double dy = Math.max(0, Math.max(bounds.getMinY() - playerBounds.getMaxY(),
+                playerBounds.getMinY() - bounds.getMaxY()));
+        return Math.hypot(dx, dy);
     }
 
     public List<LightSource> getLights() { return lights; }

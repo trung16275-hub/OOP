@@ -9,6 +9,7 @@ import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
 import model.prop.AmmoPickup;
+import model.prop.LiquidPain;
 import model.weapon.Ak47;
 import model.weapon.Bat;
 import screens.input.KeyHandler;
@@ -83,6 +84,8 @@ public class GamePanel extends JPanel implements Runnable {
             int x = (int) player.getX() + player.getWidth() + 8;
             int y = (int) player.getY() + player.getHeight() - 30;
             room.getAmmoPickups().add(new AmmoPickup(x, y));
+            room.setLiquidPain(new LiquidPain((int) player.getX() + 19,
+                    (int) player.getY() + player.getHeight() + 32));
         }
 
     }
@@ -162,7 +165,7 @@ public class GamePanel extends JPanel implements Runnable {
         double previousY = player.getY();
         player.move(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
-            pickUpAmmo();
+            interactWithPickup();
         }
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
@@ -241,8 +244,14 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
-    private void pickUpAmmo() {
-        int index = room.findNearestAmmoPickup(player.getMovementBounds());
+    private void interactWithPickup() {
+        Rectangle playerBounds = player.getMovementBounds();
+        int index = room.findNearestAmmoPickup(playerBounds);
+        if (room.isLiquidPainNearest(playerBounds, index)) {
+            player.takeDirectDamage(LiquidPain.HP_COST);
+            room.setLiquidPain(null);
+            return;
+        }
         if (index < 0) {
             return;
         }
