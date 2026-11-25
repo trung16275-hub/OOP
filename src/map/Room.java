@@ -316,10 +316,6 @@ public class Room {
         enemies.add(enemy);
     }
 
-    public List<LightSource> getLights() {
-        return lights;
-    }
-
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
 
     public LiquidPain getLiquidPain() { return liquidPain; }
