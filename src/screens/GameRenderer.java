@@ -89,29 +89,29 @@ public class GameRenderer {
 
     }
     // Hàm cắt 1 hàng ngang thành mảng các frame
-private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
-    try {
-        BufferedImage sheet = ImageIO.read(new File(path));
-        int frameWidth = sheet.getWidth() / frameCount;
-        int frameHeight = sheet.getHeight();
+    private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
+        try {
+            BufferedImage sheet = ImageIO.read(new File(path));
+            int frameWidth = sheet.getWidth() / frameCount;
+            int frameHeight = sheet.getHeight();
 
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
+            BufferedImage[] frames = new BufferedImage[frameCount];
+            for (int i = 0; i < frameCount; i++) {
+                frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
+            }
+            return frames;
+        } catch (IOException e) {
+            System.err.println("Không tìm thấy ảnh: " + path);
+            return null;
         }
-        return frames;
-    } catch (IOException e) {
-        System.err.println("Không tìm thấy ảnh: " + path);
-        return null;
     }
-}
-    // Hàm đăng ký animation cho 1 bộ sprite
+        // Hàm đăng ký animation cho 1 bộ sprite
     private void registerAnim(String spriteKey, String state, String path, int frameCount) {
-    BufferedImage[] frames = loadSpriteSheet(path, frameCount);
-    if (frames != null) {
-        animations.put(spriteKey + "_" + state, frames);
+        BufferedImage[] frames = loadSpriteSheet(path, frameCount);
+        if (frames != null) {
+            animations.put(spriteKey + "_" + state, frames);
+        }
     }
-}
 
     private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
         BufferedImage[] frames = new BufferedImage[frameCount];
