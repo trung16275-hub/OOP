@@ -7,6 +7,8 @@ import model.weapon.Weapon;
 import java.awt.Rectangle;
 
 public class Player extends Combatant {
+    public static final int HURT_ANIMATION_DURATION_MS = 320;
+    private long hurtAnimationStartTime;
     private static final String DEFAULT_NAME = "Hero";
     private static final int DEFAULT_MAX_HP = 100;
     private static final int DEFAULT_SPEED = 3;
@@ -186,6 +188,21 @@ public class Player extends Combatant {
 
     public int getArmor() {
         return armor;
+    }
+
+    public long getHurtAnimationStartTime() {
+        return hurtAnimationStartTime;
+    }
+
+    public boolean isHurt() {
+        return System.currentTimeMillis() - hurtAnimationStartTime < HURT_ANIMATION_DURATION_MS;
+    }
+
+    public void takeDirectDamage(int damage) {
+        if (damage > 0 && !isDead()) {
+            hurtAnimationStartTime = System.currentTimeMillis();
+            super.takeDamage(damage);
+        }
     }
 
     public void equip(Weapon weapon) {
