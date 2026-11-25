@@ -24,6 +24,7 @@ public class GameRenderer {
     private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
+    private static final int PLAYER_HURT_FRAME_DURATION_MS = 80;
 
     private BufferedImage contactShadowImage;
     private BufferedImage aoNorthImage;
@@ -306,13 +307,19 @@ public class GameRenderer {
         int h = player.getHeight();
         String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
         String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+        long now = System.currentTimeMillis();
+        long hurtStartTime = player.getHurtAnimationStartTime();
+        long hurtElapsed = now - hurtStartTime;
+        BufferedImage[] hurtFrames = animations.getFrames(spriteKey + ".hurt");
+        boolean isHurt = hurtStartTime != 0 && hurtElapsed >= 0 && hurtFrames != null
+                && hurtElapsed / PLAYER_HURT_FRAME_DURATION_MS < hurtFrames.length;
         String state = player.isDashing() ? "dash"
                 : player.isAttacking() ? "attack"
                 : player.isMoving() ? "walk" : "idle";
         String animationKey = player.isDashing()
             ? "player.dash"
             : spriteKey + "." + state;
-        BufferedImage[] frames = animations.getFrames(animationKey);
+        BufferedImage[] frames = isHurt ? hurtFrames : animations.getFrames(animationKey);
         int frameDuration = switch (state) {
             case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
             case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;
@@ -320,16 +327,14 @@ public class GameRenderer {
         };
 
         if (frames != null && frames.length > 0) {
-                long animationTime = player.isDashing()
-                    ? System.currentTimeMillis() - player.getDashStartTime()
-                    : player.isAttacking()
-                    ? System.currentTimeMillis() - player.getAttackAnimationStartTime()
-                    : System.currentTimeMillis();
-                int frameIndex = state.equals("dash")
-                    ? Math.min((int) (animationTime * frames.length / Player.DASH_DURATION_MS), frames.length - 1)
-                    : state.equals("attack")
-                        ? Math.min((int) (animationTime / frameDuration), frames.length - 1)
-                        : (int) ((animationTime / frameDuration) % frames.length);
+            int frameIndex = switch (isHurt ? "hurt" : state) {
+                case "hurt" -> (int) (hurtElapsed / PLAYER_HURT_FRAME_DURATION_MS);
+                case "dash" -> Math.min((int) ((now - player.getDashStartTime()) * frames.length
+                        / Player.DASH_DURATION_MS), frames.length - 1);
+                case "attack" -> Math.min((int) ((now - player.getAttackAnimationStartTime())
+                        / frameDuration), frames.length - 1);
+                default -> (int) ((now / frameDuration) % frames.length);
+            };
             BufferedImage frame = frames[frameIndex];
             int drawHeight = h;
             int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());

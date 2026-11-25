@@ -25,6 +25,7 @@ public class Player extends Combatant {
     private boolean moving;
     private boolean facingLeft;
     private long attackAnimationStartTime;
+    private long hurtAnimationStartTime;
     private long attackAnimationEndTime;
     private long dashStartTime;
     private long dashEndTime;
@@ -170,6 +171,10 @@ public class Player extends Combatant {
         return attackAnimationStartTime;
     }
 
+    public long getHurtAnimationStartTime() {
+        return hurtAnimationStartTime;
+    }
+
     public boolean isAttacking() {
         return System.currentTimeMillis() < attackAnimationEndTime;
     }
@@ -200,6 +205,7 @@ public class Player extends Combatant {
         if (damage <= 0 || isDead()) {
             return;
         }
+        hurtAnimationStartTime = System.currentTimeMillis();
         int absorbed = Math.min(armor, damage);
         armor -= absorbed;
         super.takeDamage(damage - absorbed);
