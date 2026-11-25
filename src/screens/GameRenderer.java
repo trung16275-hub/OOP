@@ -1,10 +1,7 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
-import map.Room;
-import map.TileType;
-import map.WorldMap;
+import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
@@ -40,7 +37,6 @@ public class GameRenderer {
     private BufferedImage wallBotRimImage;
     private BufferedImage doorOpenedImage;
     private BufferedImage doorClosedImage;
-    private BufferedImage wallGrimeImage;
     private BufferedImage wallBorderBottomImage;
     private BufferedImage wallBorderLeftImage;
     private BufferedImage wallBorderRightImage;
@@ -63,21 +59,16 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
-        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
-        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
-        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
-        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
-        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
-        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
-        wallBorderBottomImage = AssetLoader.loadImage("/tiles/wall_border_bottom.png");
-        wallBorderLeftImage = AssetLoader.loadImage("/tiles/wall_border_left.png");
-        wallBorderRightImage = AssetLoader.loadImage("/tiles/wall_border_right.png");
-        wallBorderTopImage = AssetLoader.loadImage("/tiles/wall_border_top.png");
-        wallCornerBottomLeftImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_left.png");
-        wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
-        wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
-        wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
+        doorOpenedImage = AssetLoader.loadImage("/floor1/tiles/wall_doorway_open.png");
+        doorClosedImage = AssetLoader.loadImage("/floor1/tiles/wall_doorway_close.png");
+        wallBorderBottomImage = AssetLoader.loadImage("/floor1/tiles/wall_border_bottom.png");
+        wallBorderLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_border_left.png");
+        wallBorderRightImage = AssetLoader.loadImage("/floor1/tiles/wall_border_right.png");
+        wallBorderTopImage = AssetLoader.loadImage("/floor1/tiles/wall_border_top.png");
+        wallCornerBottomLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_bottom_left.png");
+        wallCornerBottomRightImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_bottom_right.png");
+        wallCornerTopLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_top_left.png");
+        wallCornerTopRightImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_top_right.png");
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
@@ -644,7 +635,7 @@ public class GameRenderer {
             return false;
         }
         TileType type = room.getTile(x, y);
-        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED;
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED || type == TileType.PORTAL;
     }
 
     private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
@@ -757,6 +748,15 @@ public class GameRenderer {
                 }
             }
         }
+    }
+
+
+    //Load theme refer to floor
+    public void loadTheme(FloorTheme theme) {
+        basefloorImage = AssetLoader.loadImage(theme.getAssetsPath() + "tile_floor_backrooms.png");
+        basewallImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_bottom_rim.png");
     }
 
     /** Pre-bakes a soft organic carpet wear smudge to break up repeating floor tiles. */

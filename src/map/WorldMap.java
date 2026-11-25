@@ -103,6 +103,10 @@ public class WorldMap {
         this.currentRoom = room;
     }
 
+    public FloorTheme getTheme() {
+        return theme;
+    }
+
     public Room getSpawnRoom() {
         if (spawnRoom == null) {
             for (Room r : rooms) {

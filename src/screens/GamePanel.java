@@ -68,14 +68,12 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void initNewGame() {
         this.currentFloor = 1;
-        createFloor();
 
         this.player = new Player();
         this.ak47 = new Ak47();
         this.bat = new Bat();
         this.player.equip(ak47);
-        this.player.setX(180);
-        this.player.setY(260);
+        createFloor();
 
         if (room != null) {
             int x = (int) player.getX() + player.getWidth() + 8;
@@ -182,8 +180,8 @@ public class GamePanel extends JPanel implements Runnable {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
                 double bulletX = player.getX() + player.getWidth() / 2.0;
                 double bulletY = player.getY() + player.getHeight() / 2.0;
-                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY(),
-                        PROJECTILE_SPEED, ak47.getDamage()));
+                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY()
+                        , PROJECTILE_SPEED, ak47.getDamage()));
                 nextShotTime = now + AK47_FIRE_INTERVAL_MS;
             } else if (player.getCurrentWeapon() instanceof Bat) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
@@ -202,7 +200,8 @@ public class GamePanel extends JPanel implements Runnable {
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
-        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY()
+                , player.getWidth(), player.getHeight());
         if (doorDir != null) {
             Room nextRoom = worldMap.moveTo(doorDir);
             if (nextRoom != room) {
@@ -241,12 +240,15 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         //5. Cap nhat chuyen floor
-        if (worldMap.isFloorCleared() && room.getTile( (int) player.getX() / Room.TILE_SIZE,
-                (int) player.getY() / Room.TILE_SIZE) == TileType.PORTAL) {
-            if (currentFloor <= 3){
-                currentFloor++ ;
-                createFloor();
-            } else {/*show winning screen*/ }
+        if (worldMap.isFloorCleared()) {
+            Rectangle bound = player.getMovementBounds();
+            if (room.getTile((bound.x + bound.width / 2) / Room.TILE_SIZE,
+                    (bound.y + bound.height / 2) / Room.TILE_SIZE)  == TileType.PORTAL) {
+                if (currentFloor < 3){
+                    currentFloor++ ;
+                    createFloor();
+                } else {/*show winning screen*/ }
+            }
         }
 
 
@@ -277,13 +279,21 @@ public class GamePanel extends JPanel implements Runnable {
             pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
         }
     }
-      
+
     private void createFloor() {
-        this.worldMap = mapGenerator.generateFloor(currentFloor, 8);
-        this.room = worldMap.getCurrentRoom();
-        if (this.room != null) {
-            this.room.setVisited(true);
+        worldMap = mapGenerator.generateFloor(currentFloor, 8);
+        room = worldMap.getSpawnRoom();
+        renderer.loadTheme(worldMap.getTheme());
+
+        renderer.getLightSystem().setAmbientDarkness(
+                worldMap.getTheme().getAmbientDarkness());
+
+        if (room != null) {
+            room.setVisited(true);
         }
+        player.setX(180);
+        player.setY(260);
+
     }
 
     private void updateProjectiles() {
