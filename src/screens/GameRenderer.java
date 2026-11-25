@@ -445,26 +445,28 @@ BufferedImage[] frames = animations.get(key + "_" + state);
                 }
             }
 
-            int frameIndex;
+            
+int frameIndex;
 
-if ("death".equals(state)) {
-    // Death chạy một lần rồi giữ frame cuối
-    long elapsed = System.currentTimeMillis()
-            - enemyStateStartTimes.getOrDefault(
-                    enemy, System.currentTimeMillis()
-            );
+long elapsed = System.currentTimeMillis()
+        - enemyStateStartTimes.getOrDefault(
+                enemy,
+                System.currentTimeMillis()
+        );
 
+// Hurt và Death chỉ phát một lượt, không lặp
+if ("hurt".equals(state) || "death".equals(state)) {
     frameIndex = Math.min(
             (int) (elapsed / frameDuration),
             frames.length - 1
     );
 } else {
-    // Những animation khác vẫn lặp
+    // Các animation khác tiếp tục lặp
     frameIndex = (int) (
-            (System.currentTimeMillis() / frameDuration)
-            % frames.length
+            (elapsed / frameDuration) % frames.length
     );
 }
+
 
             if (enemy.getFacingX() >= 0) {
                 g2.drawImage(

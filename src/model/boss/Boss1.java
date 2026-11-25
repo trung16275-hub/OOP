@@ -55,7 +55,7 @@ public class Boss1 extends Enemy {
     private boolean dashHit;
     private boolean lungeHit;
 
-    private static final long HURT_DURATION = 300_000_000L;
+private static final long HURT_DURATION = 320_000_000L;
 
     private long hurtStartTime;
     
@@ -78,39 +78,55 @@ public class Boss1 extends Enemy {
         setHeight(DEFAULT_HEIGHT);
     }
 
-    @Override
+  
+
+@Override
 protected void onDamaged() {
     if (isDead()) {
         state = BossState.DEATH;
-        
-    } else {
-        state = BossState.HURT;
-        hurtStartTime = System.nanoTime();
+        stateStartTime = System.nanoTime();
+        return;
     }
+
+    state = BossState.HURT;
+    hurtStartTime = System.nanoTime();
+    stateStartTime = hurtStartTime;
 }
+
 
   
   
 @Override
 public void updateBehavior(Player player, Room room) {
 
-    long now = System.nanoTime();
+    
+long now = System.nanoTime();
 
-    // 1. Boss đã chết: giữ nguyên trạng thái DEATH
-    if (isDead()) {
+// Boss đã chết: không cập nhật AI nữa
+if (isDead()) {
+    if (state != BossState.DEATH) {
         state = BossState.DEATH;
+        stateStartTime = now;
+    }
+    return;
+}
+
+// Boss đang bị thương
+if (state == BossState.HURT) {
+    if (now - hurtStartTime < HURT_DURATION) {
         return;
     }
 
-    // 2. Boss đang bị đánh: ưu tiên animation HURT
-    if (state == BossState.HURT) {
-        if (now - hurtStartTime < HURT_DURATION) {
-            return;
-        }
-
-        // Hết thời gian Hurt, quay lại truy đuổi
+    // Hết animation Hurt, quay lại AI
+    if (player == null || player.isDead()) {
+        state = BossState.IDLE;
+    } else if (canDetect(player)) {
         state = BossState.CHASE;
+    } else {
+        state = BossState.IDLE;
     }
+}
+
 
     // 3. Player không hợp lệ
     if (player == null || player.isDead()) {
