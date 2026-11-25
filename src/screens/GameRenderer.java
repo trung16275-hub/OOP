@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.IdentityHashMap;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import java.util.Iterator;
 
 public class GameRenderer {
     // Thời gian hiển thị mỗi frame; tăng giá trị để animation chậm hơn.
@@ -79,7 +82,7 @@ registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
 registerAnim("boss1", "run", "assets/boss1/run.png", 4);
 registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
 registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
-registerAnim("boss1", "hurt",  "assets/boss1/hurt.png", 4);
+registerGifAnim("boss1", "hurt", "assets/boss1/hurt.gif");
 registerAnim("boss1", "death", "assets/boss1/death.png", 4);
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
@@ -116,6 +119,48 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         return null;
     }
 }
+
+private BufferedImage[] loadGifFrames(String path) {
+    try (ImageInputStream input =
+                 ImageIO.createImageInputStream(new File(path))) {
+
+        if (input == null) {
+            System.err.println("Không đọc được GIF: " + path);
+            return null;
+        }
+
+        Iterator<ImageReader> readers =
+                ImageIO.getImageReaders(input);
+
+        if (!readers.hasNext()) {
+            System.err.println("File không phải GIF hợp lệ: " + path);
+            return null;
+        }
+
+        ImageReader reader = readers.next();
+
+        try {
+            reader.setInput(input, false, false);
+
+            int count = reader.getNumImages(true);
+            BufferedImage[] frames = new BufferedImage[count];
+
+            for (int i = 0; i < count; i++) {
+                frames[i] = reader.read(i);
+            }
+
+            return frames;
+        } finally {
+            reader.dispose();
+        }
+
+    } catch (IOException e) {
+        System.err.println("Lỗi đọc GIF: " + path);
+        e.printStackTrace();
+        return null;
+    }
+}
+
     // Hàm đăng ký animation cho 1 bộ sprite
     private void registerAnim(String spriteKey, String state, String path, int frameCount) {
     BufferedImage[] frames = loadSpriteSheet(path, frameCount);
@@ -123,6 +168,17 @@ private BufferedImage[] loadSpriteSheet(String path, int frameCount) {
         animations.put(spriteKey + "_" + state, frames);
     }
 }
+
+private void registerGifAnim(
+        String spriteKey, String state, String path) {
+
+    BufferedImage[] frames = loadGifFrames(path);
+
+    if (frames != null && frames.length > 0) {
+        animations.put(spriteKey + "_" + state, frames);
+    }
+}
+
 
     private void registerPlayerAnim(String spriteKey, String state, String path, int frameCount) {
         BufferedImage[] frames = new BufferedImage[frameCount];
