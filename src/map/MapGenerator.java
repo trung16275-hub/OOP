@@ -3,7 +3,7 @@ package map;
 import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
-import model.boss.Boss3;
+import model.boss.Boss4;
 import screens.lighting.LightSource;
 
 import java.awt.Color;
@@ -93,7 +93,7 @@ public class MapGenerator {
                 } else if (r.getGridX() == 4) {
                     boss = new Boss2(); // Phòng Đông
                 } else {
-                    boss = new Boss3(); // Phòng Nam
+                    boss = new Boss4(midPxX, midPxY); // Phòng Nam
                 }
 
                 boss.setX(midPxX - boss.getWidth() / 2.0);

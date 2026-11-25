@@ -52,7 +52,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Renderer
     private GameRenderer renderer;
-    private Boss4 currentEnemy;
 
     public GamePanel(MainGame mainFrame) {
         setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));

@@ -1,4 +1,3 @@
-
 package model.boss;
 
 import map.Room;
@@ -238,6 +237,16 @@ public class Boss1 extends Enemy {
 
     public String getSpriteKey() {
         return "boss1";
+    }
+
+    @Override
+    public String getSpritePath() {
+        return "boss1";
+    }
+
+    @Override
+    public int getSpriteFrameCount() {
+        return 4;
     }
 
     @Override

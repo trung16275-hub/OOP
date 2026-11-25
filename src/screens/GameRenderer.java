@@ -335,7 +335,11 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
         int h = enemy.getHeight();
         String key = enemy.getSpritePath();
     if (key != null) {
-        BufferedImage[] frames = animations.get(key + "_" + enemy.getSpriteFrameCount());
+        String state = enemy.getAnimState();
+        BufferedImage[] frames = animations.get(key + "_" + state);
+        if (frames == null) {
+            frames = animations.get(key + "_idle");
+        }
         if (frames != null && frames.length > 0) {
 
             int frameDuration = 100;
@@ -357,6 +361,10 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
                     case "lunge":
                         frameDuration = BOSS1_LUNGE_FRAME_DURATION_MS;
+                        break;
+
+                    default:
+                        frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
                         break;
                 }
             }
@@ -507,6 +515,14 @@ private void renderEnemy(Graphics2D g2, Enemy enemy) {
                             g2.setColor(DOOR_CLOSED_COLOR);
                             g2.fillRect(px, py, tileSize, tileSize);
                         }
+                    }
+                    case PORTAL -> {
+                        g2.setColor(new Color(125, 80, 180));
+                        g2.fillRect(px, py, tileSize, tileSize);
+                    }
+                    case VOID -> {
+                        g2.setColor(Color.BLACK);
+                        g2.fillRect(px, py, tileSize, tileSize);
                     }
                 }
             }

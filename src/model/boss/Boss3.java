@@ -71,6 +71,17 @@ public String getAnimState() {
     }
     return "run";
 }
+
+@Override
+public String getSpritePath() {
+    return "boss3";
+}
+
+@Override
+public int getSpriteFrameCount() {
+    return 9;
+}
+
     @Override
     public void updateBehavior(Player player,Room room) {
         if (isDead()) {
