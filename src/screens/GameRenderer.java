@@ -25,6 +25,12 @@ public class GameRenderer {
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
 
+    private BufferedImage contactShadowImage;
+    private BufferedImage aoNorthImage;
+    private BufferedImage aoWestImage;
+    private BufferedImage aoEastImage;
+    private BufferedImage aoSouthImage;
+
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
@@ -44,6 +50,7 @@ public class GameRenderer {
     private BufferedImage heartImage;
     private BufferedImage bulletImage;
     private BufferedImage armorImage;
+    private BufferedImage floorWearPatch;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
 
@@ -69,6 +76,9 @@ public class GameRenderer {
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
+
+        initShadowSprites();
+        floorWearPatch = createFloorWearPatch(48);
     }
     public void render(Graphics2D g2, Player player, Room room) {
         render(g2, player, room, null);
@@ -98,6 +108,8 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 3. Render room & entities
         renderRoom(g2, room);
+
+        renderWallAmbientOcclusion(g2, room);
 
         for (Enemy enemy : room.getEnemies()) {
             if (enemy != null && !enemy.isDead()) {
@@ -322,6 +334,12 @@ public class GameRenderer {
             int drawHeight = h;
             int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
             int drawX = x + (w - drawWidth) / 2;
+
+            Rectangle feet = player.getHurtBounds();
+            int shadowW = Math.round(feet.width * 1.15f);
+            int shadowH = Math.max(8, Math.round(shadowW * 0.35f));
+            renderContactShadow(g2, feet.x + feet.width / 2, feet.y + feet.height + 2, shadowW, shadowH);
+
             if (player.isFacingLeft()) {
                 g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
             } else {
@@ -342,6 +360,16 @@ public class GameRenderer {
                 g2.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
             }
         }
+
+        for (Projectile projectile : projectiles) {
+            if (projectile.isActive()) {
+                Rectangle b = projectile.getBounds();
+                renderContactShadow(g2, b.x + b.width / 2, b.y + b.height + 16, b.width + 4, Math.max(4, b.height / 2));
+                g2.setColor(new Color(255, 220, 90));
+                g2.fillOval(b.x, b.y, b.width, b.height);
+            }
+        }
+
     }
 
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
@@ -351,6 +379,11 @@ public class GameRenderer {
         int w = enemy.getWidth();
         int h = enemy.getHeight();
         String key = enemy.getSpriteKey();
+
+        int shadowW = Math.round(w * 0.65f);
+        int shadowH = Math.max(8, Math.round(shadowW * 0.35f));
+        renderContactShadow(g2, x + w / 2, y + h - 3, shadowW, shadowH);
+
     if (key != null) {
         BufferedImage[] frames = animations.getFrames(key + "." + enemy.getAnimState());
         if (frames != null && frames.length > 0) {
@@ -480,6 +513,7 @@ public class GameRenderer {
                     case FLOOR, DOOR_OPEN -> {
                         if (basefloorImage != null) {
                             g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
+                            renderFloorVariation(g2, room, x, y, px, py, tileSize);
                         } else {
                             g2.setColor(FLOOR_COLOR);
                             g2.fillRect(px, py, tileSize, tileSize);
@@ -607,6 +641,106 @@ public class GameRenderer {
         } else {
             g2.setColor(Color.BLACK);
             g2.fillRect(px, py, tileSize, tileSize);
+        }
+    }
+
+    private void initShadowSprites() {
+        // 1. Soft oval contact shadow (for entities and bullet)
+        contactShadowImage = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D sg = contactShadowImage.createGraphics();
+        sg.setPaint(new RadialGradientPaint(
+                32f, 16f, 32f,
+                new float[]{0f, 0.55f, 1f},
+                new Color[]{
+                        new Color(0, 0, 0, 140),
+                        new Color(0, 0, 0, 75),
+                        new Color(0, 0, 0, 0)
+                }
+        ));
+
+        sg.scale(1.0, 0.5);
+        sg.fillOval(0, 0, 64, 64);
+        sg.dispose();
+        // 2. Wall-to-floor ambient occlusion
+        int ts = Room.TILE_SIZE;
+        aoNorthImage = createGradientStrip(ts, 18, 0, 0, 0, 18, 125);   // strongest
+        aoWestImage  = createGradientStrip(12, ts, 0, 0, 12, 0, 85);    // medium
+        aoEastImage  = createGradientStrip(12, ts, 12, 0, 0, 0, 85);    // medium
+        aoSouthImage = createGradientStrip(ts, 8,  0, 8, 0, 0, 60);     // subtle
+    }
+    private BufferedImage createGradientStrip(int w, int h, int x1, int y1, int x2, int y2, int maxAlpha) {
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.setPaint(new GradientPaint(x1, y1, new Color(0, 0, 0, maxAlpha), x2, y2, new Color(0, 0, 0, 0)));
+        g.fillRect(0, 0, w, h);
+        g.dispose();
+        return img;
+    }
+
+    private void renderContactShadow(Graphics2D g2, int centerX, int footY, int width, int height) {
+        g2.drawImage(contactShadowImage, centerX - width / 2, footY - height / 2, width, height, null);
+    }
+
+    private void renderWallAmbientOcclusion(Graphics2D g2, Room room) {
+        int ts = Room.TILE_SIZE;
+
+        for (int x = 0; x < room.getWidth(); x++) {
+            for (int y = 0; y < room.getHeight(); y++) {
+                if (!isWalkable(room, x, y)) continue;
+
+                int px = x * ts;
+                int py = y * ts;
+
+                if (!isWalkable(room, x, y - 1)) {
+                    g2.drawImage(aoNorthImage, px, py, null);
+                }
+                if (!isWalkable(room, x - 1, y)) {
+                    g2.drawImage(aoWestImage, px, py, null);
+                }
+                if (!isWalkable(room, x + 1, y)) {
+                    g2.drawImage(aoEastImage, px + ts - aoEastImage.getWidth(), py, null);
+                }
+                if (!isWalkable(room, x, y + 1)) {
+                    g2.drawImage(aoSouthImage, px, py + ts - aoSouthImage.getHeight(), null);
+                }
+            }
+        }
+    }
+
+    /** Pre-bakes a soft organic carpet wear smudge to break up repeating floor tiles. */
+    private BufferedImage createFloorWearPatch(int size) {
+        BufferedImage patch = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = patch.createGraphics();
+        float center = size / 2.0f;
+        g.setPaint(new RadialGradientPaint(
+                center, center, center,
+                new float[]{0f, 0.55f, 1f},
+                new Color[]{
+                        new Color(18, 14, 5, 34),
+                        new Color(18, 14, 5, 16),
+                        new Color(18, 14, 5, 0)
+                }
+        ));
+        g.fillOval(0, 0, size, size);
+        g.dispose();
+        return patch;
+    }
+
+    /** Adds deterministic per-tile shade variation and cross-seam wear patches to break the flat grid. */
+    private void renderFloorVariation(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
+        int h = (x + room.getGridX() * 31) * 73856093 ^ (y + room.getGridY() * 31) * 19349663;
+        int mod = Math.floorMod(h, 100);
+
+        if (mod < 30) {
+            int alpha = 8 + (mod % 12);
+            g2.setColor(new Color(18, 14, 6, alpha));
+            g2.fillRect(px, py, tileSize, tileSize);
+        }
+
+        if (floorWearPatch != null && mod >= 88) {
+            int ox = ((h >>> 8) & 15) - 8;
+            int oy = ((h >>> 12) & 15) - 8;
+            g2.drawImage(floorWearPatch, px - 8 + ox, py - 8 + oy, null);
         }
     }
 

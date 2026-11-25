@@ -161,9 +161,8 @@ public class MapGenerator {
         for (Room r : map.getRooms()) {
             int innerLeftPx = (r.getPadX() + 2) * Room.TILE_SIZE;
             int innerWidthPx = (r.getWidth() - (r.getPadX() + 2) * 2) * Room.TILE_SIZE;
-            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE; // Middle of North wall
+            int wallY = (r.getPadY() + 2) * Room.TILE_SIZE;
 
-            // Place 2 tubes for normal/big rooms, 1 for small rooms
             int tubeCount = (r.getWidth() - r.getPadX() * 2 <= 22) ? 1 : 2;
 
             for (int i = 0; i < tubeCount; i++) {
@@ -183,6 +182,41 @@ public class MapGenerator {
                         0.85f,
                         flickers
                 ));
+            }
+
+            int innerTopPx = (r.getPadY() + 4) * Room.TILE_SIZE;
+            int innerHeightPx = (r.getHeight() - (r.getPadY() + 4) - (r.getPadY() + 2)) * Room.TILE_SIZE;
+            int innerWidthTiles = r.getWidth() - (r.getPadX() + 2) * 2;
+            int innerHeightTiles = r.getHeight() - (r.getPadY() + 4) - (r.getPadY() + 2);
+
+            int cols = innerWidthTiles >= 36 ? 3 : (innerWidthTiles >= 22 ? 2 : 1);
+            int rows = innerHeightTiles >= 18 ? 2 : 1;
+            float overheadRadius = innerWidthTiles >= 36 ? 190f : (innerWidthTiles >= 22 ? 170f : 155f);
+
+            int maxLightCount = 3;
+            int curLightCount = 0;
+
+            for (int row = 0; row < rows; row++) {
+                double yFrac = (rows == 1) ? 0.58 : (row == 0 ? 0.38 : 0.75);
+                double poolY = innerTopPx + innerHeightPx * yFrac + rand.nextInt(-50, 51);
+
+                for (int col = 0; col < cols; col++) {
+                    if (curLightCount > maxLightCount) continue;
+                    if (rand.nextInt(6) < 2) continue;
+                    double poolX = innerLeftPx + innerWidthPx * ((col + 1.0) / (cols + 1.0)) + rand.nextInt(-50, 51);
+                    boolean flickers = (r.getRoomType() == Room.RoomType.BOSS && rand.nextInt(10) < 4)
+                            || (rand.nextInt(10) < 2);
+
+                    r.addLight(new LightSource(
+                            LightSource.Type.OVERHEAD_PANEL,
+                            poolX,
+                            poolY,
+                            overheadRadius,
+                            new Color(255, 242, 200),
+                            (rand.nextInt(2) < 2) ? 0.82f : 0.35f,
+                            flickers
+                    ));
+                }
             }
         }
     }

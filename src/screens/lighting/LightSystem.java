@@ -13,10 +13,11 @@ public class LightSystem {
     private final BufferedImage lightMap;
     private BufferedImage lampFixtureImage;
     private final BufferedImage tubeLightMask;
+    private final BufferedImage overheadLightMask;
     private final Graphics2D lightG;
 
-    // Darkness level: 0 = bright, 255 = pitch black
-    private Color ambientDarkness = new Color(5, 5, 10, 160);
+
+    private Color ambientDarkness = new Color(5, 5, 10, 190);
     private double elapsedTime = 0;
 
     public LightSystem() {
@@ -29,6 +30,7 @@ public class LightSystem {
         this.lightG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         lampFixtureImage = AssetLoader.loadImage("/props/lamp_fixture.png");
         this.tubeLightMask = createTubeLightMask(440, 120, 36.0, 205.0);
+        this.overheadLightMask = createOverheadLightMask(320, 210);
     }
 
     public void update(Room room, double deltaSeconds) {
@@ -96,6 +98,17 @@ public class LightSystem {
             lightG.drawImage(tubeLightMask, drawX, drawY, null);
 
             lightG.setComposite(oldComp);
+        } else if (light.getType() == LightSource.Type.OVERHEAD_PANEL) {
+            Composite oldComp = lightG.getComposite();
+            lightG.setComposite(AlphaComposite.getInstance(AlphaComposite.DST_OUT, intensity));
+
+            int drawW = Math.round(light.getRadius() * 2.0f);
+            int drawH = Math.round(light.getRadius() * 1.32f); // Oblique foreshortening on floor
+            int drawX = Math.round(sx - drawW / 2.0f);
+            int drawY = Math.round(sy - drawH / 2.0f);
+            lightG.drawImage(overheadLightMask, drawX, drawY, drawW, drawH, null);
+
+            lightG.setComposite(oldComp);
         } else {
             drawRadialCutout(sx, sy, light.getRadius(), intensity);
         }
@@ -129,10 +142,52 @@ public class LightSystem {
                         screenG2.fillRect(fx, fy, 72, 12);
                     }
                 }
+            } else if (light.getType() == LightSource.Type.OVERHEAD_PANEL) {
+                int sx = (int) (light.getWorldX() - camX);
+                int sy = (int) (light.getWorldY() - camY);
+                float intensity = light.getCurrentIntensity();
+
+                int drawW = Math.round(light.getRadius() * 2.0f);
+                int drawH = Math.round(light.getRadius() * 1.32f);
+                int drawX = Math.round(sx - drawW / 2.0f);
+                int drawY = Math.round(sy - drawH / 2.0f);
+
+                // Warm fluorescent cast on the floor below an unseen ceiling troffer
+                screenG2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f * intensity));
+                screenG2.drawImage(overheadLightMask, drawX, drawY, drawW, drawH, null);
+
+                // Subtle brighter hotspot at the center of the light pool
+                int coreW = Math.round(drawW * 0.55f);
+                int coreH = Math.round(drawH * 0.55f);
+                screenG2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.06f * intensity));
+                screenG2.drawImage(overheadLightMask, sx - coreW / 2, sy - coreH / 2, coreW, coreH, null);
             }
         }
 
         screenG2.setComposite(oldComp);
+    }
+
+    /** Pre-bakes a soft, oblique elliptical warm light mask for overhead ceiling panels. */
+    private BufferedImage createOverheadLightMask(int w, int h) {
+        BufferedImage mask = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        double rx = w / 2.0;
+        double ry = h / 2.0;
+
+        for (int y = 0; y < h; y++) {
+            double ny = (y - ry) / ry;
+            for (int x = 0; x < w; x++) {
+                double nx = (x - rx) / rx;
+                // Slightly squarish superellipse (exponent 2.4) evokes rectangular ceiling panels
+                double dist = Math.pow(Math.pow(Math.abs(nx), 2.4) + Math.pow(Math.abs(ny), 2.4), 1.0 / 2.4);
+                if (dist >= 1.0) continue;
+
+                double t = 1.0 - dist;
+                double falloff = t * t * (3.0 - 2.0 * t); // smoothstep
+                int alpha = (int) Math.round(255.0 * Math.pow(falloff, 1.15));
+                mask.setRGB(x, y, (alpha << 24) | 0x00FFF2C8);
+            }
+        }
+        return mask;
     }
 
     private BufferedImage createTubeLightMask(int w, int h, double topHalfW, double botHalfW) {
