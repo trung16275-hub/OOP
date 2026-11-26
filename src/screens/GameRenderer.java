@@ -1,10 +1,7 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
-import map.Room;
-import map.TileType;
-import map.WorldMap;
+import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
@@ -20,6 +17,8 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 
 
 public class GameRenderer {
@@ -41,7 +40,6 @@ public class GameRenderer {
     private BufferedImage wallBotRimImage;
     private BufferedImage doorOpenedImage;
     private BufferedImage doorClosedImage;
-    private BufferedImage wallGrimeImage;
     private BufferedImage wallBorderBottomImage;
     private BufferedImage wallBorderLeftImage;
     private BufferedImage wallBorderRightImage;
@@ -64,21 +62,7 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
-        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
-        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
-        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
-        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
-        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
-        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
-        wallBorderBottomImage = AssetLoader.loadImage("/tiles/wall_border_bottom.png");
-        wallBorderLeftImage = AssetLoader.loadImage("/tiles/wall_border_left.png");
-        wallBorderRightImage = AssetLoader.loadImage("/tiles/wall_border_right.png");
-        wallBorderTopImage = AssetLoader.loadImage("/tiles/wall_border_top.png");
-        wallCornerBottomLeftImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_left.png");
-        wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
-        wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
-        wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
+
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
@@ -184,6 +168,29 @@ public class GameRenderer {
         if (player != null) {
             renderPlayerStats(g2, player);
         }
+
+    }
+
+    //Load theme refer to floor
+    public void loadTheme(FloorTheme theme) {
+        String path = theme.getAssetsPath();
+        basefloorImage = AssetLoader.loadImage(path + "tile_floor_backrooms.png");
+        basewallImage = AssetLoader.loadImage(path + "wall_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage(path + "wall_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage(path + "wall_bottom_rim.png");
+
+        wallBorderBottomImage = AssetLoader.loadImage(path + "wall_border.png");
+        wallBorderLeftImage = rotate90Clockwise(wallBorderBottomImage);
+        wallBorderTopImage = rotate90Clockwise(wallBorderLeftImage);
+        wallBorderRightImage = rotate90Clockwise(wallBorderTopImage);
+
+        wallCornerBottomLeftImage = AssetLoader.loadImage(path + "wall_corner.png");
+        wallCornerTopLeftImage = rotate90Clockwise(wallCornerBottomLeftImage);
+        wallCornerTopRightImage = rotate90Clockwise(wallCornerTopLeftImage);
+        wallCornerBottomRightImage = rotate90Clockwise(wallCornerTopRightImage);
+
+        doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
+        doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
     }
 
@@ -650,7 +657,7 @@ public class GameRenderer {
             return false;
         }
         TileType type = room.getTile(x, y);
-        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED;
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED || type == TileType.PORTAL;
     }
 
     private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
@@ -765,6 +772,8 @@ public class GameRenderer {
         }
     }
 
+
+
     /** Pre-bakes a soft organic carpet wear smudge to break up repeating floor tiles. */
     private BufferedImage createFloorWearPatch(int size) {
         BufferedImage patch = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
@@ -800,6 +809,21 @@ public class GameRenderer {
             int oy = ((h >>> 12) & 15) - 8;
             g2.drawImage(floorWearPatch, px - 8 + ox, py - 8 + oy, null);
         }
+    }
+
+    private static BufferedImage rotate90Clockwise(BufferedImage src) {
+        int width = src.getWidth();
+        int height = src.getHeight();
+
+        int type = (src.getType() == 0) ? BufferedImage.TYPE_INT_ARGB : src.getType();
+        BufferedImage dest = new BufferedImage(height, width, type);
+
+        AffineTransform transform = new AffineTransform();
+        transform.translate(height, 0);
+        transform.rotate(Math.PI / 2);
+
+        AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+        return op.filter(src, dest);
     }
 
     public LightSystem getLightSystem() { return lightSystem; }
