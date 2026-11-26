@@ -364,7 +364,7 @@ public class GameRenderer {
         String animationKey = state.equals("dash")
             ? "player.dash"
             : spriteKey + "." + state;
-        BufferedImage[] frames = isHurt ? hurtFrames : animations.getFrames(animationKey);
+        BufferedImage[] frames = animations.getFrames(animationKey);
         int frameDuration = switch (state) {
             case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
             case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;
