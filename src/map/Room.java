@@ -48,6 +48,9 @@ public class Room {
     private RoomType roomType;
     private final TileType[][] tiles;
     private List<Prop> props = new ArrayList<>();
+    private final List<RoomDecal> floorDecals = new ArrayList<>();
+    private final List<RoomDecal> wallDecals = new ArrayList<>();
+
 
     private boolean cleared;
     private boolean visited;
@@ -251,6 +254,25 @@ public class Room {
         return new Point(cx, cy);
     }
 
+    public boolean isInDoorCorridor(int tx, int ty) {
+        int floorMinX = padX + 2;
+        int floorMaxX = width - padX - 3;
+        int floorMinY = padY + 4;
+        int floorMaxY = height - padY - 3;
+
+        // Keep 2-tile walkable buffer around the entire inner room perimeter
+        if (tx < floorMinX + 2 || tx > floorMaxX - 2 || ty < floorMinY + 2 || ty > floorMaxY - 2) {
+            return true;
+        }
+        return false;
+    }
+
+    public void addWallDecal(RoomDecal decal) {
+        if (decal != null) {
+            wallDecals.add(decal);
+        }
+    }
+
 
     public boolean checkCollision(Rectangle bounds) {
         int minTileX = Math.max(0, bounds.x / TILE_SIZE);
@@ -348,6 +370,25 @@ public class Room {
         props.add(prop);
     }
 
+    public RoomSize getRoomSize() {
+        return roomSize;
+    }
+
+    public void addFloorDecal(RoomDecal decal) {
+        if (decal != null) {
+            floorDecals.add(decal);
+        }
+    }
+
+    public List<RoomDecal> getWallDecals() {
+        return wallDecals;
+    }
+
+    public List<RoomDecal> getFloorDecals() {
+        return floorDecals;
+    }
+
+
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
 
     public LiquidPain getLiquidPain() { return liquidPain; }
@@ -435,4 +476,5 @@ public class Room {
     public void unlockDoor(Direction dir) {
         lockedDoors.remove(dir);
     }
+
 }

@@ -16,9 +16,10 @@ import screens.lighting.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-import java.util.List;
+import java.util.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
+import java.util.List;
 
 
 public class GameRenderer {
@@ -57,6 +58,9 @@ public class GameRenderer {
     private BufferedImage floorWearPatch;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
+
+    private final Map<String, BufferedImage> decalCache = new HashMap<>();
+
 
     //Light System
     private final LightSystem lightSystem = new LightSystem();
@@ -98,6 +102,8 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 3. Render room & entities
         renderRoom(g2, room);
+        renderDecals(g2, room.getFloorDecals());
+
         if (room.getLiquidPain() != null && liquidPainImage != null) {
             Prop prop = room.getLiquidPain().prop();
             g2.drawImage(liquidPainImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
@@ -111,31 +117,7 @@ public class GameRenderer {
 
         renderWallAmbientOcclusion(g2, room);
 
-        for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
-                renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                        new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                // Vẽ 4 tia laze dưới thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isFiringLaser()) {
-                        renderBoss3Lasers(g2, boss3);
-                    }
-                }
-                renderEnemy(g2, enemy);
-                // Vẽ vòng sáng hồi máu đè lên thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isHealing()) {
-                        renderBoss3Healing(g2, boss3);
-                    }
-                }
-            }
-        }
-
-        if (player != null && !player.isDead()) {
-            renderPlayer(g2, player);
-        }
+        renderEntitiesAndPropsYSorted(g2, room, player);
         renderProjectiles(g2, projectiles);
 
         for (Enemy enemy : room.getEnemies()) {
@@ -595,6 +577,7 @@ public class GameRenderer {
                 }
             }
         }
+        renderDecals(g2, room.getWallDecals());
     }
         private void renderBoss3Lasers(Graphics2D g2, Boss3 boss) {
         Stroke oldStroke = g2.getStroke();
@@ -771,6 +754,102 @@ public class GameRenderer {
             }
         }
     }
+
+    private void renderDecals(Graphics2D g2, List<RoomDecal> decals) {
+        if (decals == null || decals.isEmpty()) {
+            return;
+        }
+        Composite oldComp = g2.getComposite();
+        for (RoomDecal decal : decals) {
+            BufferedImage img = getCachedImage(decal.spritePath());
+            if (img == null) {
+                continue;
+            }
+            if (decal.alpha() < 0.99f) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, decal.alpha()));
+            } else {
+                g2.setComposite(oldComp);
+            }
+            drawDecalImage(g2, img, decal);
+        }
+        g2.setComposite(oldComp);
+    }
+
+    private BufferedImage getCachedImage(String path) {
+        if (path == null) {
+            return null;
+        }
+        return decalCache.computeIfAbsent(path, AssetLoader::loadImage);
+    }
+
+    private void renderEntitiesAndPropsYSorted(Graphics2D g2, Room room, Player player) {
+        record RenderEntry(int sortY, Runnable draw) {}
+        List<RenderEntry> entries = new ArrayList<>();
+
+        for (Prop prop : room.getProps()) {
+            BufferedImage sprite = getCachedImage(prop.spriteKey());
+            entries.add(new RenderEntry(prop.y() + prop.height(), () -> {
+                int shadowW = Math.round(prop.width() * 0.9f);
+                int shadowH = Math.max(8, Math.round(shadowW * 0.30f));
+                renderContactShadow(g2, prop.x() + prop.width() / 2, prop.y() + prop.height() - 2, shadowW, shadowH);
+                if (sprite != null) {
+                    g2.drawImage(sprite, prop.x(), prop.y(), prop.width(), prop.height(), null);
+                } else {
+                    g2.setColor(new Color(95, 80, 65));
+                    g2.fillRect(prop.x(), prop.y(), prop.width(), prop.height());
+                }
+            }));
+        }
+
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy == null || enemy.isDead()) {
+                continue;
+            }
+            int sortY = (int) Math.round(enemy.getY() + enemy.getHeight());
+            entries.add(new RenderEntry(sortY, () -> {
+                if (enemy instanceof Boss3 boss3 && boss3.isFiringLaser()) {
+                    renderBoss3Lasers(g2, boss3);
+                }
+                renderEnemy(g2, enemy);
+                if (enemy instanceof Boss3 boss3 && boss3.isHealing()) {
+                    renderBoss3Healing(g2, boss3);
+                }
+            }));
+        }
+
+        if (player != null && !player.isDead()) {
+            int sortY = (int) Math.round(player.getY() + player.getHeight());
+            entries.add(new RenderEntry(sortY, () -> renderPlayer(g2, player)));
+        }
+
+        entries.sort(Comparator.comparingInt(RenderEntry::sortY));
+        for (RenderEntry entry : entries) {
+            entry.draw().run();
+        }
+    }
+
+    private void drawDecalImage(Graphics2D g2, BufferedImage img, RoomDecal decal) {
+        int x = decal.x();
+        int y = decal.y();
+        int w = decal.width();
+        int h = decal.height();
+        int rot = decal.rotationSteps() & 3;
+        if (rot == 0 && !decal.flipX()) {
+            g2.drawImage(img, x, y, w, h, null);
+            return;
+        }
+        AffineTransform oldTx = g2.getTransform();
+        g2.translate(x + w / 2.0, y + h / 2.0);
+        if (rot != 0) {
+            g2.rotate(rot * (Math.PI / 2.0));
+        }
+        if (decal.flipX()) {
+            g2.scale(-1.0, 1.0);
+        }
+        g2.drawImage(img, -w / 2, -h / 2, w, h, null);
+        g2.setTransform(oldTx);
+    }
+
 
 
 

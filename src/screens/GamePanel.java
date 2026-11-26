@@ -200,8 +200,7 @@ public class GamePanel extends JPanel implements Runnable {
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
-        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY()
-                , player.getWidth(), player.getHeight());
+        Direction doorDir = room.checkDoorTrigger(player.getMovementBounds());
         if (doorDir != null) {
             Room nextRoom = worldMap.moveTo(doorDir);
             if (nextRoom != room) {
@@ -251,8 +250,6 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-
-
         //update light system
         renderer.getLightSystem().update(room, 0.016);
 
@@ -281,6 +278,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void createFloor() {
+        projectiles.clear();
         worldMap = mapGenerator.generateFloor(currentFloor, 8);
         room = worldMap.getSpawnRoom();
         renderer.loadTheme(worldMap.getTheme());
@@ -290,10 +288,11 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (room != null) {
             room.setVisited(true);
-        }
-        player.setX(180);
-        player.setY(260);
+            Point spawnCenter = room.getCenterSpawnPosition(player.getWidth(),player.getHeight());
+            player.setX(spawnCenter.x);
+            player.setY(spawnCenter.y);
 
+        }
     }
 
     private void updateProjectiles() {
