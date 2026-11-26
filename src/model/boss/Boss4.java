@@ -13,7 +13,8 @@ public class Boss4 extends Enemy {
         WALL_SNATCH,
         PANIC_SPRINT,
         IN_WALL,
-        REPELLED
+        REPELLED,
+        DEATH
     }
 // Các pha của chiêu 1: Wall Snatch
     private enum SnatchPhase {
@@ -21,6 +22,10 @@ public class Boss4 extends Enemy {
         GRABBED,    // Đã chộp được và đang kéo về tường
         RETRACTING  // Thu tay lại
     }
+    private static final int DEATH_FRAME_COUNT = 4;
+private static final long DEATH_FRAME_DURATION_NANOS = 160_000_000L;
+private static final long DEATH_CORPSE_HOLD_NANOS = 350_000_000L;
+private long deathStartTime = 0L;
     private boolean submergedInWall = false;
 private long sprintStartTime = 0L;
 private long wallEnterTime = 0L;
@@ -65,11 +70,16 @@ private double wallPerimeterPos = 0.0;
     setX(x);
     setY(y);
     setWidth(60);
-    setHeight(60);
+    setHeight(90);
 }
 
     public void updateBoss4(Player player, Room room, long now) {
     if (player == null) return;
+
+    if (state == State.DEATH) {
+        releasePlayer(player);
+        return;
+    }
 
     // Nước Hạnh Nhân có thể ép Boss 4 bật ra khỏi tường nếu dùng sát chỗ nó đang trốn
     if (now < safeZoneEndTime && (isGrabbingPlayer || isInsideSafeZone(getCenterX(), getCenterY()))) {
@@ -78,6 +88,7 @@ private double wallPerimeterPos = 0.0;
         isArmActive = false;
         state = State.REPELLED;
     }
+    
 
     switch (state) {
         case REPELLED:
@@ -102,22 +113,7 @@ private double wallPerimeterPos = 0.0;
     // =========================================================
     // CHIÊU 1: WALL SNATCH (Thò tay xuyên tường tóm & kéo)
     // =========================================================
-    private void startWallSnatch(Player player) {
-        state = State.WALL_SNATCH;
-        snatchPhase = SnatchPhase.EXTENDING;
-        isArmActive = true;
-        armProgress = 0.0;
-
-        // Điểm xuất phát của bàn tay (mép tường gần Player nhất hoặc từ thân Boss)
-        armStartX = getCenterX();
-        armStartY = getCenterY();
-        targetX = player.getX() + player.getWidth() / 2.0;
-        targetY = player.getY() + player.getHeight() / 2.0;
-        armEndX = armStartX;
-        armEndY = armStartY;
-        faceToward(player);
-    }
-
+    
     /**
      * @param player
      * @param room
@@ -386,18 +382,56 @@ private void handleInWall(Player player, Room room, long now) {
     // =========================================================
     @Override
 public void takeDamage(int amount) {
-    // Đang ẩn mình bên trong tường thì miễn nhiễm sát thương
-    if (submergedInWall) return;
+    if (state == State.DEATH || submergedInWall) return;
 
     super.takeDamage(amount);
     isArmActive = false;
     isGrabbingPlayer = false;
+
+    if (getHp() <= 0) {
+        enterDeathState();
+        return;
+    }
+
     if (state != State.PANIC_SPRINT) {
         long now = System.nanoTime();
         state = State.PANIC_SPRINT;
         sprintStartTime = now;
         sprintEndTime = now + SPRINT_DURATION_NANOS;
     }
+}
+
+private void enterDeathState() {
+    if (state == State.DEATH) return;
+    state = State.DEATH;
+    deathStartTime = System.nanoTime();
+    submergedInWall = false;
+    isArmActive = false;
+    isGrabbingPlayer = false;
+}
+
+public boolean isDying() {
+    return state == State.DEATH;
+}
+
+public int getDeathFrameIndex() {
+    if (state != State.DEATH) return 0;
+    long elapsed = Math.max(0L, System.nanoTime() - deathStartTime);
+    int idx = (int) (elapsed / DEATH_FRAME_DURATION_NANOS);
+    return Math.min(idx, DEATH_FRAME_COUNT - 1);
+}
+
+@Override
+public boolean isDead() {
+    if (state == State.DEATH) {
+        long totalNanos = DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS + DEATH_CORPSE_HOLD_NANOS;
+        return (System.nanoTime() - deathStartTime) >= totalNanos;
+    }
+    if (getHp() <= 0) {
+        enterDeathState();
+        return false;
+    }
+    return false;
 }
 
     public void onAlmondWaterUsed(double x, double y, double radius, long durationNanos) {
@@ -499,7 +533,7 @@ private void moveTowardNearestWall(Room room) {
         tryMove(bestDy * speed, bestDx * speed, room);
     }
 }
-    private void startWallSnatch(Player player, Room room) {
+   private void startWallSnatch(Player player, Room room) {
     state = State.WALL_SNATCH;
     snatchPhase = SnatchPhase.EXTENDING;
     isArmActive = true;
@@ -510,11 +544,10 @@ private void moveTowardNearestWall(Room room) {
     targetX = player.getX() + player.getWidth() / 2.0;
     targetY = player.getY() + player.getHeight() / 2.0;
 
-    // Mặc định xuất phát từ thân Boss (nếu cùng phòng không có tường ngăn)
     armStartX = startX;
     armStartY = startY;
-if(!submergedInWall && room != null) {
-        // Nếu Boss đang trốn trong tường, dò tìm điểm xuất hiện bàn tay từ mép tường gần Player nhất
+
+    if (!submergedInWall && room != null) {
         double dist = Math.hypot(targetX - startX, targetY - startY);
         int steps = (int) (dist / 8.0);
         boolean passedThroughWall = false;
@@ -530,31 +563,6 @@ if(!submergedInWall && room != null) {
                 armStartX = px;
                 armStartY = py;
             } else if (passedThroughWall) {
-                // Đã thoát khỏi mặt tường phía bên Player -> chốt điểm xuất hiện bàn tay tại đây
-                armStartX = px;
-                armStartY = py;
-                break;
-            }
-        }
-    }
-    // Dò dọc theo đường thẳng tới Player để tìm điểm cánh tay chui ra khỏi tường
-    if (room != null) {
-        double dist = Math.hypot(targetX - startX, targetY - startY);
-        int steps = (int) (dist / 8.0);
-        boolean passedThroughWall = false;
-
-        for (int i = 1; i <= steps; i++) {
-            double t = (double) i / steps;
-            double px = startX + (targetX - startX) * t;
-            double py = startY + (targetY - startY) * t;
-            Rectangle probe = new Rectangle((int) px - 4, (int) py - 4, 8, 8);
-
-            if (room.checkCollision(probe)) {
-                passedThroughWall = true;
-                armStartX = px;
-                armStartY = py;
-            } else if (passedThroughWall) {
-                // Đã thoát khỏi mặt tường phía bên Player -> chốt điểm xuất hiện bàn tay tại đây
                 armStartX = px;
                 armStartY = py;
                 break;
@@ -582,21 +590,27 @@ private boolean hasWallBetween(double x1, double y1, double x2, double y2, Room 
     return false;
 }
     
-    @Override
-    public String getSpritePath() {
-        switch (state) {
-            case PANIC_SPRINT: return "boss4/run.png";
-            case WALL_SNATCH:  return "boss4/attack.png";
-            case REPELLED:     return "boss4/cower.png";
-            default:           return "boss4/idle.png";
-        }
+   @Override
+public String getSpritePath() {
+    switch (state) {
+        case PANIC_SPRINT:
+            return "/boss4/walk";
+        case WALL_SNATCH:
+            return "/boss4/attack";
+        case REPELLED:
+            return "/boss4/hurt";
+        case DEATH:
+            return "/boss4/duller_death";
+        case SHADOW_AMBUSH:
+        default:
+            return "/boss4/idle";
     }
+}
 
-    @Override
-    public int getSpriteFrameCount() {
-        // Cập nhật theo số frame thực tế sau khi bạn tách file PNG cho Boss 4
-        return 6;
-    }
+@Override
+public int getSpriteFrameCount() {
+    return 4;
+}
     @Override
 public void updateBehavior(Player player, Room room) {
     updateBoss4(player, room, System.nanoTime());
