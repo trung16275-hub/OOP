@@ -27,6 +27,7 @@ public class Player extends Combatant {
     private boolean moving;
     private boolean facingLeft;
     private long attackAnimationStartTime;
+    private long hurtAnimationStartTime;
     private long attackAnimationEndTime;
     private long dashStartTime;
     private long dashEndTime;
@@ -170,6 +171,10 @@ public class Player extends Combatant {
 
     public long getAttackAnimationStartTime() {
         return attackAnimationStartTime;
+    }
+
+    public long getHurtAnimationStartTime() {
+        return hurtAnimationStartTime;
     }
 
     public boolean isAttacking() {

@@ -27,6 +27,7 @@ public class GameRenderer {
     private static final int PLAYER_IDLE_FRAME_DURATION_MS = 250;
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
+    private static final int PLAYER_HURT_FRAME_DURATION_MS = 80;
 
     private BufferedImage contactShadowImage;
     private BufferedImage aoNorthImage;
@@ -363,7 +364,7 @@ public class GameRenderer {
         String animationKey = state.equals("dash")
             ? "player.dash"
             : spriteKey + "." + state;
-        BufferedImage[] frames = animations.getFrames(animationKey);
+        BufferedImage[] frames = isHurt ? hurtFrames : animations.getFrames(animationKey);
         int frameDuration = switch (state) {
             case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
             case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;

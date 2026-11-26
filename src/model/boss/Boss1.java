@@ -9,7 +9,7 @@ public class Boss1 extends Enemy {
     private static final String DEFAULT_NAME = "Boss 1";
     private static final int DEFAULT_MAX_HP = 300;
     private static final int DEFAULT_SPEED = 2;
-    private static final int DEFAULT_BASE_DAMAGE = 20;
+    private static final int DEFAULT_BASE_DAMAGE = 1;
     private static final double DEFAULT_DETECTION_RANGE = 250;
     private static final double DEFAULT_HITBOX_RADIUS = 50;
     private static final int DEFAULT_WIDTH = 60;
