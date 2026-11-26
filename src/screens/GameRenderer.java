@@ -17,6 +17,8 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 
 
 public class GameRenderer {
@@ -59,16 +61,7 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        doorOpenedImage = AssetLoader.loadImage("/floor1/tiles/wall_doorway_open.png");
-        doorClosedImage = AssetLoader.loadImage("/floor1/tiles/wall_doorway_close.png");
-        wallBorderBottomImage = AssetLoader.loadImage("/floor1/tiles/wall_border_bottom.png");
-        wallBorderLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_border_left.png");
-        wallBorderRightImage = AssetLoader.loadImage("/floor1/tiles/wall_border_right.png");
-        wallBorderTopImage = AssetLoader.loadImage("/floor1/tiles/wall_border_top.png");
-        wallCornerBottomLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_bottom_left.png");
-        wallCornerBottomRightImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_bottom_right.png");
-        wallCornerTopLeftImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_top_left.png");
-        wallCornerTopRightImage = AssetLoader.loadImage("/floor1/tiles/wall_corner_top_right.png");
+
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
@@ -174,6 +167,29 @@ public class GameRenderer {
         if (player != null) {
             renderPlayerStats(g2, player);
         }
+
+    }
+
+    //Load theme refer to floor
+    public void loadTheme(FloorTheme theme) {
+        String path = theme.getAssetsPath();
+        basefloorImage = AssetLoader.loadImage(path + "tile_floor_backrooms.png");
+        basewallImage = AssetLoader.loadImage(path + "wall_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage(path + "wall_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage(path + "wall_bottom_rim.png");
+
+        wallBorderBottomImage = AssetLoader.loadImage(path + "wall_border.png");
+        wallBorderLeftImage = rotate90Clockwise(wallBorderBottomImage);
+        wallBorderTopImage = rotate90Clockwise(wallBorderLeftImage);
+        wallBorderRightImage = rotate90Clockwise(wallBorderTopImage);
+
+        wallCornerBottomLeftImage = AssetLoader.loadImage(path + "wall_corner.png");
+        wallCornerTopLeftImage = rotate90Clockwise(wallCornerBottomLeftImage);
+        wallCornerTopRightImage = rotate90Clockwise(wallCornerTopLeftImage);
+        wallCornerBottomRightImage = rotate90Clockwise(wallCornerTopRightImage);
+
+        doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
+        doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
     }
 
@@ -751,13 +767,6 @@ public class GameRenderer {
     }
 
 
-    //Load theme refer to floor
-    public void loadTheme(FloorTheme theme) {
-        basefloorImage = AssetLoader.loadImage(theme.getAssetsPath() + "tile_floor_backrooms.png");
-        basewallImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_baseboard.png");
-        wallTopRimImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_top_rim.png");
-        wallBotRimImage = AssetLoader.loadImage(theme.getAssetsPath() + "wall_bottom_rim.png");
-    }
 
     /** Pre-bakes a soft organic carpet wear smudge to break up repeating floor tiles. */
     private BufferedImage createFloorWearPatch(int size) {
@@ -794,6 +803,21 @@ public class GameRenderer {
             int oy = ((h >>> 12) & 15) - 8;
             g2.drawImage(floorWearPatch, px - 8 + ox, py - 8 + oy, null);
         }
+    }
+
+    private static BufferedImage rotate90Clockwise(BufferedImage src) {
+        int width = src.getWidth();
+        int height = src.getHeight();
+
+        int type = (src.getType() == 0) ? BufferedImage.TYPE_INT_ARGB : src.getType();
+        BufferedImage dest = new BufferedImage(height, width, type);
+
+        AffineTransform transform = new AffineTransform();
+        transform.translate(height, 0);
+        transform.rotate(Math.PI / 2);
+
+        AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+        return op.filter(src, dest);
     }
 
     public LightSystem getLightSystem() { return lightSystem; }
