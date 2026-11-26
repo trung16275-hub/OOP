@@ -78,12 +78,14 @@ public class GameRenderer {
     registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
     registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
         // Boss 1
-registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
-registerAnim("boss1", "run", "assets/boss1/run.png", 4);
-registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
-registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
+
+registerGifAnim("boss1", "idle", "assets/boss1/idle.gif");
+registerGifAnim("boss1", "run", "assets/boss1/run.gif");
+registerGifAnim("boss1", "dash", "assets/boss1/dash.gif");
+registerGifAnim("boss1", "lunge", "assets/boss1/lunge.gif");
+registerGifAnim("boss1", "death", "assets/boss1/death.gif");
 registerGifAnim("boss1", "hurt", "assets/boss1/hurt.gif");
-registerAnim("boss1", "death", "assets/boss1/death.png", 4);
+
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
         wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
