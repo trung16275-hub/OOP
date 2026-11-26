@@ -277,10 +277,11 @@ public class GamePanel extends JPanel implements Runnable {
             pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
         }
     }
-      
+
     private void createFloor() {
+        projectiles.clear();
         this.worldMap = mapGenerator.generateFloor(currentFloor, 8);
-        this.room = worldMap.getCurrentRoom();
+        this.room = worldMap.getSpawnRoom();
         if (this.room != null) {
             this.room.setVisited(true);
         }

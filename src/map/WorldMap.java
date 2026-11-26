@@ -21,9 +21,10 @@ public class WorldMap {
 
     public WorldMap(int floorLevel) {
         switch (floorLevel) {
-            case 1 -> theme = FloorTheme.LEVEL_0_OFFICE;
             case 2 -> theme = FloorTheme.LEVEL_2_PIPEDREAM;
             case 3 -> theme = FloorTheme.LEVEL_52_SCHOOL;
+            default -> theme = FloorTheme.LEVEL_0_OFFICE;
+
         }
         this.keysCollected = 0;
         this.bossRoomUnlocked = true; // Turn into false later when prop and item ready
@@ -39,6 +40,12 @@ public class WorldMap {
         if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE) {
             throw new IndexOutOfBoundsException(
                     String.format("Room coordinates (%d, %d) out of bounds for grid size (%d, %d)", gx, gy, GRID_SIZE, GRID_SIZE));
+        }
+
+        Room previous = grid[gx][gy];
+
+        if (previous != null && previous != room) {
+            rooms.remove(previous);
         }
 
         grid[gx][gy] = room;
