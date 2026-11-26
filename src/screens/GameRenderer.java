@@ -357,12 +357,6 @@ public class GameRenderer {
         int h = player.getHeight();
         String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
         String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
-        long now = System.currentTimeMillis();
-        long hurtStartTime = player.getHurtAnimationStartTime();
-        long hurtElapsed = now - hurtStartTime;
-        BufferedImage[] hurtFrames = animations.getFrames(spriteKey + ".hurt");
-        boolean isHurt = hurtStartTime != 0 && hurtElapsed >= 0 && hurtFrames != null
-                && hurtElapsed / PLAYER_HURT_FRAME_DURATION_MS < hurtFrames.length;
         String state = player.isHurt() ? "hurt"
                 : player.isDashing() ? "dash"
                 : player.isAttacking() ? "attack"
@@ -378,6 +372,7 @@ public class GameRenderer {
         };
 
         if (frames != null && frames.length > 0) {
+            long now = System.currentTimeMillis();
             int lastFrame = frames.length - 1;
             int frameIndex = switch (state) {
                 case "hurt" -> Math.min((int) ((now - player.getHurtAnimationStartTime())
