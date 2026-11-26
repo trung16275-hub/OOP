@@ -33,7 +33,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Entities
     private Player player;
-    private Enemy currentEnemy;
 
     // Weapons
     private Ak47 ak47;
@@ -81,10 +80,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.setX(180);
         this.player.setY(260);
         
-<<<<<<< HEAD
-
-=======
->>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
     }
 
     private void toggleWeapon() {
@@ -124,9 +119,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void updateState() {
-        // Cập nhật trạng thái quái vật, nhân vật di chuyển
-
-        //1. Cập nhật nhân vật
+        // 1. Cập nhật nhân vật
         if (player.isDead()) {
             endGame();
             return;
@@ -136,31 +129,48 @@ public class GamePanel extends JPanel implements Runnable {
             toggleWeapon();
         }
 
-        double moveX = 0;
-        double moveY = 0;
+        // [Boss 4] Luôn lấy và reset số lần nhấp phím mỗi frame để tránh cộng dồn từ lúc đi bộ
+        int struggleTaps = keyH.consumeStruggleTaps();
 
-        if (keyH.upPressed)    moveY -=1;
-        if (keyH.downPressed)  moveY +=1;
-        if (keyH.leftPressed)  moveX -=1;
-        if (keyH.rightPressed) moveX +=1;
+        if (player.isGrabbed()) {
+            // [Boss 4] Đang bị tóm -> khóa di chuyển WASD, chuyển sang đếm nhịp vùng thoát
+            player.setMoving(false);
+            if (struggleTaps > 0 && room != null && room.getEnemies() != null) {
+                for (Enemy e : room.getEnemies()) {
+                    if (e instanceof Boss4 boss4) {
+                        for (int i = 0; i < struggleTaps; i++) {
+                            boss4.onPlayerStruggle(player);
+                        }
+                    }
+                }
+            }
+        } else {
+            double moveX = 0;
+            double moveY = 0;
 
-        if (moveX != 0 && moveY !=0) {
-            moveX *= 0.7071;
-            moveY *= 0.7071;
-        }
-        // Đạn chỉ bắn ngang; phím lên/xuống không đổi hướng bắn.
-        if (moveX != 0) {
-            player.setAimDirection(moveX, 0);
-        }
+            if (keyH.upPressed)    moveY -= 1;
+            if (keyH.downPressed)  moveY += 1;
+            if (keyH.leftPressed)  moveX -= 1;
+            if (keyH.rightPressed) moveX += 1;
 
-        double previousX = player.getX();
-        double previousY = player.getY();
-        player.move(moveX, moveY, room);
-        double movedX = player.getX() - previousX;
-        double movedY = player.getY() - previousY;
-        player.setMoving(movedX != 0 || movedY != 0);
-        if (movedX != 0) {
-            player.setFacingLeft(movedX < 0);
+            if (moveX != 0 && moveY != 0) {
+                moveX *= 0.7071;
+                moveY *= 0.7071;
+            }
+            // Đạn chỉ bắn ngang; phím lên/xuống không đổi hướng bắn.
+            if (moveX != 0) {
+                player.setAimDirection(moveX, 0);
+            }
+
+            double previousX = player.getX();
+            double previousY = player.getY();
+            player.move(moveX, moveY, room);
+            double movedX = player.getX() - previousX;
+            double movedY = player.getY() - previousY;
+            player.setMoving(movedX != 0 || movedY != 0);
+            if (movedX != 0) {
+                player.setFacingLeft(movedX < 0);
+            }
         }
 
         long now = System.currentTimeMillis();
@@ -175,8 +185,11 @@ public class GamePanel extends JPanel implements Runnable {
             } else if (player.getCurrentWeapon() instanceof Bat) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
                 for (Enemy e : room.getEnemies()) {
-                    if (e != null && !e.isDead()
-                            && player.isWithinHitbox(e)) {
+                    // [Boss 4] Bỏ qua nếu Boss 4 đang lặn trong tường hoặc đang gục chết
+                    if (e instanceof Boss4 b4 && (b4.isSubmergedInWall() || b4.isDying())) {
+                        continue;
+                    }
+                    if (e != null && !e.isDead() && player.isWithinHitbox(e)) {
                         player.attack(e);
                     }
                 }
@@ -198,34 +211,30 @@ public class GamePanel extends JPanel implements Runnable {
                 Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
+                player.setGrabbed(false); // [Boss 4] Mở khóa nếu lỡ chuyển phòng
                 projectiles.clear();
             }
         }
 
-
-        //3. Cập nhật Enemy
-
-        if (room.getEnemies()!=null) {
+        // 3. Cập nhật Enemy
+        if (room.getEnemies() != null) {
             room.getEnemies().removeIf(Enemy::isDead);
             for (Enemy e : room.getEnemies()) {
                 e.updateBehavior(player, room);
-                // player.faceToward(e); // Currently not used
-                // player.resetFacing();
             }
         }
 
-        //4. Cap nhat phong
+        // 4. Cập nhật phòng
         if (room != null) {
             if (room.getEnemies().isEmpty()) {
+                player.setGrabbed(false); // [Boss 4] Đảm bảo mở khóa khi phòng hết quái
                 room.setCleared(true);
                 room.openDoors();
             }
         }
 
-
-        //update light system
+        // Update light system
         renderer.getLightSystem().update(room, 0.016);
-
     }
 
     private void updateProjectiles() {
@@ -234,6 +243,7 @@ public class GamePanel extends JPanel implements Runnable {
             Projectile projectile = iterator.next();
             projectile.update(room);
             for (Enemy e : room.getEnemies()) {
+                if (e instanceof Boss4 b4 && (b4.isSubmergedInWall() || b4.isDying())) continue;
                 if (projectile.isActive() && projectile.hits(e)) {
                     e.takeDamage(projectile.getDamage());
                     projectile.deactivate();

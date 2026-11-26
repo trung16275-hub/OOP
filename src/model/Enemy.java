@@ -120,23 +120,10 @@ public abstract class Enemy extends Combatant {
 
     move(dirX, dirY, room);
 }
-<<<<<<< HEAD
-=======
-    // Trả về tên bộ sprite (mặc định null nếu quái thường chưa có ảnh)
->>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
 public String getSpritePath() {
     return null;
 }
 
-<<<<<<< HEAD
-=======
-// Trả về khóa animation tương ứng trong GameRenderer.
-public String getAnimState() {
-    return "idle";
-}
-
-// Trả về số frame của sprite; Boss có thể override nếu dùng sprite sheet.
->>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
 public int getSpriteFrameCount() {
     return 1;
 }

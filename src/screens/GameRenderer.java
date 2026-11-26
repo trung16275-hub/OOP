@@ -170,7 +170,7 @@ private void renderScene(Graphics2D g2, Player player, List<Enemy> enemies,
     // 2. Dịch chuyển camera vào thế giới game
     g2.translate(-camX, -camY);
     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
+g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     // 3. Vẽ phòng
     renderRoom(g2, room);
 
@@ -419,14 +419,25 @@ if (!msg.isEmpty()) {
             enemy.getSpritePath(), enemy.getSpriteFrameCount());
 
     if (frames != null && frames.length > 0) {
-        int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
-        if (enemy.getFacingX() < 0) {
-            g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
-        } else {
-            g2.drawImage(frames[frameIndex], x, y, w, h, null);
-        }
-        return;
+    int frameIndex;
+    if (enemy instanceof Boss4 && ((Boss4) enemy).isDying()) {
+        frameIndex = Math.min(((Boss4) enemy).getDeathFrameIndex(), frames.length - 1);
+    } else {
+        frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
     }
+
+    BufferedImage frame = frames[frameIndex];
+    int drawHeight = h;
+    int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+    int drawX = x + (w - drawWidth) / 2;
+
+    if (enemy.getFacingX() < 0) {
+        g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
+    } else {
+        g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
+    }
+    return;
+}
     
 
     // Fallback: Vẽ khối đỏ cho quái chưa có sprite
@@ -579,7 +590,7 @@ private void renderBoss4WallShadow(Graphics2D g2, Boss4 b4) {
 }
 
 private void renderBoss4Arm(Graphics2D g2, Boss4 b4) {
-    if (!b4.isArmActive()) return;
+    if (!b4.isArmActive()|| !b4.isSubmergedInWall()) return;
     Stroke oldStroke = g2.getStroke();
     Color oldColor = g2.getColor();
 

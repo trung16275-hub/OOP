@@ -13,7 +13,8 @@ public class Boss4 extends Enemy {
         WALL_SNATCH,
         PANIC_SPRINT,
         IN_WALL,
-        REPELLED
+        REPELLED,
+        DEATH
     }
 // Các pha của chiêu 1: Wall Snatch
     private enum SnatchPhase {
@@ -21,6 +22,10 @@ public class Boss4 extends Enemy {
         GRABBED,    // Đã chộp được và đang kéo về tường
         RETRACTING  // Thu tay lại
     }
+    private long deathStartTime = 0L;
+private static final int DEATH_FRAME_COUNT = 9;
+private static final long DEATH_FRAME_DURATION_NANOS = 110_000_000L; // 110ms / frame
+private static final long DEATH_CORPSE_HOLD_NANOS = 350_000_000L;    // Giữ dáng nằm thêm 0.35s
     private boolean submergedInWall = false;
 private long sprintStartTime = 0L;
 private long wallEnterTime = 0L;
@@ -65,12 +70,15 @@ private double wallPerimeterPos = 0.0;
     setX(x);
     setY(y);
     setWidth(60);
-    setHeight(60);
+    setHeight(85);
 }
 
     public void updateBoss4(Player player, Room room, long now) {
     if (player == null) return;
-
+        if (state == State.DEATH) {
+    releasePlayer(player);
+    return;
+}
     // Nước Hạnh Nhân có thể ép Boss 4 bật ra khỏi tường nếu dùng sát chỗ nó đang trốn
     if (now < safeZoneEndTime && (isGrabbingPlayer || isInsideSafeZone(getCenterX(), getCenterY()))) {
         releasePlayer(player);
@@ -154,7 +162,7 @@ private double wallPerimeterPos = 0.0;
                 double dy = armStartY - playerCenterY;
                 double dist = Math.hypot(dx, dy);
 
-                if (dist > 25.0) {
+                if (dist > 48.0) {
                     double pullSpeed = 2.8;
                     player.setX(player.getX() + (dx / dist) * pullSpeed);
                     player.setY(player.getY() + (dy / dist) * pullSpeed);
@@ -387,17 +395,29 @@ private void handleInWall(Player player, Room room, long now) {
     @Override
 public void takeDamage(int amount) {
     // Đang ẩn mình bên trong tường thì miễn nhiễm sát thương
-    if (submergedInWall) return;
+    if (state == State.DEATH || submergedInWall) return;
 
     super.takeDamage(amount);
     isArmActive = false;
     isGrabbingPlayer = false;
+    if (getHp() <= 0) {
+        enterDeathState();
+        return;
+    }
     if (state != State.PANIC_SPRINT) {
         long now = System.nanoTime();
         state = State.PANIC_SPRINT;
         sprintStartTime = now;
         sprintEndTime = now + SPRINT_DURATION_NANOS;
     }
+}
+private void enterDeathState() {
+    if (state == State.DEATH) return;
+    state = State.DEATH;
+    deathStartTime = System.nanoTime();
+    submergedInWall = false;
+    isArmActive = false;
+    isGrabbingPlayer = false;
 }
 
     public void onAlmondWaterUsed(double x, double y, double radius, long durationNanos) {
@@ -582,21 +602,56 @@ private boolean hasWallBetween(double x1, double y1, double x2, double y2, Room 
     return false;
 }
     
-    @Override
-    public String getSpritePath() {
-        switch (state) {
-            case PANIC_SPRINT: return "boss4/run.png";
-            case WALL_SNATCH:  return "boss4/attack.png";
-            case REPELLED:     return "boss4/cower.png";
-            default:           return "boss4/idle.png";
-        }
-    }
+ public boolean isDying() {
+    return state == State.DEATH;
+}
 
-    @Override
-    public int getSpriteFrameCount() {
-        // Cập nhật theo số frame thực tế sau khi bạn tách file PNG cho Boss 4
-        return 6;
+public int getDeathFrameIndex() {
+    if (state != State.DEATH) return 0;
+    long elapsed = Math.max(0L, System.nanoTime() - deathStartTime);
+    int idx = (int) (elapsed / DEATH_FRAME_DURATION_NANOS);
+    return Math.min(idx, DEATH_FRAME_COUNT - 1);
+}
+
+@Override
+public boolean isDead() {
+    if (state == State.DEATH) {
+        long totalNanos = DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS + DEATH_CORPSE_HOLD_NANOS;
+        return (System.nanoTime() - deathStartTime) >= totalNanos;
     }
+    if (getHp() <= 0) {
+        enterDeathState();
+        return false;
+    }
+    return false;
+}
+
+@Override
+public String getSpritePath() {
+    switch (state) {
+        case DEATH:
+            return "boss4_death";
+        case PANIC_SPRINT:
+            return "boss4_run";
+        case WALL_SNATCH:
+            return "boss4_attack";
+        case REPELLED:
+        default:
+            return "boss4_idle";
+    }
+}
+
+@Override
+public int getSpriteFrameCount() {
+    switch (state) {
+        case DEATH:
+            return DEATH_FRAME_COUNT;
+        case WALL_SNATCH:
+            return 4;
+        default:
+            return 6;
+    }
+}
     @Override
 public void updateBehavior(Player player, Room room) {
     updateBoss4(player, room, System.nanoTime());
@@ -692,8 +747,4 @@ public boolean isSubmergedInWall() {
     public double getSafeZoneY() { return safeZoneY; }
     public double getSafeZoneRadius() { return safeZoneRadius; }
 
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf

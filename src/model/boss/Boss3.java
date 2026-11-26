@@ -51,10 +51,6 @@ public class Boss3 extends Enemy {
         setHeight(DEFAULT_HEIGHT);
     }
         
-<<<<<<< HEAD
-
-=======
->>>>>>> 45849b59d5baf0c5d133f97e632b41c71e4e5fbf
 @Override 
 public void attack(Combatant target) {
     if (isDead() || target == null || target.isDead()) {
@@ -82,15 +78,7 @@ public int getSpriteFrameCount() {
     return 9;
 }
 
-@Override
-public String getSpritePath() {
-    return "boss3";
-}
 
-@Override
-public int getSpriteFrameCount() {
-    return 9;
-}
 
     @Override
     public void updateBehavior(Player player,Room room) {
