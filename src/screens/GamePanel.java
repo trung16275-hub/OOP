@@ -311,23 +311,30 @@ public class GamePanel extends JPanel implements Runnable {
         // 3. CHUYỂN PHÒNG
         // =========================
 
-        Direction doorDir = room.checkDoorTrigger(
+        Room.DoorTrigger doorTrigger = room.checkDoorTriggerDetails(
                 player.getX(),
                 player.getY(),
                 player.getWidth(),
                 player.getHeight()
         );
 
-        if (doorDir != null) {
+        if (doorTrigger != null) {
 
-            Room nextRoom = worldMap.moveTo(doorDir);
+            WorldMap.RoomTransition transition = worldMap.moveTo(
+                doorTrigger.direction(),
+                doorTrigger.offset()
+            );
+            Room nextRoom = transition.room();
 
             if (nextRoom != room) {
 
                 this.room = nextRoom;
                 this.room.setVisited(true);
 
-                Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
+                Point spawnPos = nextRoom.getDoorSpawnPosition(
+                    doorTrigger.direction(),
+                    transition.arrivalOffset()
+                );
 
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);

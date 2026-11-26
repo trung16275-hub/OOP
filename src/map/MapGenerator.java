@@ -3,14 +3,14 @@ package map;
 import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
+import model.boss.Boss2Minion;
 import model.boss.Boss4;
-import screens.lighting.LightSource;
 
 import java.awt.Color;
+import java.util.Arrays;
 
 /**
- * Bộ tạo bản đồ cố định cho chế độ test Boss.
- * Sinh 1 phòng spawn ở giữa và 3 phòng boss kề bên.
+ * Bộ tạo bản đồ cố định cho chế độ test boss và creep.
  */
 public class MapGenerator {
 
@@ -25,19 +25,16 @@ public class MapGenerator {
         return generateFloor(floorLevel, 4);
     }
 
-    /**
-     * Sinh tầng cố định: 1 phòng spawn ở giữa và 3 phòng boss kề bên.
-     */
+    /** Giữ sơ đồ boss cũ và nối hub phía Tây tới sáu phòng creep riêng biệt. */
     public WorldMap generateFloor(int floorLevel, int targetRooms) {
         WorldMap map = new WorldMap(floorLevel);
         int spawnX = 3;
         int spawnY = 3;
 
-        // Phòng spawn ở giữa.
+        // Giữ nguyên spawn và ba phòng boss cũ.
         Room spawnRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.SPAWN);
         map.addRoom(spawnX, spawnY, spawnRoom);
 
-        // 3 phòng boss kề trực tiếp với spawn: Bắc, Nam, Đông.
         map.addRoom(spawnX, spawnY - 1,
                 new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.BOSS));
         map.addRoom(spawnX, spawnY + 1,
@@ -45,8 +42,33 @@ public class MapGenerator {
         map.addRoom(spawnX + 1, spawnY,
                 new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.BOSS));
 
+        // Hub phía Tây rộng hơn, có sáu cửa xếp dọc trên tường Tây.
+        Room westHub = new Room(Room.RoomSize.BIG, Room.RoomType.NORMAL);
+        map.addRoom(spawnX - 1, spawnY, westHub);
+
+        // Sáu phòng đích được xếp trong cụm phía Tây, không nằm phía Đông spawn.
+        int[][] creepRoomGridPositions = {
+            {0, 0}, {1, 1}, {0, 2}, {0, 4}, {1, 5}, {0, 6}
+        };
+        Room[] creepRooms = new Room[creepRoomGridPositions.length];
+        for (int i = 0; i < creepRoomGridPositions.length; i++) {
+            int[] position = creepRoomGridPositions[i];
+            creepRooms[i] = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.NORMAL);
+            map.addRoom(position[0], position[1], creepRooms[i]);
+        }
+
         carveDoors(map);
-        populateEnemies(map, floorLevel);
+        int[] westDoorOffsets = {5, 9, 13, 17, 21, 25};
+        for (int i = 0; i < creepRooms.length; i++) {
+            map.connectRooms(
+                westHub,
+                Direction.WEST,
+                westDoorOffsets[i],
+                creepRooms[i],
+                Room.DEFAULT_HEIGHT / 2
+            );
+        }
+        populateEnemies(map, creepRooms);
 
         // them den
         populateLights(map);
@@ -77,31 +99,34 @@ public class MapGenerator {
         }
     }
 
-    /**
-     * Sinh kẻ thù và Boss vào các phòng.
-     */
-    private void populateEnemies(WorldMap map, int floorLevel) {
-        int midPxX = (Room.DEFAULT_WIDTH / 2) * Room.TILE_SIZE;
-        int midPxY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
+    /** Sinh ba boss cũ và một minion trong mỗi phòng đích phía Tây. */
+    private void populateEnemies(WorldMap map, Room[] creepRooms) {
+        int centerX = (Room.DEFAULT_WIDTH / 2) * Room.TILE_SIZE;
+        int centerY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
 
         for (Room r : map.getRooms()) {
             if (r.getRoomType() == Room.RoomType.BOSS) {
                 Enemy boss;
-
                 if (r.getGridY() == 2) {
-                    boss = new Boss1(); // Phòng Bắc
+                    boss = new Boss1();
                 } else if (r.getGridX() == 4) {
-                    boss = new Boss2(); // Phòng Đông
+                    boss = new Boss2();
                 } else {
-                    boss = new Boss4(midPxX, midPxY); // Phòng Nam
+                    boss = new Boss4(centerX, centerY);
                 }
 
-                boss.setX(midPxX - boss.getWidth() / 2.0);
-                boss.setY(midPxY - boss.getHeight() / 2.0);
+                boss.setX(centerX - boss.getWidth() / 2.0);
+                boss.setY(centerY - boss.getHeight() / 2.0);
                 r.addEnemy(boss);
                 r.setCleared(false);
+            } else if (Arrays.asList(creepRooms).contains(r)) {
+                Boss2Minion creep = new Boss2Minion(
+                        centerX - 35 / 2.0,
+                        centerY - 35 / 2.0
+                );
+                r.addEnemy(creep);
+                r.setCleared(false);
             } else {
-                // Spawn room và các phòng còn lại không có quái
                 r.setCleared(true);
             }
         }

@@ -373,10 +373,6 @@ public class GameRenderer {
                         continue;
                     }
 
-                    if (!room.isVisited() && !worldMap.hasVisitedNeighbor(gx, gy)) {
-                        continue;
-                    }
-
                     int x = startX + gx * (cellSize + gap);
                     int y = startY + gy * (cellSize + gap);
 
@@ -398,6 +394,12 @@ public class GameRenderer {
                     if (room.getRoomType() == Room.RoomType.SPAWN) {
                         mini.setColor(Color.YELLOW);
                         mini.fillOval(x + 3, y + 3, cellSize - 6, cellSize - 6);
+                    }
+
+                    if (room.getRoomType() != Room.RoomType.BOSS
+                            && !room.getEnemies().isEmpty()) {
+                        mini.setColor(new Color(220, 80, 220));
+                        mini.fillOval(x + 5, y + 5, cellSize - 10, cellSize - 10);
                     }
                 }
             }
@@ -1112,7 +1114,20 @@ public class GameRenderer {
                 ? Direction.WEST
                 : Direction.EAST;
 
-        int doorY = room.getDoorOffset(sideDir);
+        BufferedImage sideDoorTrimImage = null;
+        for (int doorOffset : room.getDoorOffsets(sideDir)) {
+            if (!isWalkable(room, x, doorOffset)) {
+                continue;
+            }
+            if (y == doorOffset - 3) {
+                sideDoorTrimImage = wallTopRimImage;
+                break;
+            }
+            if (y == doorOffset - 2) {
+                sideDoorTrimImage = wallBotRimImage;
+                break;
+            }
+        }
 
         // North Wall Decorative Wallpaper
         if (y >= padY + 1
@@ -1139,14 +1154,8 @@ public class GameRenderer {
             }
 
         } else if (((x <= padX + 1) || (x >= w - padX - 2))
-                && (y == doorY - 3 || y == doorY - 2)
-                && isWalkable(room, x, doorY)) {
-
-            if (y == doorY - 3) {
-                img = wallTopRimImage;
-            } else if (y == doorY - 2) {
-                img = wallBotRimImage;
-            }
+                && sideDoorTrimImage != null) {
+            img = sideDoorTrimImage;
 
         } else {
 

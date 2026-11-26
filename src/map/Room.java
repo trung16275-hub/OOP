@@ -5,6 +5,7 @@ import screens.lighting.*;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -53,10 +54,12 @@ public class Room {
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
-    // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
-    private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
+    // Stores tile coordinates: X for NORTH/SOUTH, Y for WEST/EAST.
+    private final Map<Direction, List<Integer>> doorOffsets = new EnumMap<>(Direction.class);
 
     private final List<LightSource> lights = new ArrayList<>();
+
+    public record DoorTrigger(Direction direction, int offset) { }
 
     // Constructor mặc định
     public Room() {
@@ -113,22 +116,43 @@ public class Room {
     }
 
     public void setDoorOffset(Direction dir, int offset) {
-        doorOffsets.put(dir, offset);
+        List<Integer> offsets = new ArrayList<>();
+        offsets.add(offset);
+        doorOffsets.put(dir, offsets);
+    }
+
+    public void addDoorOffset(Direction dir, int offset) {
+        List<Integer> offsets = doorOffsets.computeIfAbsent(dir, key -> new ArrayList<>());
+        if (!offsets.contains(offset)) {
+            offsets.add(offset);
+        }
     }
 
     public int getDoorOffset(Direction dir) {
-        // Fallback to center if not set
-        if (!doorOffsets.containsKey(dir)) {
+        List<Integer> offsets = doorOffsets.get(dir);
+        if (offsets == null || offsets.isEmpty()) {
             return (dir == Direction.NORTH || dir == Direction.SOUTH) ? width / 2 : height / 2;
         }
-        return doorOffsets.get(dir);
+        return offsets.get(0);
+    }
+
+    public List<Integer> getDoorOffsets(Direction dir) {
+        List<Integer> offsets = doorOffsets.get(dir);
+        if (offsets == null || offsets.isEmpty()) {
+            return List.of((dir == Direction.NORTH || dir == Direction.SOUTH) ? width / 2 : height / 2);
+        }
+        return Collections.unmodifiableList(offsets);
     }
 
     public void carveDoor(Direction dir, boolean open) {
         TileType doorTile = open ? TileType.DOOR_OPEN : TileType.DOOR_CLOSED;
         doors.put(dir, open);
-        int offset = getDoorOffset(dir);
+        for (int offset : getDoorOffsets(dir)) {
+            carveDoorAtOffset(dir, offset, doorTile);
+        }
+    }
 
+    private void carveDoorAtOffset(Direction dir, int offset, TileType doorTile) {
         switch (dir) {
             case NORTH -> {
                 for (int x = offset - 1; x <= offset + 1; x++) {
@@ -178,32 +202,49 @@ public class Room {
     }
 
     public Direction checkDoorTrigger(double px, double py, int pw, int ph) {
+        DoorTrigger trigger = checkDoorTriggerDetails(px, py, pw, ph);
+        return trigger == null ? null : trigger.direction();
+    }
+
+    public DoorTrigger checkDoorTriggerDetails(double px, double py, int pw, int ph) {
         // North Door
         if (doors.getOrDefault(Direction.NORTH, false)) {
-            int doorPxX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-            if (py <= 0.5 * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + TILE_SIZE) {
-                return Direction.NORTH;
+            for (int offset : getDoorOffsets(Direction.NORTH)) {
+                int doorPxX = offset * TILE_SIZE;
+                if (py <= 0.5 * TILE_SIZE
+                    && Math.abs(px + pw / 2.0 - doorPxX) <= TILE_SIZE * 1.5) {
+                    return new DoorTrigger(Direction.NORTH, offset);
+                }
             }
         }
         // South Door
         if (doors.getOrDefault(Direction.SOUTH, false)) {
-            int doorPxX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-            if (py + ph >= (height - 0.5) * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + TILE_SIZE) {
-                return Direction.SOUTH;
+            for (int offset : getDoorOffsets(Direction.SOUTH)) {
+                int doorPxX = offset * TILE_SIZE;
+                if (py + ph >= (height - 0.5) * TILE_SIZE
+                    && Math.abs(px + pw / 2.0 - doorPxX) <= TILE_SIZE * 1.5) {
+                    return new DoorTrigger(Direction.SOUTH, offset);
+                }
             }
         }
         // West Door
         if (doors.getOrDefault(Direction.WEST, false)) {
-            int doorPxY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-            if (px <= 0.5 * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
-                return Direction.WEST;
+            for (int offset : getDoorOffsets(Direction.WEST)) {
+                int doorPxY = offset * TILE_SIZE;
+                if (px <= 0.5 * TILE_SIZE
+                    && Math.abs(py + ph / 2.0 - doorPxY) <= TILE_SIZE * 1.5) {
+                    return new DoorTrigger(Direction.WEST, offset);
+                }
             }
         }
         // East Door
         if (doors.getOrDefault(Direction.EAST, false)) {
-            int doorPxY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-            if (px + pw >= (width - 0.5) * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
-                return Direction.EAST;
+            for (int offset : getDoorOffsets(Direction.EAST)) {
+                int doorPxY = offset * TILE_SIZE;
+                if (px + pw >= (width - 0.5) * TILE_SIZE
+                    && Math.abs(py + ph / 2.0 - doorPxY) <= TILE_SIZE * 1.5) {
+                    return new DoorTrigger(Direction.EAST, offset);
+                }
             }
         }
 
@@ -214,27 +255,19 @@ public class Room {
      * Vị trí xuất hiện an toàn của Player khi bước từ phòng khác vào (ở cửa đối diện).
      */
     public Point getDoorSpawnPosition(Direction fromDir) {
+        return getDoorSpawnPosition(fromDir, getDoorOffset(fromDir.opposite()));
+    }
+
+    public Point getDoorSpawnPosition(Direction fromDir, int offset) {
         return switch (fromDir) {
             // Came from North -> spawn at South entrance on connecting floor tile (height - 2)
-            case NORTH -> {
-                int southDoorX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-                yield new Point(southDoorX - 16, (height - 3) * TILE_SIZE);
-            }
+            case NORTH -> new Point(offset * TILE_SIZE - 30, (height - 3) * TILE_SIZE);
             // Came from South -> spawn at North entrance on connecting floor tile (row 1)
-            case SOUTH -> {
-                int northDoorX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-                yield new Point(northDoorX - 16, 1 * TILE_SIZE + 25);
-            }
+            case SOUTH -> new Point(offset * TILE_SIZE - 30, 1 * TILE_SIZE + 25);
             // Came from West -> spawn at East entrance on connecting floor tile (width - 2)
-            case WEST -> {
-                int eastDoorY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-                yield new Point((width - 2) * TILE_SIZE - 30, eastDoorY);
-            }
+            case WEST -> new Point((width - 2) * TILE_SIZE - 30, offset * TILE_SIZE - 30);
             // Came from East -> spawn at West entrance on connecting floor tile (column 1)
-            case EAST -> {
-                int westDoorY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-                yield new Point(1 * TILE_SIZE + 16, westDoorY);
-            }
+            case EAST -> new Point(1 * TILE_SIZE + 16, offset * TILE_SIZE - 30);
         };
     }
     public boolean checkCollision(Rectangle bounds) {
@@ -257,8 +290,12 @@ public class Room {
 
     public void carveOpenPath(Direction dir) {
         doors.put(dir, true);
-        int offset = getDoorOffset(dir);
+        for (int offset : getDoorOffsets(dir)) {
+            carveOpenPathAtOffset(dir, offset);
+        }
+    }
 
+    private void carveOpenPathAtOffset(Direction dir, int offset) {
         switch (dir) {
             case NORTH -> {
                 for (int x = offset - 1; x <= offset + 1; x++) {
