@@ -272,58 +272,58 @@ if (state == BossState.HURT) {
     }
 
     // =========================
-    // HỖ TRỢ
+    // ANIMATION & LIFECYCLE
     // =========================
 
-    private double distanceTo(Player player) {
+    private static final int LOOP_FRAME_DURATION_MS = 130;
+    private static final int DASH_FRAME_DURATION_MS = 38;
+    private static final int LUNGE_FRAME_DURATION_MS = 44;
+    private static final int HURT_FRAME_DURATION_MS = 80;
+    private static final int DEATH_FRAME_DURATION_MS = 220;
 
-        double dx = (player.getX() + player.getWidth() / 2.0)
-                - (getX() + getWidth() / 2.0);
-
-        double dy = (player.getY() + player.getHeight() / 2.0)
-                - (getY() + getHeight() / 2.0);
-
-        return Math.hypot(dx, dy);
-    }
-
+    @Override
     public String getSpriteKey() {
         return "boss1";
     }
 
     @Override
-    public String getSpritePath() {
-        return "boss1";
-    }
-
-    @Override
-    public int getSpriteFrameCount() {
-        return 4;
-    }
-
-    @Override
     public String getAnimState() {
+        return switch (state) {
+            case DASH_STRIKE -> "dash";
+            case LUNGE_BITE -> "lunge";
+            case CHASE -> "run";
+            case HURT -> "hurt";
+            case DEATH -> "death";
+            case IDLE -> "idle";
+        };
+    }
 
-        switch (state) {
+    @Override
+    public int getAnimFrameDurationMs(String animState) {
+        return switch (animState) {
+            case "dash" -> DASH_FRAME_DURATION_MS;
+            case "lunge" -> LUNGE_FRAME_DURATION_MS;
+            case "hurt" -> HURT_FRAME_DURATION_MS;
+            case "death" -> DEATH_FRAME_DURATION_MS;
+            default -> LOOP_FRAME_DURATION_MS;
+        };
+    }
 
-            case DASH_STRIKE:
-                return "dash";
-
-            case LUNGE_BITE:
-                return "lunge";
-
-            case CHASE:
-                return "run";
-
-                 case HURT:
-            return "hurt";
-
-            case DEATH:
-                return "death";
-
-            case IDLE:
-            default:
-                return "idle";
+    @Override
+    public int resolveAnimFrameIndex(String animState, int frameCount) {
+        if (frameCount <= 1) {
+            return 0;
         }
+        if ("idle".equals(animState) || "run".equals(animState)) {
+            return super.resolveAnimFrameIndex(animState, frameCount);
+        }
+        int frameDuration = getAnimFrameDurationMs(animState);
+        return (int) Math.min(getAnimationElapsedMillis() / frameDuration, frameCount - 1);
+    }
+
+    @Override
+    public boolean isRemovable() {
+        return isDead() && !isPlayingDeathAnimation();
     }
 
     public boolean isDashing() {

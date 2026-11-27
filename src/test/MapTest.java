@@ -5,8 +5,6 @@ import map.MapGenerator;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
-import model.boss.boss2.Boss2Minion;
-import model.creep.Stalker;
 
 public class MapTest {
     public static void main(String[] args) {
@@ -14,7 +12,6 @@ public class MapTest {
         testRoomCreation();
         testDoorCarving();
         testProceduralFloorGeneration();
-        testBossTestFloor();
         testDoorSymmetry();
         testRoomTransitions();
         System.out.println("✅ TẤT CẢ CÁC BÀI TEST MAP ĐÃ VƯỢT QUA THÀNH CÔNG!");
@@ -50,79 +47,19 @@ public class MapTest {
         assert map.getRooms().size() == 8 : "Procedural floor should contain eight rooms";
         assert map.getSpawnRoom() != null : "Procedural floor should contain a spawn room";
         assert map.getBossRoom() != null : "Procedural floor should contain a boss room";
-    }
-
-    private static void testBossTestFloor() {
-        MapGenerator generator = new MapGenerator(12345L);
-        WorldMap map = generator.generateBossTestFloor(1);
-
-        assert map.getRooms().size() == 11 : "Bản đồ phải có spawn, 3 boss, hub Tây và 6 phòng creep";
-        assert map.getSpawnRoom() != null : "Phải có phòng SPAWN";
-        assert map.getSpawnRoom().getGridX() == 3 && map.getSpawnRoom().getGridY() == 3 : "SPAWN phải giữ ở (3, 3)";
-        Room westHub = map.getRoom(2, 3);
-        assert westHub != null : "Phải có hub phía Tây";
-        assert westHub.getWidth() == Room.RoomSize.BIG.width : "Hub phía Tây phải dài hơn phòng thường";
-        assert westHub.getEnemies().isEmpty() : "Hub phía Tây không được có quái";
-        assert westHub.getDoorOffsets(Direction.WEST).size() == 6 : "Hub phải có đúng 6 cửa phía Tây";
-
-        int bossCount = 0;
-        int creepRoomCount = 0;
-        for (Room room : map.getRooms()) {
-            if (room.getRoomType() == Room.RoomType.BOSS) {
-                bossCount++;
-            }
-            if (!room.getEnemies().isEmpty() && (room.getEnemies().get(0) instanceof Boss2Minion || room.getEnemies().get(0) instanceof Stalker)) {
-                assert room.getEnemies().size() == 1 : "Mỗi phòng creep phải có đúng một creep";
-                creepRoomCount++;
-            }
-        }
-        assert bossCount == 3 : "Ba phòng boss cũ phải được giữ nguyên";
-        assert creepRoomCount == 6 : "Phải có đúng 6 phòng creep phía Tây";
-
-        java.util.Set<Room> reachedRooms = new java.util.HashSet<>();
-        for (int offset : westHub.getDoorOffsets(Direction.WEST)) {
-            Room.DoorTrigger trigger = westHub.checkDoorTriggerDetails(
-                0,
-                offset * Room.TILE_SIZE - 30,
-                60,
-                60
-            );
-            assert trigger != null && trigger.direction() == Direction.WEST && trigger.offset() == offset
-                : "Mỗi lối phải được nhận diện riêng theo vị trí cửa";
-
-            map.setCurrentRoom(westHub);
-            WorldMap.RoomTransition transition = map.moveTo(Direction.WEST, offset);
-            assert transition.room() != westHub : "Mỗi cửa Tây phải dẫn sang phòng khác";
-            assert transition.room().getEnemies().get(0) instanceof Boss2Minion
-                    || transition.room().getEnemies().get(0) instanceof Stalker
-                    : "Mỗi cửa Tây phải dẫn tới một phòng creep";
-            assert transition.room().getGridX() < map.getSpawnRoom().getGridX()
-                : "Cả sáu phòng đích phải nằm phía Tây spawn";
-            reachedRooms.add(transition.room());
-        }
-        assert reachedRooms.size() == 6 : "Sáu cửa Tây phải dẫn tới sáu phòng riêng biệt";
-        System.out.println("✓ testBossTestFloor: OK (hub Tây có 6 cửa tới 6 phòng creep)");
+        System.out.println("✓ testProceduralFloorGeneration: OK");
     }
 
     private static void testDoorSymmetry() {
         MapGenerator generator = new MapGenerator(999L);
-        WorldMap map = generator.generateBossTestFloor(1);
+        WorldMap map = generator.generateFloor(1, 8);
 
         for (Room r : map.getRooms()) {
             for (Direction dir : Direction.values()) {
                 if (r.hasDoor(dir)) {
                     Room neighbor = map.getRoom(r.getGridX() + dir.getDx(), r.getGridY() + dir.getDy());
-                    if (neighbor != null) {
-                        assert neighbor.hasDoor(dir.opposite()) : "Phòng lân cận phải có cửa đối xứng ngược lại";
-                    } else {
-                        for (int offset : r.getDoorOffsets(dir)) {
-                            map.setCurrentRoom(r);
-                            WorldMap.RoomTransition transition = map.moveTo(dir, offset);
-                            assert transition.room() != r : "Cửa ngoài lưới phải nối tới phòng đích";
-                            assert transition.room().hasDoor(dir.opposite())
-                                    : "Phòng đích phải có cửa quay lại";
-                        }
-                    }
+                    assert neighbor != null : "Phải tồn tại phòng lân cận ở hướng có cửa";
+                    assert neighbor.hasDoor(dir.opposite()) : "Phòng lân cận phải có cửa đối xứng ngược lại";
                 }
             }
         }

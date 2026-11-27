@@ -422,16 +422,16 @@ public int getDeathFrameIndex() {
 }
 
 @Override
-public boolean isDead() {
-    if (state == State.DEATH) {
-        long totalNanos = DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS + DEATH_CORPSE_HOLD_NANOS;
-        return (System.nanoTime() - deathStartTime) >= totalNanos;
+public boolean isRemovable() {
+    if (!isDead()) {
+        return false;
     }
-    if (getHp() <= 0) {
+    if (state != State.DEATH) {
         enterDeathState();
         return false;
     }
-    return false;
+    long totalNanos = DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS + DEATH_CORPSE_HOLD_NANOS;
+    return (System.nanoTime() - deathStartTime) >= totalNanos;
 }
 
     public void onAlmondWaterUsed(double x, double y, double radius, long durationNanos) {
@@ -478,9 +478,6 @@ public boolean isDead() {
     private boolean isInsideSafeZone(double x, double y) {
         return Math.hypot(x - safeZoneX, y - safeZoneY) <= safeZoneRadius;
     }
-
-    private double getCenterX() { return getX() + getWidth() / 2.0; }
-    private double getCenterY() { return getY() + getHeight() / 2.0; }
 
     private boolean tryMove(double dx, double dy, Room room) {
         double nextX = getX() + dx;
@@ -590,26 +587,31 @@ private boolean hasWallBetween(double x1, double y1, double x2, double y2, Room 
     return false;
 }
     
-   @Override
-public String getSpritePath() {
-    switch (state) {
-        case PANIC_SPRINT:
-            return "/boss4/walk";
-        case WALL_SNATCH:
-            return "/boss4/attack";
-        case REPELLED:
-            return "/boss4/hurt";
-        case DEATH:
-            return "/boss4/duller_death";
-        case SHADOW_AMBUSH:
-        default:
-            return "/boss4/idle";
-    }
+@Override
+public String getSpriteKey() {
+    return "boss4";
 }
 
 @Override
-public int getSpriteFrameCount() {
-    return 4;
+public String getAnimState() {
+    return switch (state) {
+        case PANIC_SPRINT -> "walk";
+        case WALL_SNATCH -> "attack";
+        case REPELLED -> "hurt";
+        case DEATH -> "death";
+        case SHADOW_AMBUSH, IN_WALL -> "idle";
+    };
+}
+
+@Override
+public int resolveAnimFrameIndex(String animState, int frameCount) {
+    if (frameCount <= 1) {
+        return 0;
+    }
+    if (state == State.DEATH) {
+        return Math.min(getDeathFrameIndex(), frameCount - 1);
+    }
+    return super.resolveAnimFrameIndex(animState, frameCount);
 }
     @Override
 public void updateBehavior(Player player, Room room) {

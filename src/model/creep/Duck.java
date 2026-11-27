@@ -1,6 +1,5 @@
 package model.creep;
 
-import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +21,7 @@ public class Duck extends Enemy {
     private static final Map<Room, Integer> ROOM_SPAWN_COUNTS = new WeakHashMap<>();
 
     // Đánh thường (cận chiến)
-    private static final double ATTACK_RANGE = 400.0;
+    private static final double ATTACK_RANGE = 52.0;
     private static final long ATTACK_DURATION_NANOS = 400_000_000L; // 4 frame * 100ms
     private static final long ATTACK_COOLDOWN_NANOS = 850_000_000L;
 
@@ -136,15 +135,7 @@ public class Duck extends Enemy {
 
         // 5. Đuổi theo Player
         state = State.WALK;
-        double speed = Math.max(1.0, getSpeed());
-        double vx = (dx / dist) * speed;
-        double vy = (dy / dist) * speed;
-
-        if (!tryMove(vx, vy, room)) {
-            if (!tryMove(vx, 0, room)) {
-                tryMove(0, vy, room);
-            }
-        }
+        move(dx / dist, dy / dist, room);
     }
 
     public boolean isSplitAnimationFinished() {
@@ -166,28 +157,12 @@ public class Duck extends Enemy {
         for (int i = 0; i < canSpawn; i++) {
             double spawnX = getX() + offsetsX[i % offsetsX.length];
             double spawnY = getY();
-            if (!canMoveTo(spawnX, spawnY, room)) {
+            if (room.checkCollision(getMovementBounds(spawnX, spawnY))) {
                 spawnX = getX();
             }
             clones.add(new Duck(spawnX, spawnY));
         }
         return clones;
-    }
-
-    private boolean tryMove(double dx, double dy, Room room) {
-        double nextX = getX() + dx;
-        double nextY = getY() + dy;
-        if (canMoveTo(nextX, nextY, room)) {
-            setX(nextX);
-            setY(nextY);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean canMoveTo(double nextX, double nextY, Room room) {
-        if (room == null) return true;
-        return !room.checkCollision(new Rectangle((int) nextX, (int) nextY, getWidth(), getHeight()));
     }
 
     public boolean isDying() {
@@ -202,34 +177,40 @@ public class Duck extends Enemy {
     }
 
     @Override
-    public boolean isDead() {
-        if (state == State.DEATH) {
-            return hasSplit;
+    public boolean isRemovable() {
+        if (!isDead()) {
+            return false;
         }
-        if (getHp() <= 0) {
+        if (state != State.DEATH) {
             enterDeathState();
             return false;
         }
-        return false;
+        return hasSplit;
     }
 
     @Override
-    public String getSpritePath() {
-        switch (state) {
-            case WALK:
-                return "/Entity_27_Duck/Walk/Walk";
-            case ATTACK:
-                return "/Entity_27_Duck/Attack/Attack";
-            case DEATH:
-                return "/Entity_27_Duck/Death/Death";
-            case IDLE:
-            default:
-                return "/Entity_27_Duck/Idle/Idle";
+    public String getSpriteKey() {
+        return "duck";
+    }
+
+    @Override
+    public String getAnimState() {
+        return switch (state) {
+            case WALK -> "walk";
+            case ATTACK -> "attack";
+            case DEATH -> "death";
+            case IDLE -> "idle";
+        };
+    }
+
+    @Override
+    public int resolveAnimFrameIndex(String animState, int frameCount) {
+        if (frameCount <= 1) {
+            return 0;
         }
-    }
-
-    @Override
-    public int getSpriteFrameCount() {
-        return 4;
+        if (state == State.DEATH) {
+            return Math.min(getDeathFrameIndex(), frameCount - 1);
+        }
+        return super.resolveAnimFrameIndex(animState, frameCount);
     }
 }

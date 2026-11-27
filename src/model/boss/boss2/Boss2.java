@@ -126,16 +126,7 @@ public class Boss2 extends Enemy {
 
         faceToward(player);
 
-        double bossCenterX = getX() + getWidth() / 2.0;
-        double bossCenterY = getY() + getHeight() / 2.0;
-
-        double playerCenterX = player.getX() + player.getWidth() / 2.0;
-        double playerCenterY = player.getY() + player.getHeight() / 2.0;
-
-        double dx = playerCenterX - bossCenterX;
-        double dy = playerCenterY - bossCenterY;
-
-        double distance = Math.sqrt(dx * dx + dy * dy);
+        double distance = distanceTo(player);
 
         // =========================
         // KỸ NĂNG NỔ AXIT
@@ -272,14 +263,22 @@ public class Boss2 extends Enemy {
     // HỖ TRỢ ANIMATION
     // =========================
 
+    public static final double ACID_PROJECTILE_SPEED = 5.5;
+    public static final int ACID_PROJECTILE_SIZE = 12;
+
     @Override
-    public String getSpritePath() {
+    public String getSpriteKey() {
         return "boss2";
     }
 
     @Override
-    public int getSpriteFrameCount() {
-        return 4;
+    public int getAnimFrameDurationMs(String state) {
+        return switch (state) {
+            case "run" -> 110;
+            case "attack", "back_burst" -> 90;
+            case "hurt" -> 80;
+            default -> 220;
+        };
     }
 
     @Override

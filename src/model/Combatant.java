@@ -86,9 +86,26 @@ public abstract class Combatant {
     public double getFacingY() {
         return facingY;
     }
+
     public void setFacingX(double facingX) {
-        this.facingX = facingX>0? 1 : (facingX<0 ? -1 : 0);
+        this.facingX = facingX > 0 ? 1 : (facingX < 0 ? -1 : 0);
     }
+
+    public double getCenterX() {
+        return x + width / 2.0;
+    }
+
+    public double getCenterY() {
+        return y + height / 2.0;
+    }
+
+    public double distanceTo(Combatant other) {
+        if (other == null) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return Math.hypot(other.getCenterX() - getCenterX(), other.getCenterY() - getCenterY());
+    }
+
     public double getHitboxRadius() {
         return hitboxRadius >= 0 ? hitboxRadius : Math.min(width, height) / 2.0;
     }

@@ -61,7 +61,7 @@ public class Boss2Minion extends Enemy {
     }
 
     @Override
-    public String getSpritePath() {
+    public String getSpriteKey() {
         return "boss2";
     }
 
@@ -71,7 +71,7 @@ public class Boss2Minion extends Enemy {
     }
 
     @Override
-    public int getSpriteFrameCount() {
-        return 4;
+    public int getAnimFrameDurationMs(String state) {
+        return "run".equals(state) ? 110 : 220;
     }
 }

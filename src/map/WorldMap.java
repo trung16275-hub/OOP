@@ -1,9 +1,7 @@
 package map;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class WorldMap {
     public static final int GRID_SIZE = 7;
@@ -14,7 +12,6 @@ public class WorldMap {
 
     private final Room[][] grid;
     private final List<Room> rooms;
-    private final Map<Room, Map<DoorKey, RoomLink>> roomLinks = new HashMap<>();
 
     private Room currentRoom;
     private Room spawnRoom;
@@ -84,47 +81,6 @@ public class WorldMap {
         }
 
         return currentRoom;
-    }
-
-    private record DoorKey(Direction direction, int offset) { }
-    private record RoomLink(Room room, int arrivalOffset) { }
-    public record RoomTransition(Room room, int arrivalOffset) { }
-
-    /** Connects a specific doorway to a room, with a matching return doorway. */
-    public void connectRooms(Room from, Direction direction, int fromOffset,
-            Room to, int toOffset) {
-        from.addDoorOffset(direction, fromOffset);
-        to.addDoorOffset(direction.opposite(), toOffset);
-        from.carveDoor(direction, true);
-        to.carveDoor(direction.opposite(), true);
-
-        roomLinks.computeIfAbsent(from, key -> new HashMap<>())
-                .put(new DoorKey(direction, fromOffset), new RoomLink(to, toOffset));
-        roomLinks.computeIfAbsent(to, key -> new HashMap<>())
-                .put(new DoorKey(direction.opposite(), toOffset), new RoomLink(from, fromOffset));
-    }
-
-    /** Transitions through the exact doorway that the player entered. */
-    public RoomTransition moveTo(Direction dir, int doorOffset) {
-        if (currentRoom == null || !currentRoom.hasDoor(dir)) {
-            return new RoomTransition(currentRoom, doorOffset);
-        }
-
-        Map<DoorKey, RoomLink> links = roomLinks.get(currentRoom);
-        RoomLink link = links == null ? null : links.get(new DoorKey(dir, doorOffset));
-        if (link != null) {
-            currentRoom = link.room();
-            return new RoomTransition(currentRoom, link.arrivalOffset());
-        }
-
-        int targetX = currentRoom.getGridX() + dir.getDx();
-        int targetY = currentRoom.getGridY() + dir.getDy();
-        if (hasRoom(targetX, targetY)) {
-            currentRoom = grid[targetX][targetY];
-            return new RoomTransition(currentRoom, currentRoom.getDoorOffset(dir.opposite()));
-        }
-
-        return new RoomTransition(currentRoom, doorOffset);
     }
 
     public boolean hasRoom(int gx, int gy) {

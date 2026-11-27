@@ -72,20 +72,10 @@ public abstract class Enemy extends Combatant {
         return detectionRange ;
     }
     public boolean canDetect(Player player) {
-
         if (player == null || player.isDead() || this.isDead()) {
             return false;
         }
-
-        double dx = (player.getX() + player.getWidth() / 2.0)
-                  - (getX() + getWidth() / 2.0);
-
-        double dy = (player.getY() + player.getHeight() / 2.0)
-                  - (getY() + getHeight() / 2.0);
-
-        double distance = Math.sqrt(dx * dx + dy * dy);
-
-        return distance <= detectionRange;
+        return distanceTo(player) <= detectionRange;
     }
     public void chase(Player player, Room room) {
     if (!canDetect(player)) {
@@ -95,12 +85,8 @@ public abstract class Enemy extends Combatant {
     faceToward(player);
 
     // Khoảng cách giữa hai tâm nhân vật
-    double dx = (player.getX() + player.getWidth() / 2.0)
-              - (getX() + getWidth() / 2.0);
-
-    double dy = (player.getY() + player.getHeight() / 2.0)
-              - (getY() + getHeight() / 2.0);
-
+    double dx = player.getCenterX() - getCenterX();
+    double dy = player.getCenterY() - getCenterY();
     double distance = Math.hypot(dx, dy);
 
     // Tránh chia cho 0 và dừng khi đến gần Player
@@ -121,21 +107,33 @@ public abstract class Enemy extends Combatant {
 
     move(dirX, dirY, room);
     }
-    // Trả về tên bộ sprite (mặc định null nếu quái thường chưa có ảnh)
+
+    // Trả về tên bộ sprite trong assets/animations.properties (mặc định null nếu chưa có ảnh)
     public String getSpriteKey() {
         return null;
     }
-public String getSpritePath() {
-    return null;
-}
 
-// Trả về khóa animation tương ứng trong GameRenderer.
-public String getAnimState() {
-    return "idle";
-}
+    // Trả về trạng thái animation hiện tại: "idle", "run", "attack", "death"...
+    public String getAnimState() {
+        return "idle";
+    }
 
-// Trả về số frame của sprite; Boss có thể override nếu dùng sprite sheet.
-public int getSpriteFrameCount() {
-    return 1;
-}
+    // Thời lượng mỗi frame (ms) cho trạng thái animation hiện tại.
+    public int getAnimFrameDurationMs(String state) {
+        return 100;
+    }
+
+    // Chỉ số frame cần vẽ cho trạng thái hiện tại (mặc định lặp theo thời gian).
+    public int resolveAnimFrameIndex(String state, int frameCount) {
+        if (frameCount <= 1) {
+            return 0;
+        }
+        int duration = Math.max(1, getAnimFrameDurationMs(state));
+        return (int) ((System.currentTimeMillis() / duration) % frameCount);
+    }
+
+    // Trả về true khi Enemy đã chết và hoàn tất mọi hoạt ảnh chết/phân thân để có thể xóa khỏi phòng.
+    public boolean isRemovable() {
+        return isDead();
+    }
 }

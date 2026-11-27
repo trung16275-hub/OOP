@@ -135,12 +135,19 @@ public class Stalker extends Enemy {
         player.applyStun(STUN_DURATION_MS);
     }
 
-    /**
-     * Khóa animation được GameRenderer sử dụng.
-     */
     @Override
-    public String getSpritePath() {
+    public String getSpriteKey() {
         return "stalker";
+    }
+
+    @Override
+    public int getAnimFrameDurationMs(String state) {
+        return switch (state) {
+            case "run" -> 100;
+            case "attack" -> 90;
+            case "hurt" -> 80;
+            default -> 220;
+        };
     }
 
     @Override
@@ -160,10 +167,5 @@ public class Stalker extends Enemy {
         }
 
         return "idle";
-    }
-
-    @Override
-    public int getSpriteFrameCount() {
-        return 4;
     }
 }

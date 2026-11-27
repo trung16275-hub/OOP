@@ -6,11 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
-import java.util.HashMap;
-import java.util.Map;
-public final class AssetLoader {
-    private static final Map<String, BufferedImage[]> SPRITE_CACHE = new HashMap<>();
 
+public final class AssetLoader {
     public static BufferedImage loadImage(String path) {
         String cleanPath = path.startsWith("/") ? path : "/" + path;
         try (InputStream is = AssetLoader.class.getResourceAsStream(cleanPath)) {
@@ -33,45 +30,5 @@ public final class AssetLoader {
 
         System.err.println("Asset not found: " + path);
         return null;
-    }
-
-    public static BufferedImage[] getSpriteSheet(String path, int frameCount) {
-        if (path == null || frameCount <= 0) return null;
-
-        String cacheKey = path + "#" + frameCount;
-        if (SPRITE_CACHE.containsKey(cacheKey)) {
-            return SPRITE_CACHE.get(cacheKey);
-        }
-
-        // Nạp bộ frame cắt rời: thử path_0.png trước, nếu không có thì thử path_01.png
-        if (!path.endsWith(".png") && !path.endsWith(".jpg")) {
-            BufferedImage[] frames = new BufferedImage[frameCount];
-            for (int i = 0; i < frameCount; i++) {
-                BufferedImage img = loadImage(path + "_" + i + ".png");
-                if (img == null) {
-                    img = loadImage(String.format("%s_%02d.png", path, i + 1));
-                }
-                if (img == null) {
-                    return null;
-                }
-                frames[i] = img;
-            }
-            SPRITE_CACHE.put(cacheKey, frames);
-            return frames;
-        }
-
-        // Nạp spritesheet 1 hàng ngang
-        BufferedImage sheet = loadImage(path);
-        if (sheet == null) return null;
-
-        int frameWidth = sheet.getWidth() / frameCount;
-        int frameHeight = sheet.getHeight();
-        BufferedImage[] frames = new BufferedImage[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = sheet.getSubimage(i * frameWidth, 0, frameWidth, frameHeight);
-        }
-
-        SPRITE_CACHE.put(cacheKey, frames);
-        return frames;
     }
 }

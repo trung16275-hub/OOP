@@ -4,9 +4,9 @@ import map.Room;
 
 import java.awt.Rectangle;
 
-/** A straight-moving player projectile that is consumed by an enemy or a wall. */
+/** A straight-moving projectile that is consumed by a target combatant or a wall. */
 public class Projectile {
-    private static final int SIZE = 8;
+    private static final int DEFAULT_SIZE = 8;
     private static final double MAX_COLLISION_STEP = 2.0;
 
     private double x;
@@ -15,15 +15,20 @@ public class Projectile {
     private final double directionY;
     private final double speed;
     private final int damage;
+    private final int size;
     private boolean active = true;
 
-    public Projectile(double x, double y, double directionX, double directionY,double speed, int damage) {
+    public Projectile(double x, double y, double directionX, double directionY, double speed, int damage) {
+        this(x, y, directionX, directionY, speed, damage, DEFAULT_SIZE);
+    }
+
+    public Projectile(double x, double y, double directionX, double directionY, double speed, int damage, int size) {
         double length = Math.hypot(directionX, directionY);
         if (!Double.isFinite(length) || length == 0) {
             throw new IllegalArgumentException("Projectile direction must be finite and non-zero.");
         }
-        if (!Double.isFinite(speed) || speed <= 0 || damage < 0) {
-            throw new IllegalArgumentException("Projectile speed must be positive and damage non-negative.");
+        if (!Double.isFinite(speed) || speed <= 0 || damage < 0 || size <= 0) {
+            throw new IllegalArgumentException("Projectile speed/size must be positive and damage non-negative.");
         }
 
         this.x = x;
@@ -32,6 +37,7 @@ public class Projectile {
         this.directionY = directionY / length;
         this.speed = speed;
         this.damage = damage;
+        this.size = size;
     }
 
     /** Advances along a straight line and deactivates on wall contact. */
@@ -69,8 +75,8 @@ public class Projectile {
     }
 
     public Rectangle getBounds() {
-        return new Rectangle((int) Math.round(x - SIZE / 2.0),
-                (int) Math.round(y - SIZE / 2.0), SIZE, SIZE);
+        return new Rectangle((int) Math.round(x - size / 2.0),
+                (int) Math.round(y - size / 2.0), size, size);
     }
 
     public double getX() {

@@ -65,11 +65,9 @@ public class Room {
     private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
 
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
-    private final Map<Direction, List<Integer>> doorOffsets = new EnumMap<>(Direction.class);
+    private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
 
     private final List<LightSource> lights = new ArrayList<>();
-
-    public record DoorTrigger(Direction direction, int offset) { }
 
     // Constructor mặc định
     public Room() {
@@ -96,20 +94,6 @@ public class Room {
         generateDefaultRoom();
     }
 
-    public Room(int width, int height, RoomType type) {
-        this(resolveRoomSize(width, height), type);
-    }
-
-    private static RoomSize resolveRoomSize(int width, int height) {
-        if (width == RoomSize.SMALL.width && height == RoomSize.SMALL.height) {
-            return RoomSize.SMALL;
-        }
-        if (width == RoomSize.BIG.width && height == RoomSize.BIG.height) {
-            return RoomSize.BIG;
-        }
-        return RoomSize.SCREEN;
-    }
-
     public void generateDefaultRoom() {
         int floorMinX = padX + 2;
         int floorMaxX = width - padX - 3;
@@ -128,43 +112,22 @@ public class Room {
     }
 
     public void setDoorOffset(Direction dir, int offset) {
-        List<Integer> offsets = new ArrayList<>();
-        offsets.add(offset);
-        doorOffsets.put(dir, offsets);
-    }
-
-    public void addDoorOffset(Direction dir, int offset) {
-        List<Integer> offsets = doorOffsets.computeIfAbsent(dir, key -> new ArrayList<>());
-        if (!offsets.contains(offset)) {
-            offsets.add(offset);
-        }
+        doorOffsets.put(dir, offset);
     }
 
     public int getDoorOffset(Direction dir) {
-        List<Integer> offsets = doorOffsets.get(dir);
-        if (offsets == null || offsets.isEmpty()) {
+        // Fallback to center if not set
+        if (!doorOffsets.containsKey(dir)) {
             return (dir == Direction.NORTH || dir == Direction.SOUTH) ? width / 2 : height / 2;
         }
-        return offsets.get(0);
-    }
-
-    public List<Integer> getDoorOffsets(Direction dir) {
-        List<Integer> offsets = doorOffsets.get(dir);
-        if (offsets == null || offsets.isEmpty()) {
-            return List.of((dir == Direction.NORTH || dir == Direction.SOUTH) ? width / 2 : height / 2);
-        }
-        return Collections.unmodifiableList(offsets);
+        return doorOffsets.get(dir);
     }
 
     public void carveDoor(Direction dir, boolean open) {
         TileType doorTile = open ? TileType.DOOR_OPEN : TileType.DOOR_CLOSED;
         doors.put(dir, open);
-        for (int offset : getDoorOffsets(dir)) {
-            carveDoorAtOffset(dir, offset, doorTile);
-        }
-    }
+        int offset = getDoorOffset(dir);
 
-    private void carveDoorAtOffset(Direction dir, int offset, TileType doorTile) {
         switch (dir) {
             case NORTH -> {
                 for (int x = offset - 1; x <= offset + 1; x++) {
@@ -222,38 +185,40 @@ public class Room {
     }
 
     public Direction checkDoorTrigger(Rectangle bounds) {
-        DoorTrigger trigger = checkDoorTriggerDetails(bounds);
-        return trigger == null ? null : trigger.direction();
-    }
+        int px = bounds.x;
+        int py = bounds.y;
+        int pw = bounds.width;
+        int ph = bounds.height;
 
-    public DoorTrigger checkDoorTriggerDetails(double px, double py, int pw, int ph) {
-        return checkDoorTriggerDetails(new Rectangle((int) Math.round(px), (int) Math.round(py), pw, ph));
-    }
-
-    public DoorTrigger checkDoorTriggerDetails(Rectangle bounds) {
-        for (Direction direction : Direction.values()) {
-            if (!doors.getOrDefault(direction, false)) {
-                continue;
-            }
-            boolean nearEdge = switch (direction) {
-                case NORTH -> bounds.y <= 0.6 * TILE_SIZE;
-                case SOUTH -> bounds.getMaxY() >= (height - 0.6) * TILE_SIZE;
-                case WEST -> bounds.x <= 0.6 * TILE_SIZE;
-                case EAST -> bounds.getMaxX() >= (width - 0.6) * TILE_SIZE;
-            };
-            if (!nearEdge) {
-                continue;
-            }
-            boolean horizontal = direction == Direction.NORTH || direction == Direction.SOUTH;
-            double start = horizontal ? bounds.getMinX() : bounds.getMinY();
-            double end = horizontal ? bounds.getMaxX() : bounds.getMaxY();
-            for (int offset : getDoorOffsets(direction)) {
-                int door = offset * TILE_SIZE;
-                if (end > door - TILE_SIZE && start < door + 2 * TILE_SIZE) {
-                    return new DoorTrigger(direction, offset);
-                }
+        // North Door
+        if (doors.getOrDefault(Direction.NORTH, false)) {
+            int doorPxX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
+            if (py <= 0.6 * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
+                return Direction.NORTH;
             }
         }
+        // South Door
+        if (doors.getOrDefault(Direction.SOUTH, false)) {
+            int doorPxX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
+            if (py + ph >= (height - 0.6) * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
+                return Direction.SOUTH;
+            }
+        }
+        // West Door
+        if (doors.getOrDefault(Direction.WEST, false)) {
+            int doorPxY = getDoorOffset(Direction.WEST) * TILE_SIZE;
+            if (px <= 0.6 * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
+                return Direction.WEST;
+            }
+        }
+        // East Door
+        if (doors.getOrDefault(Direction.EAST, false)) {
+            int doorPxY = getDoorOffset(Direction.EAST) * TILE_SIZE;
+            if (px + pw >= (width - 0.6) * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
+                return Direction.EAST;
+            }
+        }
+
         return null;
     }
 
@@ -261,10 +226,6 @@ public class Room {
      * Vị trí xuất hiện an toàn của Player khi bước từ phòng khác vào (ở cửa đối diện).
      */
     public Point getDoorSpawnPosition(Direction fromDir) {
-        return getDoorSpawnPosition(fromDir, getDoorOffset(fromDir.opposite()));
-    }
-
-    public Point getDoorSpawnPosition(Direction fromDir, int offset) {
         return switch (fromDir) {
             // Came from North -> spawn at South entrance inside hallway
             case NORTH -> {
@@ -339,8 +300,13 @@ public class Room {
         return false;
     }
 
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
 
     public int getGridX() {
         return gridX;
