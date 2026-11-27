@@ -22,7 +22,7 @@ public class Duck extends Enemy {
     private static final Map<Room, Integer> ROOM_SPAWN_COUNTS = new WeakHashMap<>();
 
     // Đánh thường (cận chiến)
-    private static final double ATTACK_RANGE = 46.0;
+    private static final double ATTACK_RANGE = 400.0;
     private static final long ATTACK_DURATION_NANOS = 400_000_000L; // 4 frame * 100ms
     private static final long ATTACK_COOLDOWN_NANOS = 850_000_000L;
 
