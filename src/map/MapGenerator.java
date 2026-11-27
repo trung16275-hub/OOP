@@ -2,8 +2,8 @@ package map;
 
 import model.Enemy;
 import model.boss.Boss1;
-import model.boss.Boss2;
-import model.boss.Boss2Minion;
+import model.boss.boss2.Boss2;
+import model.boss.boss2.Boss2Minion;
 import model.boss.Boss4;
 import model.creep.Stalker;
 import screens.lighting.*;

@@ -10,12 +10,12 @@ import map.WorldMap;
 
 import model.Enemy;
 import model.Projectile;
-import model.AcidProjectile;
 
 import model.boss.Boss1;
-import model.boss.Boss2;
-import model.boss.Boss2Minion;
-import model.boss.AcidTrail;
+import model.boss.boss2.AcidProjectile;
+import model.boss.boss2.AcidTrail;
+import model.boss.boss2.Boss2;
+import model.boss.boss2.Boss2Minion;
 
 import model.prop.AmmoPickup;
 import model.prop.LiquidPain;

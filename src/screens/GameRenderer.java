@@ -6,7 +6,6 @@ import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
-import model.AcidProjectile;
 
 import model.prop.AmmoPickup;
 import model.prop.LiquidPain;
@@ -14,10 +13,10 @@ import model.prop.Prop;
 import model.weapon.Ak47;
 
 import model.boss.Boss1;
-import model.boss.Boss2;
 import model.boss.Boss3;
 import model.boss.Boss4;
-import model.boss.AcidTrail;
+import model.boss.boss2.AcidProjectile;
+import model.boss.boss2.AcidTrail;
 
 import model.player.Player;
 import screens.lighting.*;

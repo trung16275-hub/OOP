@@ -1,5 +1,5 @@
 
-package model.boss;
+package model.boss.boss2;
 
 import model.Enemy;
 import model.player.Player;

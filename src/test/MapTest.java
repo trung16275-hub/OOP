@@ -5,7 +5,7 @@ import map.MapGenerator;
 import map.Room;
 import map.TileType;
 import map.WorldMap;
-import model.boss.Boss2Minion;
+import model.boss.boss2.Boss2Minion;
 import model.creep.Stalker;
 
 public class MapTest {
