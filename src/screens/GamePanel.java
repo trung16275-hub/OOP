@@ -135,6 +135,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         this.player.setX(180);
         this.player.setY(260);
+        
     }
 
     // =========================
@@ -480,7 +481,10 @@ public class GamePanel extends JPanel implements Runnable {
                         new Point2D.Double(minion2.getX(), minion2.getY())
                 );
             }
-
+            for (Duck duck : ducksToSplit) {
+                enemies.remove(duck);
+                enemies.addAll(duck.createSplitClones(room));
+            }
             // Xóa dữ liệu của Minion không còn trong phòng
             lastTrailPositions.keySet().removeIf(
                     minion -> !enemies.contains(minion)

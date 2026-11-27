@@ -8,7 +8,7 @@ import model.boss.Boss2Minion;
 import model.boss.Boss4;
 import model.creep.Stalker;
 import model.creep.AttackCreep;
-
+import model.creep.Duck;
 import java.awt.Color;
 import java.util.Arrays;
 
@@ -154,14 +154,19 @@ public class MapGenerator {
                     Enemy creep;
 
                     if (creepRoomIndex == 0) {
-    // Phòng creep đầu tiên: AttackCreep.
-    creep = new AttackCreep();
+                        // Phòng creep số 1: AttackCreep.
+                        creep = new AttackCreep();
+                        creep.setX(centerX - creep.getWidth() / 2.0);
+                        creep.setY(centerY - creep.getHeight() / 2.0);
 
-    creep.setX(centerX - creep.getWidth() / 2.0);
-    creep.setY(centerY - creep.getHeight() / 2.0);
+                    } else if (creepRoomIndex == 1) {
+                        // Phòng creep số 2: Entity 27 (Duck).
+                        creep = new Duck(centerX, centerY);
+                        creep.setX(centerX - creep.getWidth() / 2.0);
+                        creep.setY(centerY - creep.getHeight() / 2.0);
 
-} else {
-                        // Năm phòng còn lại giữ Boss2Minion.
+                    } else {
+                        // Bốn phòng còn lại giữ Boss2Minion.
                         creep = new Boss2Minion(
                                 centerX - 35 / 2.0,
                                 centerY - 35 / 2.0
@@ -170,9 +175,6 @@ public class MapGenerator {
 
                     r.addEnemy(creep);
                     r.setCleared(false);
-
-                } else {
-                    r.setCleared(true);
                 }
             }
         }

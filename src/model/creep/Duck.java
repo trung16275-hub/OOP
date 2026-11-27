@@ -22,7 +22,7 @@ public class Duck extends Enemy {
     private static final Map<Room, Integer> ROOM_SPAWN_COUNTS = new WeakHashMap<>();
 
     // Đánh thường (cận chiến)
-    private static final double ATTACK_RANGE = 400.0;
+    private static final double ATTACK_RANGE = 50.0;
     private static final long ATTACK_DURATION_NANOS = 400_000_000L; // 4 frame * 100ms
     private static final long ATTACK_COOLDOWN_NANOS = 850_000_000L;
 
@@ -41,7 +41,7 @@ public class Duck extends Enemy {
 
     public Duck(double x, double y) {
         // maxHp = 10 -> bắn 1 viên đạn hoặc đập 1 gậy là chết ngay
-        super("Duck", 10, 2, 12, 320.0, 20.0);
+        super("Duck", 10, 10, 12, 400.0, 20.0);
         setX(x);
         setY(y);
         setWidth(46);
@@ -217,14 +217,14 @@ public class Duck extends Enemy {
     public String getSpritePath() {
         switch (state) {
             case WALK:
-                return "/Entity_27_Duck/Walk/Walk";
+                return "/creep/duck/walk";
             case ATTACK:
-                return "/Entity_27_Duck/Attack/Attack";
+                return "/creep/duck/attack";
             case DEATH:
-                return "/Entity_27_Duck/Death/Death";
+                return "/creep/duck/death";
             case IDLE:
             default:
-                return "/Entity_27_Duck/Idle/Idle";
+                return "/creep/duck/idle";
         }
     }
 
