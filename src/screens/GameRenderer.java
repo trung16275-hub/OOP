@@ -135,6 +135,12 @@ public class GameRenderer {
     void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                 List<Projectile> projectiles, long playerDeathElapsedMs,
                 List<AcidProjectile> acidProjectiles, List<AcidTrail> acidTrails) {
+        render(g2, player, room, worldMap, projectiles, playerDeathElapsedMs, acidProjectiles, acidTrails, 1.0);
+    }
+
+    void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                List<Projectile> projectiles, long playerDeathElapsedMs,
+                List<AcidProjectile> acidProjectiles, List<AcidTrail> acidTrails, double zoom) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -142,14 +148,15 @@ public class GameRenderer {
         int roomPxWidth = room.getWidth() * Room.TILE_SIZE;
         int roomPxHeight = room.getHeight() * Room.TILE_SIZE;
 
-        int camX = roomPxWidth <= MainGame.WINDOW_WIDTH
-                ? -(MainGame.WINDOW_WIDTH - roomPxWidth) / 2
-                : (int) Math.max(0, Math.min(player.getX() - MainGame.WINDOW_WIDTH / 2, roomPxWidth - MainGame.WINDOW_WIDTH));
-        int camY = roomPxHeight <= MainGame.WINDOW_HEIGHT
-                ? -(MainGame.WINDOW_HEIGHT - roomPxHeight) / 2
-                : (int) Math.max(0, Math.min(player.getY() - MainGame.WINDOW_HEIGHT / 2, roomPxHeight - MainGame.WINDOW_HEIGHT));
+        double visibleWidth = MainGame.WINDOW_WIDTH / zoom;
+        double visibleHeight = MainGame.WINDOW_HEIGHT / zoom;
+        int camX = cameraOffset(roomPxWidth, visibleWidth, player == null ? roomPxWidth / 2.0 : player.getX());
+        int camY = cameraOffset(roomPxHeight, visibleHeight, player == null ? roomPxHeight / 2.0 : player.getY());
+        AffineTransform screenTransform = g2.getTransform();
         // 2. Translate world
+        g2.scale(zoom, zoom);
         g2.translate(-camX, -camY);
+        AffineTransform worldTransform = g2.getTransform();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 3. Render room & entities
         renderRoom(g2, room);
@@ -177,18 +184,19 @@ public class GameRenderer {
             renderPlayerHitboxes(g2, player);
         }
 
-        g2.translate(camX, camY); // reset before rendering HUD/minimap
+        g2.setTransform(screenTransform);
 
-        lightSystem.render(g2, player, room, camX, camY);
-        g2.translate(-camX, -camY);
+        lightSystem.render(g2, player, room, camX, camY, zoom);
+        g2.setTransform(worldTransform);
         for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
+            if (enemy != null && !enemy.isDead()
+                    && !(enemy instanceof Boss4 boss4 && boss4.isSubmergedInWall())) {
                 renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
                         new Color(0, 255, 0, 22), new Color(0, 255, 0, 190), camX, camY);
                 renderHitbox(g2, enemy);
             }
         }
-        g2.translate(camX, camY);
+        g2.setTransform(screenTransform);
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
             int index = room.findNearestAmmoPickup(playerBounds);
@@ -210,6 +218,13 @@ public class GameRenderer {
             renderPlayerStats(g2, player);
         }
 
+    }
+
+    private int cameraOffset(int roomSize, double visibleSize, double target) {
+        if (roomSize <= visibleSize) {
+            return (int) ((roomSize - visibleSize) / 2);
+        }
+        return (int) Math.max(0, Math.min(target - visibleSize / 2, roomSize - visibleSize));
     }
 
     //Load theme refer to floor
@@ -1466,7 +1481,17 @@ public class GameRenderer {
                 if (enemy instanceof Boss3 boss3 && boss3.isFiringLaser()) {
                     renderBoss3Lasers(g2, boss3);
                 }
-                renderEnemy(g2, enemy);
+                if (enemy instanceof Boss4 boss4) {
+                    renderBoss4SafeZone(g2, boss4);
+                    if (boss4.isSubmergedInWall()) {
+                        renderBoss4WallShadow(g2, boss4);
+                    } else {
+                        renderEnemy(g2, boss4);
+                    }
+                    renderBoss4Arm(g2, boss4);
+                } else {
+                    renderEnemy(g2, enemy);
+                }
                 if (enemy instanceof Boss3 boss3 && boss3.isHealing()) {
                     renderBoss3Healing(g2, boss3);
                 }
@@ -1482,6 +1507,91 @@ public class GameRenderer {
         for (RenderEntry entry : entries) {
             entry.draw().run();
         }
+    }
+
+    private void renderBoss4SafeZone(Graphics2D g2, Boss4 b4) {
+
+        if (!b4.isSafeZoneActive()) {
+            return;
+        }
+
+        Color oldColor = g2.getColor();
+
+        int r = (int) b4.getSafeZoneRadius();
+
+        g2.setColor(new Color(100, 200, 255, 55));
+
+        g2.fillOval(
+                (int) b4.getSafeZoneX() - r,
+                (int) b4.getSafeZoneY() - r,
+                r * 2,
+                r * 2
+        );
+
+        g2.setColor(oldColor);
+    }
+
+    private void renderBoss4WallShadow(Graphics2D g2, Boss4 b4) {
+
+        Color oldColor = g2.getColor();
+
+        int cx = (int) (b4.getX() + b4.getWidth() / 2.0);
+        int cy = (int) (b4.getY() + b4.getHeight() / 2.0);
+
+        int pulse = (int) (Math.sin(System.currentTimeMillis() / 120.0) * 5);
+        int r = 24 + pulse;
+
+        g2.setColor(new Color(15, 10, 25, 150));
+        g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+
+        g2.setColor(new Color(90, 20, 40, 180));
+        g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+
+        g2.setColor(oldColor);
+    }
+
+    private void renderBoss4Arm(Graphics2D g2, Boss4 b4) {
+
+        if (!b4.isArmActive()) {
+            return;
+        }
+
+        Stroke oldStroke = g2.getStroke();
+        Color oldColor = g2.getColor();
+
+        int sx = (int) b4.getArmStartX();
+        int sy = (int) b4.getArmStartY();
+
+        int ex = (int) b4.getArmEndX();
+        int ey = (int) b4.getArmEndY();
+
+        g2.setColor(new Color(140, 40, 60, 180));
+
+        g2.setStroke(
+                new BasicStroke(
+                        12f,
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND
+                )
+        );
+
+        g2.drawLine(sx, sy, ex, ey);
+
+        g2.setColor(new Color(25, 20, 35));
+
+        g2.setStroke(
+                new BasicStroke(
+                        8f,
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND
+                )
+        );
+
+        g2.drawLine(sx, sy, ex, ey);
+        g2.fillOval(ex - 10, ey - 10, 20, 20);
+
+        g2.setStroke(oldStroke);
+        g2.setColor(oldColor);
     }
 
     private void drawDecalImage(Graphics2D g2, BufferedImage img, RoomDecal decal) {

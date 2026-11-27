@@ -38,6 +38,7 @@ import javax.swing.*;
 
 import model.boss.Boss3;
 import model.player.Player;
+import java.util.function.IntFunction;
 import model.boss.Boss4;
 import model.creep.Duck;
 
@@ -83,7 +84,8 @@ public class GamePanel extends JPanel implements Runnable {
     private long slowEffectEndTimeNanos;
 
     // Map System
-    private MapGenerator mapGenerator;
+    private final IntFunction<WorldMap> floorFactory;
+    private final boolean spawnStarterPickups;
     private WorldMap worldMap;
     private Room room;
     private int currentFloor;
@@ -93,9 +95,23 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Renderer
     private GameRenderer renderer;
+    private final double cameraZoom;
     private EnemyNote openNote;
 
     public GamePanel(MainGame mainFrame) {
+        this(mainFrame, floor -> new MapGenerator().generateFloor(floor, 8), true, 1.0);
+    }
+
+    public GamePanel(MainGame mainFrame, IntFunction<WorldMap> floorFactory) {
+        this(mainFrame, floorFactory, 1.0);
+    }
+
+    public GamePanel(MainGame mainFrame, IntFunction<WorldMap> floorFactory, double cameraZoom) {
+        this(mainFrame, floorFactory, false, cameraZoom);
+    }
+
+    private GamePanel(MainGame mainFrame, IntFunction<WorldMap> floorFactory, boolean spawnStarterPickups,
+                      double cameraZoom) {
 
         setPreferredSize(new Dimension(
                 MainGame.WINDOW_WIDTH,
@@ -104,13 +120,19 @@ public class GamePanel extends JPanel implements Runnable {
 
         this.mainFrame = mainFrame;
         this.renderer = new GameRenderer();
-        this.mapGenerator = new MapGenerator();
+        this.floorFactory = floorFactory;
+        this.spawnStarterPickups = spawnStarterPickups;
+        this.cameraZoom = clampCameraZoom(cameraZoom);
 
         this.addKeyListener(keyH);
 
         setFocusable(true);
 
         initNewGame();
+    }
+
+    private static double clampCameraZoom(double zoom) {
+        return Double.isFinite(zoom) ? Math.max(0.6, Math.min(1.5, zoom)) : 1.0;
     }
 
     // =========================
@@ -137,7 +159,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.player.equip(ak47);
         createFloor();
 
-        if (room != null) {
+        if (spawnStarterPickups && room != null) {
             int x = (int) player.getX() + player.getWidth() + 8;
             int y = (int) player.getY() + player.getHeight() - 30;
             room.getAmmoPickups().add(new AmmoPickup(x, y));
@@ -619,7 +641,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void createFloor() {
         projectiles.clear();
-        worldMap = mapGenerator.generateFloor(currentFloor, 8);
+        worldMap = floorFactory.apply(currentFloor);
         room = worldMap.getSpawnRoom();
         renderer.loadTheme(worldMap.getTheme());
 
@@ -814,7 +836,7 @@ public class GamePanel extends JPanel implements Runnable {
             }
             synchronized (stateLock) {
                 renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs(),
-                        acidProjectiles, acidTrails);
+                        acidProjectiles, acidTrails, cameraZoom);
                 if (openNote != null) {
                     renderer.renderEnemyNote(g2, openNote);
                 }

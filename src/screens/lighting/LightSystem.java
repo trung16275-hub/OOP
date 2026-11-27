@@ -42,7 +42,7 @@ public class LightSystem {
         }
     }
 
-    public void render(Graphics2D screenG2, Player player, Room room, int camX, int camY) {
+    public void render(Graphics2D screenG2, Player player, Room room, int camX, int camY, double zoom) {
         // 1. Reset lightMap with full ambient darkness
         lightG.setComposite(AlphaComposite.Src);
         lightG.setColor(ambientDarkness);
@@ -53,8 +53,14 @@ public class LightSystem {
 
         // Carve static room lights (ceiling tubes, etc.)
         if (room != null) {
-            for (LightSource light : room.getLights()) {
-                drawRoomLightCutout(light, camX, camY);
+            AffineTransform maskTransform = lightG.getTransform();
+            lightG.scale(zoom, zoom);
+            try {
+                for (LightSource light : room.getLights()) {
+                    drawRoomLightCutout(light, camX, camY);
+                }
+            } finally {
+                lightG.setTransform(maskTransform);
             }
         }
 
@@ -63,7 +69,13 @@ public class LightSystem {
 
         // 4. Optional subtle additive/translucent color tint for atmosphere
         if (room != null) {
-            drawColorTints(screenG2, player, room, camX, camY);
+            Graphics2D tint = (Graphics2D) screenG2.create();
+            try {
+                tint.scale(zoom, zoom);
+                drawColorTints(tint, player, room, camX, camY);
+            } finally {
+                tint.dispose();
+            }
         }
     }
 

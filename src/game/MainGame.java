@@ -5,6 +5,7 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.function.IntFunction;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
@@ -18,6 +19,7 @@ import screens.GamePanel;
 import screens.GameOverPanel;
 import screens.GameWinPanel;
 import screens.IntroPanel;
+import map.WorldMap;
 
 public class MainGame extends JFrame {
     public static final int WINDOW_WIDTH = 1024;
@@ -122,7 +124,14 @@ public class MainGame extends JFrame {
 
     // Hàm chuyển sang màn hình Game (Thành viên 2 gọi khi bấm nút Start)
     public void startGame() {
-        GamePanel game = new GamePanel(this);
+        startGame(new GamePanel(this));
+    }
+
+    public void startGame(IntFunction<WorldMap> floorFactory, double cameraZoom) {
+        startGame(new GamePanel(this, floorFactory, cameraZoom));
+    }
+
+    private void startGame(GamePanel game) {
         setScreen(game, true);
 
         // Kích hoạt Game Loop
