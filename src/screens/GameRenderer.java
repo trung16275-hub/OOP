@@ -145,7 +145,10 @@ public class GameRenderer {
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
             int index = room.findNearestAmmoPickup(playerBounds);
-            if (room.isLiquidPainNearest(playerBounds, index)) {
+            String noteId = room.findNearbyEnemyNote(playerBounds);
+            if (noteId != null && EnemyNote.find(noteId) != null) {
+                renderPickupPrompt(g2, "Đọc hồ sơ");
+            } else if (room.isLiquidPainNearest(playerBounds, index)) {
                 renderPickupPrompt(g2, LiquidPain.DISPLAY_NAME + " · -" + LiquidPain.HP_COST + " HP");
             } else if (index >= 0) {
                 AmmoPickup pickup = room.getAmmoPickups().get(index);
@@ -183,6 +186,72 @@ public class GameRenderer {
         doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
         doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
+    }
+
+    void renderEnemyNote(Graphics2D g2, EnemyNote note) {
+        Graphics2D overlay = (Graphics2D) g2.create();
+        try {
+            overlay.setColor(new Color(0, 0, 0, 188));
+            overlay.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+            overlay.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            BufferedImage portrait = getCachedImage(note.imagePath());
+            int width = portrait == null ? 700 : 900;
+            int height = 270;
+            int x = (MainGame.WINDOW_WIDTH - width) / 2;
+            int y = (MainGame.WINDOW_HEIGHT - height) / 2;
+            Color accent = new Color(46, 211, 111);
+            overlay.setPaint(new GradientPaint(x, y, new Color(9, 28, 19),
+                    x, y + height, new Color(3, 10, 7)));
+            overlay.fillRect(x, y, width, height);
+            overlay.setColor(new Color(24, 87, 53));
+            overlay.drawRect(x, y, width - 1, height - 1);
+            overlay.drawLine(x + 28, y + 72, x + width - 28, y + 72);
+            overlay.drawLine(x + 28, y + height - 56, x + width - 28, y + height - 56);
+            overlay.setPaint(new GradientPaint(x, y, new Color(46, 211, 111, 80),
+                    x, y + 9, new Color(46, 211, 111, 0)));
+            overlay.fillRect(x + 1, y + 1, 71, 9);
+            overlay.setColor(accent);
+            overlay.fillRect(x, y, 72, 3);
+            overlay.setFont(new Font(Font.MONOSPACED, Font.BOLD, 27));
+            overlay.drawString(note.title(), x + 28, y + 49);
+
+            if (portrait != null) {
+                int portraitSize = 124;
+                int portraitX = x + width - portraitSize - 28;
+                int portraitY = y + 81;
+                overlay.setPaint(new GradientPaint(portraitX, portraitY, new Color(13, 39, 25),
+                        portraitX, portraitY + portraitSize, new Color(3, 9, 6)));
+                overlay.fillRect(portraitX, portraitY, portraitSize, portraitSize);
+                overlay.setColor(new Color(27, 104, 62));
+                overlay.drawRect(portraitX, portraitY, portraitSize - 1, portraitSize - 1);
+                double scale = Math.min((portraitSize - 16.0) / portrait.getWidth(),
+                        (portraitSize - 16.0) / portrait.getHeight());
+                int imageWidth = (int) Math.round(portrait.getWidth() * scale);
+                int imageHeight = (int) Math.round(portrait.getHeight() * scale);
+                overlay.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                overlay.drawImage(portrait,
+                        portraitX + (portraitSize - imageWidth) / 2,
+                        portraitY + (portraitSize - imageHeight) / 2,
+                        imageWidth, imageHeight, null);
+            }
+
+            overlay.setColor(new Color(209, 228, 216));
+            overlay.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 19));
+            int lineY = y + 110;
+            for (String line : note.body().split("\\R")) {
+                overlay.drawString(line, x + 28, lineY);
+                lineY += 28;
+            }
+
+            overlay.setColor(accent);
+            overlay.setFont(new Font(Font.MONOSPACED, Font.BOLD, 15));
+            overlay.drawString("[F] Đóng", x + 28, y + height - 24);
+        } finally {
+            overlay.dispose();
+        }
     }
 
     private void renderPickupPrompt(Graphics2D g2, String text) {

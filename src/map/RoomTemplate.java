@@ -142,6 +142,10 @@ public final class RoomTemplate {
         if (type == Room.RoomType.SPAWN) {
             addSpawnRoomProps(room, rand);
             addOfficeClutter(room, rand);
+            int boardX = (room.getWidth() / 2 - 3) * Room.TILE_SIZE;
+            int boardY = (room.getPadY() + 2) * Room.TILE_SIZE;
+            room.addWallDecal(new RoomDecal("/floor1/props_addon/prop_whiteboard_notes.png",
+                    boardX, boardY, 64, 44, 0, false, 1.0f, "boss1"));
             return pickupAnchors;
         }
 

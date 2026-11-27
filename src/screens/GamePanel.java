@@ -55,6 +55,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Renderer
     private GameRenderer renderer;
+    private EnemyNote openNote;
 
     public GamePanel(MainGame mainFrame) {
         setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
@@ -70,6 +71,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void initNewGame() {
         this.currentFloor = 1;
+        this.openNote = null;
 
         this.player = new Player();
         this.playerDeathStartNanos = 0;
@@ -120,6 +122,16 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void update() {
         synchronized (stateLock) {
+            boolean closeNote = keyH.consumeCloseNotePress();
+            if (openNote != null) {
+                boolean toggleNote = keyH.consumePickupPress();
+                keyH.consumeDashPress();
+                keyH.consumeWeaponSwitchPress();
+                if (closeNote || toggleNote) {
+                    openNote = null;
+                }
+                return;
+            }
             if (!player.isDead()) {
                 updateState();
             }
@@ -173,6 +185,13 @@ public class GamePanel extends JPanel implements Runnable {
         double previousY = player.getY();
         player.move(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
+            String noteId = room.findNearbyEnemyNote(player.getMovementBounds());
+            if (noteId != null) {
+                openNote = EnemyNote.find(noteId);
+                if (openNote != null) {
+                    return;
+                }
+            }
             interactWithPickup();
             if (player.isDead()) {
                 return;
@@ -393,6 +412,9 @@ public class GamePanel extends JPanel implements Runnable {
             }
             synchronized (stateLock) {
                 renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs());
+                if (openNote != null) {
+                    renderer.renderEnemyNote(g2, openNote);
+                }
             }
         } finally {
             g2.dispose();
