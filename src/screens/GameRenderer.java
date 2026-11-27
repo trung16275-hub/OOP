@@ -694,13 +694,24 @@ public class GameRenderer {
 
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
         
-        int x = (int) enemy.getX();
-        int y = (int) enemy.getY();
+        
+int x = (int) enemy.getX();
+int y = (int) enemy.getY();
 
-        int w = enemy.getWidth();
-        int h = enemy.getHeight();
+int w = enemy.getWidth();
+int h = enemy.getHeight();
 
-        String key = enemy.getSpritePath();
+// Phóng to riêng hình ảnh Boss1 lên 150%
+if (enemy instanceof Boss1) {
+    w = Math.round(w * 1.5f);
+    h = Math.round(h * 1.5f);
+
+    // Giữ tâm hình ảnh gần với vị trí ban đầu
+    x -= (w - enemy.getWidth()) / 2;
+    y -= (h - enemy.getHeight()) / 2;
+}
+
+String key = enemy.getSpritePath();
 
         if (key != null) {
 
