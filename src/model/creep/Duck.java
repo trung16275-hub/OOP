@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import map.Room;
 import model.Enemy;
-import model.Player;
+import model.player.Player;
 
 public class Duck extends Enemy {
 

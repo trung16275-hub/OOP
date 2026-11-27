@@ -1,7 +1,7 @@
 
 package model.boss;
 
-import model.Player;
+import model.player.Player;
 
 import java.awt.Rectangle;
 

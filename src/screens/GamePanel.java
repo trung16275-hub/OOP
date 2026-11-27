@@ -126,12 +126,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         slowEffectEndTimeNanos = 0L;
 
-        this.worldMap = mapGenerator.generateFloor(1, 8);
-        this.room = worldMap.getCurrentRoom();
-
-        if (this.room != null) {
-            this.room.setVisited(true);
-        }
+        this.currentFloor = 1;
+        this.openNote = null;
 
         this.player = new Player();
         this.playerDeathStartNanos = 0;
@@ -263,6 +259,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (keyH.consumeDashPress()) {
             player.startDash(moveX, moveY);
+        }
 
         // Làm chậm Player khi dính axit
         if (System.nanoTime() < slowEffectEndTimeNanos) {
@@ -281,6 +278,10 @@ public class GamePanel extends JPanel implements Runnable {
         if (dashing) {
             moveX = player.getDashDirectionX() * Player.DASH_SPEED_MULTIPLIER;
             moveY = player.getDashDirectionY() * Player.DASH_SPEED_MULTIPLIER;
+        }
+        if (player.isMovementLocked()) {
+            moveX = 0;
+            moveY = 0;
         }
         double previousX = player.getX();
         double previousY = player.getY();
@@ -316,7 +317,7 @@ public class GamePanel extends JPanel implements Runnable {
         // =========================
 
         long now = System.currentTimeMillis();
-        if (player.isDashing()) {
+        if (player.isDashing() || player.isMovementLocked()) {
             player.stopAttackAnimation();
         } else if (keyH.spacePressed && now >= nextShotTime) {
             if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
@@ -352,9 +353,10 @@ public class GamePanel extends JPanel implements Runnable {
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
-        Direction doorDir = room.checkDoorTrigger(player.getMovementBounds());
-        if (doorDir != null) {
-            Room nextRoom = worldMap.moveTo(doorDir);
+        Room.DoorTrigger doorTrigger = room.checkDoorTriggerDetails(player.getMovementBounds());
+        if (doorTrigger != null) {
+            WorldMap.RoomTransition transition = worldMap.moveTo(doorTrigger.direction(), doorTrigger.offset());
+            Room nextRoom = transition.room();
             if (nextRoom != room) {
 
                 this.room = nextRoom;
@@ -490,6 +492,11 @@ public class GamePanel extends JPanel implements Runnable {
                         minion2,
                         new Point2D.Double(minion2.getX(), minion2.getY())
                 );
+            }
+
+            for (Duck duck : ducksToSplit) {
+                enemies.remove(duck);
+                enemies.addAll(duck.createSplitClones(room));
             }
 
             // Xóa dữ liệu của Minion không còn trong phòng
@@ -806,7 +813,8 @@ public class GamePanel extends JPanel implements Runnable {
                         RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             }
             synchronized (stateLock) {
-                renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs());
+                renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs(),
+                        acidProjectiles, acidTrails);
                 if (openNote != null) {
                     renderer.renderEnemyNote(g2, openNote);
                 }

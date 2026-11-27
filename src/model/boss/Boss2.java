@@ -2,7 +2,7 @@
 package model.boss;
 
 import model.Enemy;
-import model.Player;
+import model.player.Player;
 import map.Room;
 
 public class Boss2 extends Enemy {

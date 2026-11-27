@@ -103,65 +103,6 @@ public class GameRenderer {
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-
-
-        // Player
-        registerPlayerAnim("player_ak47", "idle", "/player/ak47/idle", 4);
-        registerPlayerAnim("player_ak47", "walk", "/player/ak47/walk", 4);
-        registerPlayerAnim("player_ak47", "attack", "/player/ak47/attack", 4);
-
-        registerPlayerAnim("player_bat", "idle", "/player/bat/idle", 4);
-        registerPlayerAnim("player_bat", "walk", "/player/bat/walk", 4);
-        registerPlayerAnim("player_bat", "attack", "/player/bat/attack", 4);
-
-        // Boss 3
-        registerAnim("boss3", "idle", "assets/boss3/super-cool-robot-idle.png", 9);
-        registerAnim("boss3", "run", "assets/boss3/super-cool-robot-run.png", 9);
-        registerAnim("boss3", "fire", "assets/boss3/super-cool-robot-fire.png", 4);
-        registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
-
-        // Boss 1
-        for (String state : List.of("idle", "run", "dash", "lunge", "hurt", "death")) {
-            registerGifAnim("boss1", state, "assets/boss1/" + state + ".gif");
-        }
-
-        // Boss 2
-        registerAnim("boss2", "idle", "assets/boss2/idle.png", 4);
-        registerAnim("boss2", "run", "assets/boss2/run.png", 4);
-        registerAnim("boss2", "attack", "assets/boss2/attack.png", 4);
-        registerAnim("boss2", "back_burst", "assets/boss2/back_burst.png", 4);
-        registerAnim("boss2", "hurt", "assets/boss2/hurt.png", 4);
-
-        // Stalker
-        registerAnim("stalker", "idle",
-                "assets/creep/stalker/stalker_idle.png", 4);
-
-        registerAnim("stalker", "run",
-                "assets/creep/stalker/stalker_run.png", 4);
-
-        registerAnim("stalker", "attack",
-                "assets/creep/stalker/stalker_attack.png", 4);
-
-        registerAnim("stalker", "hurt",
-                "assets/creep/stalker/stalker_hurt.png", 4);
-
-        // Tiles
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
-        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
-        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
-        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
-        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
-        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
-        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
-        wallBorderBottomImage = AssetLoader.loadImage("/tiles/wall_border_bottom.png");
-        wallBorderLeftImage = AssetLoader.loadImage("/tiles/wall_border_left.png");
-        wallBorderRightImage = AssetLoader.loadImage("/tiles/wall_border_right.png");
-        wallBorderTopImage = AssetLoader.loadImage("/tiles/wall_border_top.png");
-        wallCornerBottomLeftImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_left.png");
-        wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
-        wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
-        wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
-
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
@@ -189,6 +130,12 @@ public class GameRenderer {
 
     void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                 List<Projectile> projectiles, long playerDeathElapsedMs) {
+        render(g2, player, room, worldMap, projectiles, playerDeathElapsedMs, List.of(), List.of());
+    }
+
+    void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                List<Projectile> projectiles, long playerDeathElapsedMs,
+                List<AcidProjectile> acidProjectiles, List<AcidTrail> acidTrails) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -208,6 +155,7 @@ public class GameRenderer {
         // 3. Render room & entities
         renderRoom(g2, room);
         renderDecals(g2, room.getFloorDecals());
+        renderAcidTrails(g2, acidTrails);
 
         if (room.getLiquidPain() != null && liquidPainImage != null) {
             Prop prop = room.getLiquidPain().prop();
@@ -224,6 +172,7 @@ public class GameRenderer {
 
         renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
+        renderAcidProjectiles(g2, acidProjectiles);
 
         if (player != null && !player.isDead()) {
             renderPlayerHitboxes(g2, player);
@@ -453,6 +402,7 @@ public class GameRenderer {
             if (bulletImage != null) {
                 hud.drawImage(bulletImage, x + 100, y + 33, 50, 50, null);
             }
+            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize, x + 140, y + 64);
 
                 // Dash cooldown indicator: empty while recharging, full when Q is ready.
                 int dashBarX = x + 48;
@@ -802,7 +752,10 @@ public class GameRenderer {
         int w = enemy.getWidth();
         int h = enemy.getHeight();
 
-        String key = enemy.getSpritePath();
+        String key = enemy.getSpriteKey();
+        if (key == null) {
+            key = enemy.getSpritePath();
+        }
 
         int shadowW = Math.round(w * 0.65f);
         int shadowH = Math.max(8, Math.round(shadowW * 0.35f));
@@ -816,7 +769,7 @@ public class GameRenderer {
             BufferedImage[] frames = animations.getFrames(key + "." + state);
 
             if (frames == null) {
-                frames = animations.get(key + "_idle");
+                frames = animations.getFrames(key + ".idle");
             }
 
             if (frames != null && frames.length > 0) {
@@ -1179,6 +1132,7 @@ public class GameRenderer {
                 }
             }
         }
+        renderDecals(g2, room.getWallDecals());
     }
 
     // =========================

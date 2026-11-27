@@ -1,6 +1,8 @@
 
 package model;
 
+import model.player.Player;
+
 import map.Room;
 
 import java.awt.Rectangle;

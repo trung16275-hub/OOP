@@ -2,7 +2,7 @@ package model.boss;
 
 import model.Combatant;
 import model.Enemy;
-import model.Player;
+import model.player.Player;
 import map.Room;
 import java.awt.Rectangle;
 import map.TileType;

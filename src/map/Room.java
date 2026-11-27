@@ -63,7 +63,7 @@ public class Room {
     private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
 
     // Stores the tile coordinate: X coordinate for NORTH/SOUTH, Y coordinate for WEST/EAST
-    private final Map<Direction, Integer> doorOffsets = new EnumMap<>(Direction.class);
+    private final Map<Direction, List<Integer>> doorOffsets = new EnumMap<>(Direction.class);
 
     private final List<LightSource> lights = new ArrayList<>();
 
@@ -220,40 +220,38 @@ public class Room {
     }
 
     public Direction checkDoorTrigger(Rectangle bounds) {
-        int px = bounds.x;
-        int py = bounds.y;
-        int pw = bounds.width;
-        int ph = bounds.height;
+        DoorTrigger trigger = checkDoorTriggerDetails(bounds);
+        return trigger == null ? null : trigger.direction();
+    }
 
-        // North Door
-        if (doors.getOrDefault(Direction.NORTH, false)) {
-            int doorPxX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-            if (py <= 0.6 * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
-                return Direction.NORTH;
-            }
-        }
-        // South Door
-        if (doors.getOrDefault(Direction.SOUTH, false)) {
-            int doorPxX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-            if (py + ph >= (height - 0.6) * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
-                return Direction.SOUTH;
-            }
-        }
-        // West Door
-        if (doors.getOrDefault(Direction.WEST, false)) {
-            int doorPxY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-            if (px <= 0.6 * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
-                return Direction.WEST;
-            }
-        }
-        // East Door
-        if (doors.getOrDefault(Direction.EAST, false)) {
-            int doorPxY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-            if (px + pw >= (width - 0.6) * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
-                return Direction.EAST;
-            }
-        }
+    public DoorTrigger checkDoorTriggerDetails(double px, double py, int pw, int ph) {
+        return checkDoorTriggerDetails(new Rectangle((int) Math.round(px), (int) Math.round(py), pw, ph));
+    }
 
+    public DoorTrigger checkDoorTriggerDetails(Rectangle bounds) {
+        for (Direction direction : Direction.values()) {
+            if (!doors.getOrDefault(direction, false)) {
+                continue;
+            }
+            boolean nearEdge = switch (direction) {
+                case NORTH -> bounds.y <= 0.6 * TILE_SIZE;
+                case SOUTH -> bounds.getMaxY() >= (height - 0.6) * TILE_SIZE;
+                case WEST -> bounds.x <= 0.6 * TILE_SIZE;
+                case EAST -> bounds.getMaxX() >= (width - 0.6) * TILE_SIZE;
+            };
+            if (!nearEdge) {
+                continue;
+            }
+            boolean horizontal = direction == Direction.NORTH || direction == Direction.SOUTH;
+            double start = horizontal ? bounds.getMinX() : bounds.getMinY();
+            double end = horizontal ? bounds.getMaxX() : bounds.getMaxY();
+            for (int offset : getDoorOffsets(direction)) {
+                int door = offset * TILE_SIZE;
+                if (end > door - TILE_SIZE && start < door + 2 * TILE_SIZE) {
+                    return new DoorTrigger(direction, offset);
+                }
+            }
+        }
         return null;
     }
 

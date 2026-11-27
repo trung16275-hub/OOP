@@ -3,7 +3,7 @@ package model.weapon; // Đổi lại theo đúng package chứa Weapon của b�
 import java.util.List;
 
 import model.Enemy;
-import model.Player;
+import model.Combatant;
 import model.boss.Boss4;
 
 public class AlmondWater extends Weapon {
@@ -18,7 +18,7 @@ public class AlmondWater extends Weapon {
         this.durationNanos = 4_000_000_000L; // Hiệu lực trong 4 giây
     }
 
-    public boolean use(Player player, List<Enemy> enemies) {
+    public boolean use(Combatant player, List<Enemy> enemies) {
         if (usesLeft <= 0 || player == null) {
             return false; // Hết nước hạnh nhân
         }

@@ -86,13 +86,17 @@ public class WorldMap {
         return currentRoom;
     }
 
+    private record DoorKey(Direction direction, int offset) { }
+    private record RoomLink(Room room, int arrivalOffset) { }
+    public record RoomTransition(Room room, int arrivalOffset) { }
+
     /** Connects a specific doorway to a room, with a matching return doorway. */
     public void connectRooms(Room from, Direction direction, int fromOffset,
             Room to, int toOffset) {
         from.addDoorOffset(direction, fromOffset);
         to.addDoorOffset(direction.opposite(), toOffset);
-        from.carveOpenPath(direction);
-        to.carveOpenPath(direction.opposite());
+        from.carveDoor(direction, true);
+        to.carveDoor(direction.opposite(), true);
 
         roomLinks.computeIfAbsent(from, key -> new HashMap<>())
                 .put(new DoorKey(direction, fromOffset), new RoomLink(to, toOffset));

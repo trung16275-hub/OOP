@@ -24,6 +24,8 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private Weapon currentWeapon;
     private boolean moving;
+    private boolean grabbed;
+    private long stunEndTimeNanos;
     private boolean facingLeft;
     private long attackAnimationStartTime;
     private long hurtAnimationStartTime;
@@ -117,7 +119,7 @@ public class Player extends Combatant {
 
     public boolean startDash(double directionX, double directionY) {
         long now = System.currentTimeMillis();
-        if (isDead() || now < nextDashAvailableTime) {
+        if (isDead() || isMovementLocked() || now < nextDashAvailableTime) {
             return false;
         }
 
@@ -143,7 +145,7 @@ public class Player extends Combatant {
     }
 
     public boolean isDashing() {
-        return System.currentTimeMillis() < dashEndTime;
+        return !isMovementLocked() && System.currentTimeMillis() < dashEndTime;
     }
 
     public double getDashCooldownProgress() {
@@ -183,6 +185,30 @@ public class Player extends Combatant {
     public void stopAttackAnimation() {
         attackAnimationEndTime = 0;
         attackAnimationStartTime = 0;
+    }
+
+    public void applyStun(long durationMs) {
+        if (durationMs > 0 && !isDead()) {
+            stunEndTimeNanos = Math.max(stunEndTimeNanos, System.nanoTime() + durationMs * 1_000_000L);
+            dashEndTime = 0;
+            stopAttackAnimation();
+        }
+    }
+
+    public boolean isMovementLocked() {
+        return grabbed || System.nanoTime() < stunEndTimeNanos;
+    }
+
+    public boolean isGrabbed() {
+        return grabbed;
+    }
+
+    public void setGrabbed(boolean grabbed) {
+        this.grabbed = grabbed;
+        if (grabbed) {
+            dashEndTime = 0;
+            stopAttackAnimation();
+        }
     }
 
     public int getArmor() {
