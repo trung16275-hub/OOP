@@ -28,6 +28,7 @@ public class GameRenderer {
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
     private static final int PLAYER_HURT_FRAME_DURATION_MS = 80;
+    private static final int PLAYER_DEATH_FRAME_DURATION_MS = 200;
 
     private BufferedImage contactShadowImage;
     private BufferedImage aoNorthImage;
@@ -96,6 +97,11 @@ public class GameRenderer {
 
     public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                        List<Projectile> projectiles) {
+        render(g2, player, room, worldMap, projectiles, 0);
+    }
+
+    void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                List<Projectile> projectiles, long playerDeathElapsedMs) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -149,8 +155,8 @@ public class GameRenderer {
             }
         }
 
-        if (player != null && !player.isDead()) {
-            renderPlayer(g2, player);
+        if (player != null) {
+            renderPlayer(g2, player, playerDeathElapsedMs);
         }
         renderProjectiles(g2, projectiles);
 
@@ -350,27 +356,37 @@ public class GameRenderer {
         g2.setColor(new Color(25, 25, 30));
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
     }
-    private void renderPlayer(Graphics2D g2, Player player) {
+    private String getPlayerSpriteKey(Player player) {
+        String weaponName = player.getCurrentWeapon() == null ? "AK47" : player.getCurrentWeapon().getName();
+        return "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+    }
+
+    int getPlayerDeathDurationMs(Player player) {
+        BufferedImage[] frames = animations.getFrames(getPlayerSpriteKey(player) + ".death");
+        return frames == null ? 0 : frames.length * PLAYER_DEATH_FRAME_DURATION_MS;
+    }
+
+    private void renderPlayer(Graphics2D g2, Player player, long deathElapsedMs) {
         int x = (int) player.getX();
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
-        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+        String spriteKey = getPlayerSpriteKey(player);
         long now = System.currentTimeMillis();
         long hurtStartTime = player.getHurtAnimationStartTime();
         long hurtElapsed = now - hurtStartTime;
         BufferedImage[] hurtFrames = animations.getFrames(spriteKey + ".hurt");
         boolean isHurt = hurtStartTime != 0 && hurtElapsed >= 0 && hurtFrames != null
                 && hurtElapsed / PLAYER_HURT_FRAME_DURATION_MS < hurtFrames.length;
-        String state = player.isHurt() ? "hurt"
+        String state = player.isDead() ? "death"
+                : player.isHurt() ? "hurt"
                 : player.isDashing() ? "dash"
                 : player.isAttacking() ? "attack"
                 : player.isMoving() ? "walk" : "idle";
         String animationKey = state.equals("dash")
             ? "player.dash"
             : spriteKey + "." + state;
-        BufferedImage[] frames = isHurt ? hurtFrames : animations.getFrames(animationKey);
+        BufferedImage[] frames = isHurt && !player.isDead() ? hurtFrames : animations.getFrames(animationKey);
         int frameDuration = switch (state) {
             case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
             case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;
@@ -380,6 +396,7 @@ public class GameRenderer {
         if (frames != null && frames.length > 0) {
             int lastFrame = frames.length - 1;
             int frameIndex = switch (state) {
+                case "death" -> (int) Math.min(deathElapsedMs / PLAYER_DEATH_FRAME_DURATION_MS, lastFrame);
                 case "hurt" -> Math.min((int) ((now - player.getHurtAnimationStartTime())
                         * frames.length / Player.HURT_ANIMATION_DURATION_MS), lastFrame);
                 case "dash" -> Math.min((int) ((now - player.getDashStartTime())
@@ -389,9 +406,12 @@ public class GameRenderer {
                 default -> (int) ((now / frameDuration) % frames.length);
             };
             BufferedImage frame = frames[frameIndex];
-            int drawHeight = h;
-            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+            int referenceHeight = player.isDead() ? frames[0].getHeight() : frame.getHeight();
+            float scale = (float) h / referenceHeight;
+            int drawHeight = Math.round(frame.getHeight() * scale);
+            int drawWidth = Math.round(frame.getWidth() * scale);
             int drawX = x + (w - drawWidth) / 2;
+            int drawY = y + h - drawHeight;
 
             Rectangle feet = player.getHurtBounds();
             int shadowW = Math.round(feet.width * 1.15f);
@@ -399,9 +419,9 @@ public class GameRenderer {
             renderContactShadow(g2, feet.x + feet.width / 2, feet.y + feet.height + 2, shadowW, shadowH);
 
             if (player.isFacingLeft()) {
-                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
+                g2.drawImage(frame, drawX + drawWidth, drawY, -drawWidth, drawHeight, null);
             } else {
-                g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
+                g2.drawImage(frame, drawX, drawY, drawWidth, drawHeight, null);
             }
         } else {
             // Fallback when player sprite assets are unavailable.
