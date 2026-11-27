@@ -238,15 +238,15 @@ public final class RoomTemplate {
         int px = tx * Room.TILE_SIZE;
         int py = ty * Room.TILE_SIZE;
         return switch (token) {
-            case 'D' -> new Prop("/floor1/props/desk_wood_front.png", px - 10, py - 4, 52, 36, true);
+            case 'D' -> new Prop("/floor1/props/desk_wood_front.png", px - 10, py - 4, 86, 60, true);
             case 'C' -> rand.nextBoolean()
-                    ? new Prop("/floor1/props/cabinet_tall_4drawer.png", px + 2, py - 18, 28, 50, true)
-                    : new Prop("/floor1/props/cabinet_short_2drawer.png", px + 1, py - 4, 30, 36, true);
-            case 'H' -> new Prop("/floor1/props_addon/prop_cubicle_partition_h.png", px - 10, py - 4, 52, 36, true);
-            case 'V' -> new Prop("/floor1/props_addon/prop_cubicle_partition_v.png", px + 2, py - 18, 28, 50, true);
-            case 'B' -> new Prop("/floor1/props_addon/prop_cardboard_boxes_stacked.png", px - 4, py - 4, 40, 36, true);
-            case 'W' -> new Prop("/floor1/props_addon/prop_water_cooler_intact.png", px + 4, py - 16, 24, 48, true);
-            case 'M' -> new Prop("/floor1/props_addon/prop_vending_machine_on.png", px - 3, py - 20, 38, 52, true);
+                    ? new Prop("/floor1/props/cabinet_tall_4drawer.png", px + 2, py - 18, 36, 62, true)
+                    : new Prop("/floor1/props/cabinet_short_2drawer.png", px + 1, py - 4, 28, 36, true);
+            case 'H' -> new Prop("/floor1/props_addon/prop_cubicle_partition_h.png", px - 10, py - 4, 96, 60, true);
+            case 'V' -> new Prop("/floor1/props_addon/prop_cubicle_partition_v.png", px + 2, py - 18, 48, 80, true);
+            case 'B' -> new Prop("/floor1/props_addon/prop_cardboard_boxes_stacked.png", px - 4, py - 4, 48, 44, true);
+            case 'W' -> new Prop("/floor1/props_addon/prop_water_cooler_intact.png", px + 4, py - 16, 36, 60, true);
+            case 'M' -> new Prop("/floor1/props_addon/prop_vending_machine_on.png", px - 3, py - 20, 60, 80, true);
             default -> null;
         };
     }

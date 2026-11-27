@@ -325,15 +325,45 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     public void removeNotify() {
-        isRunning = false;
+        if (mainFrame == null || !mainFrame.isTogglingFullscreen()) {
+            isRunning = false;
+        }
         super.removeNotify();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        synchronized (stateLock) {
-            renderer.render((Graphics2D) g, player, room, worldMap, projectiles);
+        int panelW = getWidth();
+        int panelH = getHeight();
+        if (panelW <= 0 || panelH <= 0) {
+            return;
+        }
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            if (panelW != MainGame.WINDOW_WIDTH || panelH != MainGame.WINDOW_HEIGHT) {
+                g2.setColor(Color.BLACK);
+                g2.fillRect(0, 0, panelW, panelH);
+
+                double scale = Math.min(
+                        (double) panelW / MainGame.WINDOW_WIDTH,
+                        (double) panelH / MainGame.WINDOW_HEIGHT
+                );
+                double offsetX = (panelW - MainGame.WINDOW_WIDTH * scale) / 2.0;
+                double offsetY = (panelH - MainGame.WINDOW_HEIGHT * scale) / 2.0;
+
+                g2.translate(offsetX, offsetY);
+                g2.scale(scale, scale);
+                g2.clipRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            }
+            synchronized (stateLock) {
+                renderer.render(g2, player, room, worldMap, projectiles);
+            }
+        } finally {
+            g2.dispose();
         }
     }
 }
