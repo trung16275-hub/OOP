@@ -126,12 +126,6 @@ public class GameRenderer {
         renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
 
-        for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
-                renderHitbox(g2, enemy);
-            }
-        }
-
         if (player != null && !player.isDead()) {
             renderPlayerHitboxes(g2, player);
         }
@@ -139,6 +133,15 @@ public class GameRenderer {
         g2.translate(camX, camY); // reset before rendering HUD/minimap
 
         lightSystem.render(g2, player, room, camX, camY);
+        g2.translate(-camX, -camY);
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy != null && !enemy.isDead()) {
+                renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
+                        new Color(0, 255, 0, 22), new Color(0, 255, 0, 190), camX, camY);
+                renderHitbox(g2, enemy);
+            }
+        }
+        g2.translate(camX, camY);
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
             int index = room.findNearestAmmoPickup(playerBounds);
@@ -508,7 +511,7 @@ public class GameRenderer {
     }
 
     private void renderDetectionRange(Graphics2D g2, Combatant combatant, double range,
-                                      Color fillColor, Color outlineColor) {
+                                      Color fillColor, Color outlineColor, int camX, int camY) {
         if (Double.isNaN(range) || range < 0) {
             return;
         }
