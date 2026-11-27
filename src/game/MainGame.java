@@ -16,6 +16,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import screens.GamePanel;
 import screens.GameOverPanel;
+import screens.GameWinPanel;
 import screens.IntroPanel;
 
 public class MainGame extends JFrame {
@@ -130,6 +131,10 @@ public class MainGame extends JFrame {
 
     public void showGameOver() {
         setScreen(new GameOverPanel(this), false);
+    }
+
+    public void showGameWin() {
+        setScreen(new GameWinPanel(this), false);
     }
 
     public static void main(String[] args) {
