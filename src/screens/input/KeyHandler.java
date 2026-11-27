@@ -12,6 +12,11 @@ public class KeyHandler implements KeyListener {
     private boolean weaponSwitchPressed;
     private boolean pickupDown;
     private final AtomicBoolean pickupPressed = new AtomicBoolean();
+    private final AtomicBoolean closeNotePressed = new AtomicBoolean();
+
+    public boolean consumeCloseNotePress() {
+        return closeNotePressed.getAndSet(false);
+    }
 
     public boolean consumePickupPress() {
         return pickupPressed.getAndSet(false);
@@ -32,6 +37,7 @@ public class KeyHandler implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
+        if (code == KeyEvent.VK_ESCAPE) closeNotePressed.set(true);
         if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP)    upPressed = true;
         if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN)  downPressed = true;
         if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT)  leftPressed = true;

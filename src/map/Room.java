@@ -455,6 +455,23 @@ public class Room {
         return nearest;
     }
 
+    public String findNearbyEnemyNote(Rectangle playerBounds) {
+        String noteId = null;
+        double nearestDistance = 2 * TILE_SIZE;
+        for (RoomDecal decal : wallDecals) {
+            if (decal.noteId() == null) {
+                continue;
+            }
+            Rectangle bounds = new Rectangle(decal.x(), decal.y(), decal.width(), decal.height());
+            double distance = pickupDistance(playerBounds, bounds);
+            if (distance <= nearestDistance) {
+                nearestDistance = distance;
+                noteId = decal.noteId();
+            }
+        }
+        return noteId;
+    }
+
     private double pickupDistance(Rectangle playerBounds, Rectangle bounds) {
         double dx = Math.max(0, Math.max(bounds.getMinX() - playerBounds.getMaxX(),
                 playerBounds.getMinX() - bounds.getMaxX()));
