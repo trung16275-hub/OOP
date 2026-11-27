@@ -1,46 +1,46 @@
+
 package map;
 
 import model.Enemy;
 import model.boss.Boss1;
 import model.boss.Boss2;
-import model.boss.Boss3;
-import screens.lighting.*;
+import model.boss.Boss2Minion;
+import model.boss.Boss4;
+import model.creep.Stalker;
 
-import java.awt.Point;
-import java.util.*;
 import java.awt.Color;
+import java.util.Arrays;
 
 /**
- * Bộ tạo bản đồ ngẫu nhiên cho hầm ngục.
- * Tạo ra chuỗi phòng liên kết trên lưới 9x9, xác định phòng Boss, Shop và đặt cửa đối xứng.
+ * Bộ tạo bản đồ cố định cho chế độ test boss và creep.
  */
 public class MapGenerator {
-    private final Random rand;
-    private final long seed;
 
     public MapGenerator() {
-        this(System.currentTimeMillis());
     }
 
     public MapGenerator(long seed) {
-        this.seed = seed;
-        this.rand = new Random(seed);
+        // Seed được giữ để tương thích API cũ; map test hiện tại không sử dụng seed.
     }
 
     public WorldMap generateFloor(int floorLevel) {
-        return generateFloor(floorLevel, 7 + rand.nextInt(3)); // 7 - 9 phòng mỗi tầng
+        return generateFloor(floorLevel, 4);
     }
 
     /**
-     * Sinh toàn bộ tầng hầm ngục với số lượng phòng mục tiêu.
+     * Giữ sơ đồ boss cũ và nối hub phía Tây tới sáu phòng creep riêng biệt.
      */
     public WorldMap generateFloor(int floorLevel, int targetRooms) {
         WorldMap map = new WorldMap(floorLevel);
         int spawnX = 3;
         int spawnY = 3;
 
-        // 1. Khởi tạo phòng SPAWN tại trung tâm (3, 3)
-        Room spawnRoom = new Room(Room.RoomSize.SCREEN, Room.RoomType.SPAWN);
+        // Giữ nguyên spawn và ba phòng boss cũ.
+        Room spawnRoom = new Room(
+                Room.DEFAULT_WIDTH,
+                Room.DEFAULT_HEIGHT,
+                Room.RoomType.SPAWN
+        );
         map.addRoom(spawnX, spawnY, spawnRoom);
 
         List<Point> roomPositions = new ArrayList<>();
@@ -86,20 +86,10 @@ public class MapGenerator {
         // Sinh quái vật vào các phòng
         populateEnemies(map, floorLevel);
 
-        // them den
+        // Thêm đèn.
         populateLights(map);
 
         return map;
-    }
-
-    private int countAdjacentRooms(WorldMap map, int gx, int gy) {
-        int count = 0;
-        for (Direction dir : Direction.values()) {
-            if (map.hasRoom(gx + dir.getDx(), gy + dir.getDy())) {
-                count++;
-            }
-        }
-        return count;
     }
 
     /**
@@ -112,18 +102,12 @@ public class MapGenerator {
                 int ny = r.getGridY() + dir.getDy();
 
                 if (map.hasRoom(nx, ny)) {
-                    // Determine door position using the seed if not already set
+                    // Fixed test layout: keep doors centered.
                     if (!r.getDoors().containsKey(dir)) {
-                        int offset;
-                        if (dir == Direction.NORTH || dir == Direction.SOUTH) {
-                            int minX = r.getPadX() + 3;
-                            int maxX = r.getWidth() - r.getPadX() - 4;
-                            offset = minX + rand.nextInt(Math.max(1, maxX - minX + 1));
-                        } else {
-                            int minY = r.getPadY() + 5;
-                            int maxY = r.getHeight() - r.getPadY() - 4;
-                            offset = minY + rand.nextInt(Math.max(1, maxY - minY + 1));
-                        }
+                        int offset = (dir == Direction.NORTH || dir == Direction.SOUTH)
+                                ? r.getWidth() / 2
+                                : r.getHeight() / 2;
+
                         r.setDoorOffset(dir, offset);
                     }
 
@@ -140,11 +124,12 @@ public class MapGenerator {
     }
 
     /**
-     * Sinh kẻ thù và Boss vào các phòng.
+     * Sinh ba boss cũ, một Stalker ở phòng creep đầu tiên
+     * và Boss2Minion ở năm phòng creep còn lại.
      */
-    private void populateEnemies(WorldMap map, int floorLevel) {
-        int midPxX = (Room.DEFAULT_WIDTH / 2) * Room.TILE_SIZE;
-        int midPxY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
+    private void populateEnemies(WorldMap map, Room[] creepRooms) {
+        int centerX = (Room.DEFAULT_WIDTH / 2) * Room.TILE_SIZE;
+        int centerY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
 
         for (Room r : map.getRooms()) {
             if (r.getRoomType() == Room.RoomType.BOSS) {
@@ -154,6 +139,7 @@ public class MapGenerator {
                 boss.setY(bossSpawnPoint.y);
                 r.addEnemy(boss);
                 r.setCleared(false);
+
             } else {
                 // Spawn room và các phòng còn lại không có quái
                 r.setCleared(true);
@@ -186,14 +172,19 @@ public class MapGenerator {
 
             for (int i = 0; i < tubeCount; i++) {
                 double tubeX = innerLeftPx + innerWidthPx * ((i + 1.0) / (tubeCount + 1.0));
-                boolean flickers = (r.getRoomType() == Room.RoomType.BOSS) || (rand.nextInt(10) < 3);
+                boolean flickers = false;
 
-                if (r.getTile((int) tubeX / Room.TILE_SIZE, (int) wallY / Room.TILE_SIZE ) == TileType.FLOOR ||
-                        r.getTile((int) tubeX / Room.TILE_SIZE - 1, (int) wallY / Room.TILE_SIZE ) == TileType.FLOOR||
-                        r.getTile((int) tubeX / Room.TILE_SIZE + 1, (int) wallY / Room.TILE_SIZE) == TileType.FLOOR
-                ) continue;
-                r.addLight(new LightSource(
-                        LightSource.Type.FLUORESCENT_TUBE,
+                int tileX = (int) tubeX / Room.TILE_SIZE;
+                int tileY = wallY / Room.TILE_SIZE;
+
+                if (r.getTile(tileX, tileY) == TileType.FLOOR
+                        || r.getTile(tileX - 1, tileY) == TileType.FLOOR
+                        || r.getTile(tileX + 1, tileY) == TileType.FLOOR) {
+                    continue;
+                }
+
+                r.addLight(new screens.lighting.LightSource(
+                        screens.lighting.LightSource.Type.FLUORESCENT_TUBE,
                         tubeX,
                         wallY,
                         170f,
@@ -292,6 +283,6 @@ public class MapGenerator {
     }
 
     public long getSeed() {
-        return seed;
+        return 0L;
     }
 }

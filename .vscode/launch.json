@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "CombatTest",
+            "request": "launch",
+            "mainClass": "test.CombatTest",
+            "projectName": "OOP_2aa1ca71"
+        },
+        {
+            "type": "java",
+            "name": "MainGame",
+            "request": "launch",
+            "mainClass": "game.MainGame",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

@@ -125,9 +125,17 @@ public abstract class Enemy extends Combatant {
     public String getSpriteKey() {
         return null;
     }
+public String getSpritePath() {
+    return null;
+}
 
-    // Trả về trạng thái animation hiện tại: "idle", "run", "fire"...
-    public String getAnimState() {
-        return "run";
-    }
+// Trả về khóa animation tương ứng trong GameRenderer.
+public String getAnimState() {
+    return "idle";
+}
+
+// Trả về số frame của sprite; Boss có thể override nếu dùng sprite sheet.
+public int getSpriteFrameCount() {
+    return 1;
+}
 }
