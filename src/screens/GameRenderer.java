@@ -341,36 +341,34 @@ public class GameRenderer {
 
             int x = 10;
             int y = 10;
-            int width = 200;
-            int height = 104;
+            int width = 156;
+            int height = 76;
 
-            hud.setColor(new Color(70, 58, 43));
+            hud.setColor(new Color(36, 29, 21, 145));
             hud.fillRoundRect(x, y, width, height, 8, 8);
 
-            hud.setColor(new Color(180, 145, 95));
-            hud.fillRoundRect(x + 4, y + 4, width - 8, height - 8, 5, 5);
+            hud.setColor(new Color(215, 196, 150, 115));
+            hud.drawRoundRect(x, y, width - 1, height - 1, 8, 8);
 
-            hud.setColor(new Color(215, 196, 150));
-            hud.drawRoundRect(x + 4, y + 4, width - 9, height - 9, 5, 5);
-
-            hud.setFont(new Font("Minecraftia", Font.BOLD, 18));
+            hud.setFont(new Font("Minecraftia", Font.BOLD, 14));
+            Color textColor = new Color(255, 246, 225);
 
             // HP
             if (heartImage != null) {
-                hud.drawImage(heartImage, x + 10, y + 10, 28, 28, null);
+                hud.drawImage(heartImage, x + 8, y + 6, 22, 22, null);
             }
 
-            hud.setColor(Color.BLACK);
+            hud.setColor(textColor);
             hud.drawString(
                     player.getHp() + " / " + player.getMaxHp(),
-                    x + 43,
-                    y + 29
+                    x + 34,
+                    y + 22
             );
 
-            int hpBarX = x + 128;
-            int hpBarY = y + 13;
-            int hpBarWidth = 58;
-            int hpBarHeight = 16;
+            int hpBarX = x + 102;
+            int hpBarY = y + 11;
+            int hpBarWidth = 46;
+            int hpBarHeight = 12;
 
             double hpRatio = player.getMaxHp() <= 0
                     ? 0
@@ -388,13 +386,13 @@ public class GameRenderer {
             );
 
             // Armor
-            hud.setColor(Color.BLACK);
+            hud.setColor(textColor);
 
             if (armorImage != null) {
-                hud.drawImage(armorImage, x + 10, y + 43, 28, 28, null);
+                hud.drawImage(armorImage, x + 8, y + 33, 22, 22, null);
             }
 
-            hud.drawString(String.valueOf(player.getArmor()), x + 43, y + 64);
+            hud.drawString(String.valueOf(player.getArmor()), x + 34, y + 49);
 
             // Ammo
             if (player.getCurrentWeapon() instanceof Ak47 ak47) {
@@ -403,27 +401,23 @@ public class GameRenderer {
             }
 
             if (bulletImage != null) {
-                hud.drawImage(bulletImage, x + 100, y + 33, 50, 50, null);
+                hud.drawImage(bulletImage, x + 65, y + 26, 36, 36, null);
             }
-            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize, x + 140, y + 64);
+            hud.drawString(lastAk47Ammo + " / " + lastAk47MagazineSize, x + 99, y + 49);
 
-                // Dash cooldown indicator: empty while recharging, full when Q is ready.
-                int dashBarX = x + 48;
-                int dashBarY = y + 83;
-                int dashBarWidth = 138;
-                int dashBarHeight = 12;
-                double dashProgress = player.getDashCooldownProgress();
-                hud.setFont(new Font("Minecraftia", Font.BOLD, 12));
-                hud.setColor(Color.BLACK);
-                hud.setColor(new Color(45, 32, 25));
-                hud.fillRoundRect(dashBarX, dashBarY, dashBarWidth, dashBarHeight, 6, 6);
-                hud.setColor(dashProgress >= 1.0
+            // Dash cooldown indicator: empty while recharging, full when Q is ready.
+            int dashBarX = x + 8;
+            int dashBarY = y + 60;
+            int dashBarWidth = width - 16;
+            int dashBarHeight = 8;
+            double dashProgress = player.getDashCooldownProgress();
+            hud.setColor(new Color(45, 32, 25));
+            hud.fillRoundRect(dashBarX, dashBarY, dashBarWidth, dashBarHeight, 6, 6);
+            hud.setColor(dashProgress >= 1.0
                     ? new Color(65, 190, 105)
                     : new Color(70, 145, 190));
-                hud.fillRoundRect(dashBarX + 2, dashBarY + 2,
+            hud.fillRoundRect(dashBarX + 2, dashBarY + 2,
                     (int) ((dashBarWidth - 4) * dashProgress), dashBarHeight - 4, 5, 5);
-
-
         } finally {
             hud.dispose();
         }
