@@ -189,6 +189,12 @@ public class Player extends Combatant {
         return armor;
     }
 
+    public void addArmor(int amount) {
+        if (amount > 0) {
+            armor += Math.min(amount, Integer.MAX_VALUE - armor);
+        }
+    }
+
     public boolean isHurt() {
         return System.currentTimeMillis() - hurtAnimationStartTime < HURT_ANIMATION_DURATION_MS;
     }

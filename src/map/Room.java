@@ -58,6 +58,8 @@ public class Room {
 
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<AmmoPickup> ammoPickups = new ArrayList<>();
+    private final List<BandagePickup> bandages = new ArrayList<>();
+    private final List<KevlarArmorPickup> kevlarArmorPickups = new ArrayList<>();
     private LiquidPain liquidPain;
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
     private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
@@ -390,6 +392,42 @@ public class Room {
 
 
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
+
+    public List<BandagePickup> getBandages() { return bandages; }
+
+    public List<KevlarArmorPickup> getKevlarArmorPickups() { return kevlarArmorPickups; }
+
+    public BandagePickup findNearestBandage(Rectangle bounds, int ammoIndex) {
+        return findCloserPickup(bounds, bandages, BandagePickup::prop,
+                currentPickupDistance(bounds, ammoIndex));
+    }
+
+    public KevlarArmorPickup findNearestKevlarArmor(Rectangle bounds, int ammoIndex, BandagePickup bandage) {
+        double distance = bandage == null ? currentPickupDistance(bounds, ammoIndex)
+                : pickupDistance(bounds, bandage.prop().getBounds());
+        return findCloserPickup(bounds, kevlarArmorPickups, KevlarArmorPickup::prop, distance);
+    }
+
+    private double currentPickupDistance(Rectangle bounds, int ammoIndex) {
+        if (isLiquidPainNearest(bounds, ammoIndex)) {
+            return pickupDistance(bounds, liquidPain.prop().getBounds());
+        }
+        return ammoIndex < 0 ? Double.POSITIVE_INFINITY
+                : pickupDistance(bounds, ammoPickups.get(ammoIndex).prop().getBounds());
+    }
+
+    private <T> T findCloserPickup(Rectangle bounds, List<T> pickups,
+                                  java.util.function.Function<T, Prop> getProp, double nearestDistance) {
+        T nearest = null;
+        for (T pickup : pickups) {
+            double distance = pickupDistance(bounds, getProp.apply(pickup).getBounds());
+            if (distance <= AmmoPickup.PICKUP_RANGE_PIXELS && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = pickup;
+            }
+        }
+        return nearest;
+    }
 
     public LiquidPain getLiquidPain() { return liquidPain; }
     public void setLiquidPain(LiquidPain liquidPain) { this.liquidPain = liquidPain; }
