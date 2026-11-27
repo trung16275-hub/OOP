@@ -35,6 +35,7 @@ import javax.swing.*;
 
 import model.boss.Boss3;
 import model.boss.Boss4;
+import model.creep.Duck;
 
 public class GamePanel extends JPanel implements Runnable {
 
@@ -369,7 +370,8 @@ public class GamePanel extends JPanel implements Runnable {
 
             // Danh sách Boss2 đã hoàn thành phân thân
             List<Boss2> bossesToSplit = new ArrayList<>();
-
+            // [Entity 27 - Duck] Danh sách Duck đã chạy xong animation chết để nhân đôi
+            List<Duck> ducksToSplit = new ArrayList<>();
             for (Enemy e : enemies) {
 
                 e.updateBehavior(player, room);
@@ -416,7 +418,11 @@ public class GamePanel extends JPanel implements Runnable {
 
                     bossesToSplit.add(boss2);
                 }
+                if (e instanceof Duck duck
+                        && duck.isSplitAnimationFinished()) {
 
+                    ducksToSplit.add(duck);
+                }
                 // -------------------------
                 // MINION ĐỂ LẠI VỆT AXIT
                 // -------------------------

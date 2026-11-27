@@ -677,7 +677,7 @@ public class GameRenderer {
     }
 
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
-
+        
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
 
@@ -794,14 +794,24 @@ public class GameRenderer {
 
         if (frames != null && frames.length > 0) {
 
-            int frameIndex = (int) (
-                    (System.currentTimeMillis() / 100) % frames.length
-            );
+            int frameIndex;
+            if (enemy instanceof Boss4 b4 && b4.isDying()) {
+                frameIndex = Math.min(b4.getDeathFrameIndex(), frames.length - 1);
+            } else if (enemy instanceof model.creep.Duck duck && duck.isDying()) {
+                frameIndex = Math.min(duck.getDeathFrameIndex(), frames.length - 1);
+            } else {
+                frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
+            }
+
+            BufferedImage frame = frames[frameIndex];
+            int drawHeight = h;
+            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+            int drawX = x + (w - drawWidth) / 2;
 
             if (enemy.getFacingX() < 0) {
-                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
             } else {
-                g2.drawImage(frames[frameIndex], x, y, w, h, null);
+                g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
             }
 
             return;

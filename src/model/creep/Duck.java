@@ -1,6 +1,8 @@
 package model.creep;
 
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import map.Room;
@@ -19,12 +21,12 @@ public class Duck extends Enemy {
     private static final int MAX_DUCKS_PER_ROOM = 10;
     private static final Map<Room, Integer> ROOM_SPAWN_COUNTS = new WeakHashMap<>();
 
-    // Thông số đánh thường (cận chiến)
+    // Đánh thường (cận chiến)
     private static final double ATTACK_RANGE = 46.0;
     private static final long ATTACK_DURATION_NANOS = 400_000_000L; // 4 frame * 100ms
     private static final long ATTACK_COOLDOWN_NANOS = 850_000_000L;
 
-    // Thông số hoạt ảnh chết & nhân đôi
+    // Hoạt ảnh chết & nhân đôi
     private static final int DEATH_FRAME_COUNT = 4;
     private static final long DEATH_FRAME_DURATION_NANOS = 100_000_000L;
 
@@ -34,11 +36,11 @@ public class Duck extends Enemy {
     private boolean hasDealtAttackDamage = false;
 
     private long deathStartTime = 0L;
+    private boolean splitAnimationFinished = false;
     private boolean hasSplit = false;
-    private boolean readyToRemove = false;
 
     public Duck(double x, double y) {
-        // (name, maxHp = 10 -> 1 viên đạn chết ngay, speed, baseDamage, detectionRange, hitboxRadius)
+        // maxHp = 10 -> bắn 1 viên đạn hoặc đập 1 gậy là chết ngay
         super("Duck", 10, 2, 12, 320.0, 20.0);
         setX(x);
         setY(y);
@@ -75,20 +77,10 @@ public class Duck extends Enemy {
 
         long now = System.nanoTime();
 
-        // 1. Đang chết: chạy hết 4 frame Death rồi nhân đôi (tối đa 10 con/phòng)
+        // 1. Đang chết -> chạy hết 4 frame Death rồi báo hiệu nhân đôi
         if (state == State.DEATH) {
-            long totalDeathNanos = DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS;
-            if (now - deathStartTime >= totalDeathNanos) {
-                if (!hasSplit && room != null && room.getEnemies() != null) {
-                    hasSplit = true;
-                    int currentTotal = ROOM_SPAWN_COUNTS.getOrDefault(room, 1);
-                    int canSpawn = Math.min(2, MAX_DUCKS_PER_ROOM - currentTotal);
-                    if (canSpawn > 0) {
-                        ROOM_SPAWN_COUNTS.put(room, currentTotal + canSpawn);
-                        spawnClones(room, canSpawn);
-                    }
-                }
-                readyToRemove = true;
+            if (now - deathStartTime >= DEATH_FRAME_COUNT * DEATH_FRAME_DURATION_NANOS) {
+                splitAnimationFinished = true;
             }
             return;
         }
@@ -106,7 +98,7 @@ public class Duck extends Enemy {
         double dy = playerCenterY - myCenterY;
         double dist = Math.hypot(dx, dy);
 
-        // 2. Đang vung đòn đánh thường
+        // 2. Đang đánh thường
         if (state == State.ATTACK) {
             long elapsed = now - attackStartTime;
             if (!hasDealtAttackDamage && elapsed >= ATTACK_DURATION_NANOS / 2) {
@@ -142,7 +134,7 @@ public class Duck extends Enemy {
             return;
         }
 
-        // 5. Đuổi theo Player (có trượt tường khi vướng góc)
+        // 5. Đuổi theo Player
         state = State.WALK;
         double speed = Math.max(1.0, getSpeed());
         double vx = (dx / dist) * speed;
@@ -155,16 +147,31 @@ public class Duck extends Enemy {
         }
     }
 
-    private void spawnClones(Room room, int count) {
+    public boolean isSplitAnimationFinished() {
+        return splitAnimationFinished && !hasSplit;
+    }
+
+    public List<Duck> createSplitClones(Room room) {
+        hasSplit = true;
+        List<Duck> clones = new ArrayList<>();
+        if (room == null) return clones;
+
+        int currentTotal = ROOM_SPAWN_COUNTS.getOrDefault(room, 1);
+        int canSpawn = Math.min(2, MAX_DUCKS_PER_ROOM - currentTotal);
+        if (canSpawn <= 0) return clones;
+
+        ROOM_SPAWN_COUNTS.put(room, currentTotal + canSpawn);
         double[] offsetsX = {-18.0, 18.0};
-        for (int i = 0; i < count; i++) {
+
+        for (int i = 0; i < canSpawn; i++) {
             double spawnX = getX() + offsetsX[i % offsetsX.length];
             double spawnY = getY();
             if (!canMoveTo(spawnX, spawnY, room)) {
                 spawnX = getX();
             }
-            room.getEnemies().add(new Duck(spawnX, spawnY));
+            clones.add(new Duck(spawnX, spawnY));
         }
+        return clones;
     }
 
     private boolean tryMove(double dx, double dy, Room room) {
@@ -197,7 +204,7 @@ public class Duck extends Enemy {
     @Override
     public boolean isDead() {
         if (state == State.DEATH) {
-            return readyToRemove;
+            return hasSplit;
         }
         if (getHp() <= 0) {
             enterDeathState();
@@ -210,14 +217,14 @@ public class Duck extends Enemy {
     public String getSpritePath() {
         switch (state) {
             case WALK:
-                return "/duck/walk";
+                return "/Entity_27_Duck/Walk/Walk";
             case ATTACK:
-                return "/duck/attack";
+                return "/Entity_27_Duck/Attack/Attack";
             case DEATH:
-                return "/duck/death";
+                return "/Entity_27_Duck/Death/Death";
             case IDLE:
             default:
-                return "/duck/idle";
+                return "/Entity_27_Duck/Idle/Idle";
         }
     }
 
