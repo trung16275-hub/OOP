@@ -460,7 +460,7 @@ public class GameRenderer {
 
                     Room room = worldMap.getRoom(gx, gy);
 
-                    if (room == null) {
+                    if (room == null || !room.isVisited()) {
                         continue;
                     }
 
