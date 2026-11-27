@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Room1MainTest",
+            "request": "launch",
+            "mainClass": "test.Room1MainTest",
+            "projectName": "OOP_2aa1ca71"
+        },
+        {
+            "type": "java",
+            "name": "Room2MainTest",
+            "request": "launch",
+            "mainClass": "test.Room2MainTest",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
+            "name": "Room3MainTest",
+            "request": "launch",
+            "mainClass": "test.Room3MainTest",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
+            "name": "CombatTest",
+            "request": "launch",
+            "mainClass": "test.CombatTest",
+            "projectName": "OOP_2aa1ca71"
+        },
+        {
+            "type": "java",
+            "name": "MainGame",
+            "request": "launch",
+            "mainClass": "game.MainGame",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
