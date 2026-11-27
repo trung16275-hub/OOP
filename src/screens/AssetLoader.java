@@ -43,14 +43,18 @@ public class AssetLoader {
             return SPRITE_CACHE.get(cacheKey);
         }
 
-        // Nạp bộ frame cắt rời: path_0.png, path_1.png...
+        // Nạp bộ frame cắt rời: thử path_0.png trước, nếu không có thì thử path_01.png
         if (!path.endsWith(".png") && !path.endsWith(".jpg")) {
             BufferedImage[] frames = new BufferedImage[frameCount];
             for (int i = 0; i < frameCount; i++) {
-                frames[i] = loadImage(path + "_" + i + ".png");
-                if (frames[i] == null) {
+                BufferedImage img = loadImage(path + "_" + i + ".png");
+                if (img == null) {
+                    img = loadImage(String.format("%s_%02d.png", path, i + 1));
+                }
+                if (img == null) {
                     return null;
                 }
+                frames[i] = img;
             }
             SPRITE_CACHE.put(cacheKey, frames);
             return frames;
