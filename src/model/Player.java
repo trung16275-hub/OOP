@@ -162,13 +162,7 @@ public class Player extends Combatant {
 
     @Override
     public void attack(Combatant target) {
-        if (currentWeapon != null
-                && target != null
-                && currentWeapon.consumeAmmo()) {
-
-            target.takeDamage(currentWeapon.getDamage());
-            attack(target, null);
-        }
+        attack(target, null);
     }
 
     // Hàm đầy đủ hỗ trợ vật phẩm diện rộng như Nước Hạnh Nhân
@@ -200,7 +194,7 @@ public class Player extends Combatant {
         }
 
         // 2. Luồng dùng vũ khí gây sát thương bình thường
-        if (target != null) {
+        if (target != null && currentWeapon.consumeAmmo()) {
             target.takeDamage(currentWeapon.getDamage());
         }
     }

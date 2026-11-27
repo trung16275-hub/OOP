@@ -15,6 +15,7 @@ import model.AcidProjectile;
 
 import model.weapon.Ak47;
 
+import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss3;
 import model.boss.Boss4;
@@ -24,12 +25,15 @@ import screens.lighting.*;
 import screens.lighting.LightSystem;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Collections;
@@ -42,10 +46,11 @@ public class GameRenderer {
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
 
     // Animation Boss 1
-    private static final int BOSS1_IDLE_FRAME_DURATION_MS = 250;
-    private static final int BOSS1_RUN_FRAME_DURATION_MS = 120;
-    private static final int BOSS1_DASH_FRAME_DURATION_MS = 70;
-    private static final int BOSS1_LUNGE_FRAME_DURATION_MS = 90;
+    private static final int BOSS1_LOOP_FRAME_DURATION_MS = 130;
+    private static final int BOSS1_DASH_FRAME_DURATION_MS = 38;
+    private static final int BOSS1_LUNGE_FRAME_DURATION_MS = 44;
+    private static final int BOSS1_HURT_FRAME_DURATION_MS = 80;
+    private static final int BOSS1_DEATH_FRAME_DURATION_MS = 220;
 
     // Animation Boss 2
     private static final int BOSS2_IDLE_FRAME_DURATION_MS = 220;
@@ -105,10 +110,9 @@ public class GameRenderer {
         registerAnim("boss3", "jump", "assets/boss3/super-cool-robot-jump.png", 7);
 
         // Boss 1
-        registerAnim("boss1", "idle", "assets/boss1/idle.png", 4);
-        registerAnim("boss1", "run", "assets/boss1/run.png", 4);
-        registerAnim("boss1", "dash", "assets/boss1/dash.png", 4);
-        registerAnim("boss1", "lunge", "assets/boss1/lunge.png", 4);
+        for (String state : List.of("idle", "run", "dash", "lunge", "hurt", "death")) {
+            registerGifAnim("boss1", state, "assets/boss1/" + state + ".gif");
+        }
 
         // Boss 2
         registerAnim("boss2", "idle", "assets/boss2/idle.png", 4);
@@ -176,6 +180,31 @@ public class GameRenderer {
         } catch (IOException e) {
             System.err.println("Không tìm thấy ảnh: " + path);
             return null;
+        }
+    }
+
+    private void registerGifAnim(String spriteKey, String state, String path) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new File(path))) {
+            if (input == null) {
+                throw new IOException("Không mở được file");
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                throw new IOException("Không tìm thấy bộ đọc ảnh");
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, false, true);
+                BufferedImage[] frames = new BufferedImage[reader.getNumImages(true)];
+                for (int i = 0; i < frames.length; i++) {
+                    frames[i] = reader.read(i);
+                }
+                animations.put(spriteKey + "_" + state, frames);
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException e) {
+            System.err.println("Không đọc được GIF " + path + " - " + e.getMessage());
         }
     }
 
@@ -633,6 +662,20 @@ public class GameRenderer {
     // ENEMY
     // =========================
 
+    private int getBoss1FrameIndex(Boss1 boss, String state, int frameCount) {
+        int frameDuration = switch (state) {
+            case "dash" -> BOSS1_DASH_FRAME_DURATION_MS;
+            case "lunge" -> BOSS1_LUNGE_FRAME_DURATION_MS;
+            case "hurt" -> BOSS1_HURT_FRAME_DURATION_MS;
+            case "death" -> BOSS1_DEATH_FRAME_DURATION_MS;
+            default -> BOSS1_LOOP_FRAME_DURATION_MS;
+        };
+        if ("idle".equals(state) || "run".equals(state)) {
+            return (int) ((System.currentTimeMillis() / frameDuration) % frameCount);
+        }
+        return (int) Math.min(boss.getAnimationElapsedMillis() / frameDuration, frameCount - 1);
+    }
+
     private void renderEnemy(Graphics2D g2, Enemy enemy) {
 
         int x = (int) enemy.getX();
@@ -657,34 +700,8 @@ public class GameRenderer {
 
                 int frameDuration = 100;
 
-                // Animation Boss 1
-                if ("boss1".equals(key)) {
-
-                    switch (state) {
-                        case "idle":
-                            frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
-                            break;
-
-                        case "run":
-                            frameDuration = BOSS1_RUN_FRAME_DURATION_MS;
-                            break;
-
-                        case "dash":
-                            frameDuration = BOSS1_DASH_FRAME_DURATION_MS;
-                            break;
-
-                        case "lunge":
-                            frameDuration = BOSS1_LUNGE_FRAME_DURATION_MS;
-                            break;
-
-                        default:
-                            frameDuration = BOSS1_IDLE_FRAME_DURATION_MS;
-                            break;
-                    }
-                }
-
                 // Animation Boss 2 và Minion
-                else if ("boss2".equals(key)) {
+                if ("boss2".equals(key)) {
 
                     switch (state) {
                         case "idle":
@@ -739,10 +756,9 @@ public class GameRenderer {
                     }
                 }
 
-                int frameIndex = (int) (
-                        (System.currentTimeMillis() / frameDuration)
-                                % frames.length
-                );
+                int frameIndex = enemy instanceof Boss1 boss
+                        ? getBoss1FrameIndex(boss, state, frames.length)
+                        : (int) ((System.currentTimeMillis() / frameDuration) % frames.length);
 
                 if (enemy.getFacingX() >= 0) {
 
@@ -1345,7 +1361,13 @@ public class GameRenderer {
         // 5. Vẽ toàn bộ Enemy và Boss
         for (Enemy enemy : enemies) {
 
-            if (enemy == null || enemy.isDead()) {
+            if (enemy == null) {
+                continue;
+            }
+            if (enemy.isDead()) {
+                if (enemy instanceof Boss1 boss && boss.isPlayingDeathAnimation()) {
+                    renderEnemy(g2, boss);
+                }
                 continue;
             }
 
