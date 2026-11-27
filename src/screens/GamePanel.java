@@ -365,9 +365,21 @@ public class GamePanel extends JPanel implements Runnable {
 
             List<Enemy> enemies = room.getEnemies();
 
-            enemies.removeIf(enemy -> enemy.isDead()
-                    && !(enemy instanceof Boss1 boss && boss.isPlayingDeathAnimation()));
+           enemies.removeIf(enemy -> {
+    if (!enemy.isDead()) {
+        return false;
+    }
 
+    if (enemy instanceof Boss1 boss) {
+        return !boss.isPlayingDeathAnimation();
+    }
+
+    if (enemy instanceof model.creep.AttackCreep creep) {
+        return !creep.isPlayingDeathAnimation();
+    }
+
+    return true;
+});
             // Danh sách Boss2 đã hoàn thành phân thân
             List<Boss2> bossesToSplit = new ArrayList<>();
             // [Entity 27 - Duck] Danh sách Duck đã chạy xong animation chết để nhân đôi

@@ -7,6 +7,7 @@ import model.boss.Boss2;
 import model.boss.Boss2Minion;
 import model.boss.Boss4;
 import model.creep.Stalker;
+import model.creep.AttackCreep;
 
 import java.awt.Color;
 import java.util.Arrays;
@@ -153,13 +154,13 @@ public class MapGenerator {
                     Enemy creep;
 
                     if (creepRoomIndex == 0) {
-                        // Phòng creep đầu tiên: Stalker.
-                        creep = new Stalker();
+    // Phòng creep đầu tiên: AttackCreep.
+    creep = new AttackCreep();
 
-                        creep.setX(centerX - creep.getWidth() / 2.0);
-                        creep.setY(centerY - creep.getHeight() / 2.0);
+    creep.setX(centerX - creep.getWidth() / 2.0);
+    creep.setY(centerY - creep.getHeight() / 2.0);
 
-                    } else {
+} else {
                         // Năm phòng còn lại giữ Boss2Minion.
                         creep = new Boss2Minion(
                                 centerX - 35 / 2.0,

@@ -134,6 +134,22 @@ public class GameRenderer {
         registerAnim("stalker", "hurt",
                 "assets/creep/stalker/stalker_hurt.png", 4);
 
+        // AttackCreep
+        registerAnim("attack_creep", "idle",
+                "assets/creep/attack_creep/idle.png", 4);
+
+        registerAnim("attack_creep", "run",
+                "assets/creep/attack_creep/run.png", 4);
+
+        registerAnim("attack_creep", "attack",
+                "assets/creep/attack_creep/attack.png", 4);
+
+        registerAnim("attack_creep", "hurt",
+                "assets/creep/attack_creep/hurt.png", 4);
+
+        registerAnim("attack_creep", "death",
+                "assets/creep/attack_creep/death.png", 4);
+
         // Tiles
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
         basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
@@ -1374,12 +1390,16 @@ public class GameRenderer {
             if (enemy == null) {
                 continue;
             }
-            if (enemy.isDead()) {
-                if (enemy instanceof Boss1 boss && boss.isPlayingDeathAnimation()) {
-                    renderEnemy(g2, boss);
-                }
-                continue;
-            }
+           if (enemy.isDead()) {
+    if (enemy instanceof Boss1 boss && boss.isPlayingDeathAnimation()) {
+        renderEnemy(g2, boss);
+    } else if (enemy instanceof model.creep.AttackCreep creep
+            && creep.isPlayingDeathAnimation()) {
+        renderEnemy(g2, creep);
+    }
+
+    continue;
+}
 
             boolean boss4Hidden = enemy instanceof Boss4
                     && ((Boss4) enemy).isSubmergedInWall();
