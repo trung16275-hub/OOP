@@ -1,10 +1,7 @@
 package screens;
 
 import game.MainGame;
-import map.Direction;
-import map.Room;
-import map.TileType;
-import map.WorldMap;
+import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
@@ -19,6 +16,9 @@ import screens.lighting.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
+import java.util.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.util.List;
 
 
@@ -28,6 +28,7 @@ public class GameRenderer {
     private static final int PLAYER_WALK_FRAME_DURATION_MS = 190;
     private static final int PLAYER_ATTACK_FRAME_DURATION_MS = 80;
     private static final int PLAYER_HURT_FRAME_DURATION_MS = 80;
+    private static final int PLAYER_DEATH_FRAME_DURATION_MS = 200;
 
     private BufferedImage contactShadowImage;
     private BufferedImage aoNorthImage;
@@ -41,7 +42,6 @@ public class GameRenderer {
     private BufferedImage wallBotRimImage;
     private BufferedImage doorOpenedImage;
     private BufferedImage doorClosedImage;
-    private BufferedImage wallGrimeImage;
     private BufferedImage wallBorderBottomImage;
     private BufferedImage wallBorderLeftImage;
     private BufferedImage wallBorderRightImage;
@@ -60,25 +60,14 @@ public class GameRenderer {
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
 
+    private final Map<String, BufferedImage> decalCache = new HashMap<>();
+
+
     //Light System
     private final LightSystem lightSystem = new LightSystem();
 
     public GameRenderer() {
-        basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
-        basewallImage = AssetLoader.loadImage("/tiles/wall_wallpaper_baseboard.png");
-        wallTopRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_top_rim.png");
-        wallBotRimImage = AssetLoader.loadImage("/tiles/wall_wallpaper_bottom_rim.png");
-        doorOpenedImage = AssetLoader.loadImage("/tiles/wall_doorway_open.png");
-        doorClosedImage = AssetLoader.loadImage("/tiles/wall_doorway_close.png");
-        wallGrimeImage = AssetLoader.loadImage("/tiles/wall_wallpaper_grime.png");
-        wallBorderBottomImage = AssetLoader.loadImage("/tiles/wall_border_bottom.png");
-        wallBorderLeftImage = AssetLoader.loadImage("/tiles/wall_border_left.png");
-        wallBorderRightImage = AssetLoader.loadImage("/tiles/wall_border_right.png");
-        wallBorderTopImage = AssetLoader.loadImage("/tiles/wall_border_top.png");
-        wallCornerBottomLeftImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_left.png");
-        wallCornerBottomRightImage = AssetLoader.loadImage("/tiles/wall_corner_bottom_right.png");
-        wallCornerTopLeftImage = AssetLoader.loadImage("/tiles/wall_corner_top_left.png");
-        wallCornerTopRightImage = AssetLoader.loadImage("/tiles/wall_corner_top_right.png");
+
         armorImage = AssetLoader.loadImage("/player/informationBar/armor.png");
         heartImage = AssetLoader.loadImage("/player/informationBar/heart.png");
         bulletImage = AssetLoader.loadImage("/player/informationBar/bullet.png");
@@ -96,6 +85,11 @@ public class GameRenderer {
 
     public void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                        List<Projectile> projectiles) {
+        render(g2, player, room, worldMap, projectiles, 0);
+    }
+
+    void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                List<Projectile> projectiles, long playerDeathElapsedMs) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -114,6 +108,8 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // 3. Render room & entities
         renderRoom(g2, room);
+        renderDecals(g2, room.getFloorDecals());
+
         if (room.getLiquidPain() != null && liquidPainImage != null) {
             Prop prop = room.getLiquidPain().prop();
             g2.drawImage(liquidPainImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
@@ -127,31 +123,7 @@ public class GameRenderer {
 
         renderWallAmbientOcclusion(g2, room);
 
-        for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
-                renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
-                        new Color(0, 255, 0, 22), new Color(0, 255, 0, 190));
-                // Vẽ 4 tia laze dưới thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isFiringLaser()) {
-                        renderBoss3Lasers(g2, boss3);
-                    }
-                }
-                renderEnemy(g2, enemy);
-                // Vẽ vòng sáng hồi máu đè lên thân Boss3
-                if (enemy instanceof Boss3) {
-                    Boss3 boss3 = (Boss3) enemy;
-                    if (boss3.isHealing()) {
-                        renderBoss3Healing(g2, boss3);
-                    }
-                }
-            }
-        }
-
-        if (player != null && !player.isDead()) {
-            renderPlayer(g2, player);
-        }
+        renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
 
         for (Enemy enemy : room.getEnemies()) {
@@ -184,6 +156,29 @@ public class GameRenderer {
         if (player != null) {
             renderPlayerStats(g2, player);
         }
+
+    }
+
+    //Load theme refer to floor
+    public void loadTheme(FloorTheme theme) {
+        String path = theme.getAssetsPath();
+        basefloorImage = AssetLoader.loadImage(path + "tile_floor_backrooms.png");
+        basewallImage = AssetLoader.loadImage(path + "wall_baseboard.png");
+        wallTopRimImage = AssetLoader.loadImage(path + "wall_top_rim.png");
+        wallBotRimImage = AssetLoader.loadImage(path + "wall_bottom_rim.png");
+
+        wallBorderBottomImage = AssetLoader.loadImage(path + "wall_border.png");
+        wallBorderLeftImage = rotate90Clockwise(wallBorderBottomImage);
+        wallBorderTopImage = rotate90Clockwise(wallBorderLeftImage);
+        wallBorderRightImage = rotate90Clockwise(wallBorderTopImage);
+
+        wallCornerBottomLeftImage = AssetLoader.loadImage(path + "wall_corner.png");
+        wallCornerTopLeftImage = rotate90Clockwise(wallCornerBottomLeftImage);
+        wallCornerTopRightImage = rotate90Clockwise(wallCornerTopLeftImage);
+        wallCornerBottomRightImage = rotate90Clockwise(wallCornerTopRightImage);
+
+        doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
+        doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
     }
 
@@ -350,27 +345,37 @@ public class GameRenderer {
         g2.setColor(new Color(25, 25, 30));
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
     }
-    private void renderPlayer(Graphics2D g2, Player player) {
+    private String getPlayerSpriteKey(Player player) {
+        String weaponName = player.getCurrentWeapon() == null ? "AK47" : player.getCurrentWeapon().getName();
+        return "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+    }
+
+    int getPlayerDeathDurationMs(Player player) {
+        BufferedImage[] frames = animations.getFrames(getPlayerSpriteKey(player) + ".death");
+        return frames == null ? 0 : frames.length * PLAYER_DEATH_FRAME_DURATION_MS;
+    }
+
+    private void renderPlayer(Graphics2D g2, Player player, long deathElapsedMs) {
         int x = (int) player.getX();
         int y = (int) player.getY();
         int w = player.getWidth();
         int h = player.getHeight();
-        String weaponName = player.getCurrentWeapon() == null? "AK47": player.getCurrentWeapon().getName();
-        String spriteKey = "Bat".equalsIgnoreCase(weaponName) ? "player_bat" : "player_ak47";
+        String spriteKey = getPlayerSpriteKey(player);
         long now = System.currentTimeMillis();
         long hurtStartTime = player.getHurtAnimationStartTime();
         long hurtElapsed = now - hurtStartTime;
         BufferedImage[] hurtFrames = animations.getFrames(spriteKey + ".hurt");
         boolean isHurt = hurtStartTime != 0 && hurtElapsed >= 0 && hurtFrames != null
                 && hurtElapsed / PLAYER_HURT_FRAME_DURATION_MS < hurtFrames.length;
-        String state = player.isHurt() ? "hurt"
+        String state = player.isDead() ? "death"
+                : player.isHurt() ? "hurt"
                 : player.isDashing() ? "dash"
                 : player.isAttacking() ? "attack"
                 : player.isMoving() ? "walk" : "idle";
         String animationKey = state.equals("dash")
             ? "player.dash"
             : spriteKey + "." + state;
-        BufferedImage[] frames = isHurt ? hurtFrames : animations.getFrames(animationKey);
+        BufferedImage[] frames = isHurt && !player.isDead() ? hurtFrames : animations.getFrames(animationKey);
         int frameDuration = switch (state) {
             case "attack" -> PLAYER_ATTACK_FRAME_DURATION_MS;
             case "walk" -> PLAYER_WALK_FRAME_DURATION_MS;
@@ -380,6 +385,7 @@ public class GameRenderer {
         if (frames != null && frames.length > 0) {
             int lastFrame = frames.length - 1;
             int frameIndex = switch (state) {
+                case "death" -> (int) Math.min(deathElapsedMs / PLAYER_DEATH_FRAME_DURATION_MS, lastFrame);
                 case "hurt" -> Math.min((int) ((now - player.getHurtAnimationStartTime())
                         * frames.length / Player.HURT_ANIMATION_DURATION_MS), lastFrame);
                 case "dash" -> Math.min((int) ((now - player.getDashStartTime())
@@ -389,9 +395,12 @@ public class GameRenderer {
                 default -> (int) ((now / frameDuration) % frames.length);
             };
             BufferedImage frame = frames[frameIndex];
-            int drawHeight = h;
-            int drawWidth = Math.round((float) frame.getWidth() * drawHeight / frame.getHeight());
+            int referenceHeight = player.isDead() ? frames[0].getHeight() : frame.getHeight();
+            float scale = (float) h / referenceHeight;
+            int drawHeight = Math.round(frame.getHeight() * scale);
+            int drawWidth = Math.round(frame.getWidth() * scale);
             int drawX = x + (w - drawWidth) / 2;
+            int drawY = y + h - drawHeight;
 
             Rectangle feet = player.getHurtBounds();
             int shadowW = Math.round(feet.width * 1.15f);
@@ -399,9 +408,9 @@ public class GameRenderer {
             renderContactShadow(g2, feet.x + feet.width / 2, feet.y + feet.height + 2, shadowW, shadowH);
 
             if (player.isFacingLeft()) {
-                g2.drawImage(frame, drawX + drawWidth, y, -drawWidth, drawHeight, null);
+                g2.drawImage(frame, drawX + drawWidth, drawY, -drawWidth, drawHeight, null);
             } else {
-                g2.drawImage(frame, drawX, y, drawWidth, drawHeight, null);
+                g2.drawImage(frame, drawX, drawY, drawWidth, drawHeight, null);
             }
         } else {
             // Fallback when player sprite assets are unavailable.
@@ -588,6 +597,7 @@ public class GameRenderer {
                 }
             }
         }
+        renderDecals(g2, room.getWallDecals());
     }
         private void renderBoss3Lasers(Graphics2D g2, Boss3 boss) {
         Stroke oldStroke = g2.getStroke();
@@ -650,7 +660,7 @@ public class GameRenderer {
             return false;
         }
         TileType type = room.getTile(x, y);
-        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED;
+        return type == TileType.FLOOR || type == TileType.DOOR_OPEN || type == TileType.DOOR_CLOSED || type == TileType.PORTAL;
     }
 
     private void renderWallTile(Graphics2D g2, Room room, int x, int y, int px, int py, int tileSize) {
@@ -765,6 +775,104 @@ public class GameRenderer {
         }
     }
 
+    private void renderDecals(Graphics2D g2, List<RoomDecal> decals) {
+        if (decals == null || decals.isEmpty()) {
+            return;
+        }
+        Composite oldComp = g2.getComposite();
+        for (RoomDecal decal : decals) {
+            BufferedImage img = getCachedImage(decal.spritePath());
+            if (img == null) {
+                continue;
+            }
+            if (decal.alpha() < 0.99f) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, decal.alpha()));
+            } else {
+                g2.setComposite(oldComp);
+            }
+            drawDecalImage(g2, img, decal);
+        }
+        g2.setComposite(oldComp);
+    }
+
+    private BufferedImage getCachedImage(String path) {
+        if (path == null) {
+            return null;
+        }
+        return decalCache.computeIfAbsent(path, AssetLoader::loadImage);
+    }
+
+    private void renderEntitiesAndPropsYSorted(Graphics2D g2, Room room, Player player, long playerDeathElapsedMs) {
+        record RenderEntry(int sortY, Runnable draw) {}
+        List<RenderEntry> entries = new ArrayList<>();
+
+        for (Prop prop : room.getProps()) {
+            BufferedImage sprite = getCachedImage(prop.spriteKey());
+            entries.add(new RenderEntry(prop.y() + prop.height(), () -> {
+                int shadowW = Math.round(prop.width() * 0.9f);
+                int shadowH = Math.max(8, Math.round(shadowW * 0.30f));
+                renderContactShadow(g2, prop.x() + prop.width() / 2, prop.y() + prop.height() - 2, shadowW, shadowH);
+                if (sprite != null) {
+                    g2.drawImage(sprite, prop.x(), prop.y(), prop.width(), prop.height(), null);
+                } else {
+                    g2.setColor(new Color(95, 80, 65));
+                    g2.fillRect(prop.x(), prop.y(), prop.width(), prop.height());
+                }
+            }));
+        }
+
+        for (Enemy enemy : room.getEnemies()) {
+            if (enemy == null || enemy.isDead()) {
+                continue;
+            }
+            int sortY = (int) Math.round(enemy.getY() + enemy.getHeight());
+            entries.add(new RenderEntry(sortY, () -> {
+                if (enemy instanceof Boss3 boss3 && boss3.isFiringLaser()) {
+                    renderBoss3Lasers(g2, boss3);
+                }
+                renderEnemy(g2, enemy);
+                if (enemy instanceof Boss3 boss3 && boss3.isHealing()) {
+                    renderBoss3Healing(g2, boss3);
+                }
+            }));
+        }
+
+        if (player != null) {
+            int sortY = (int) Math.round(player.getY() + player.getHeight());
+            entries.add(new RenderEntry(sortY, () -> renderPlayer(g2, player, playerDeathElapsedMs)));
+        }
+
+        entries.sort(Comparator.comparingInt(RenderEntry::sortY));
+        for (RenderEntry entry : entries) {
+            entry.draw().run();
+        }
+    }
+
+    private void drawDecalImage(Graphics2D g2, BufferedImage img, RoomDecal decal) {
+        int x = decal.x();
+        int y = decal.y();
+        int w = decal.width();
+        int h = decal.height();
+        int rot = decal.rotationSteps() & 3;
+        if (rot == 0 && !decal.flipX()) {
+            g2.drawImage(img, x, y, w, h, null);
+            return;
+        }
+        AffineTransform oldTx = g2.getTransform();
+        g2.translate(x + w / 2.0, y + h / 2.0);
+        if (rot != 0) {
+            g2.rotate(rot * (Math.PI / 2.0));
+        }
+        if (decal.flipX()) {
+            g2.scale(-1.0, 1.0);
+        }
+        g2.drawImage(img, -w / 2, -h / 2, w, h, null);
+        g2.setTransform(oldTx);
+    }
+
+
+
+
     /** Pre-bakes a soft organic carpet wear smudge to break up repeating floor tiles. */
     private BufferedImage createFloorWearPatch(int size) {
         BufferedImage patch = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
@@ -800,6 +908,21 @@ public class GameRenderer {
             int oy = ((h >>> 12) & 15) - 8;
             g2.drawImage(floorWearPatch, px - 8 + ox, py - 8 + oy, null);
         }
+    }
+
+    private static BufferedImage rotate90Clockwise(BufferedImage src) {
+        int width = src.getWidth();
+        int height = src.getHeight();
+
+        int type = (src.getType() == 0) ? BufferedImage.TYPE_INT_ARGB : src.getType();
+        BufferedImage dest = new BufferedImage(height, width, type);
+
+        AffineTransform transform = new AffineTransform();
+        transform.translate(height, 0);
+        transform.rotate(Math.PI / 2);
+
+        AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+        return op.filter(src, dest);
     }
 
     public LightSystem getLightSystem() { return lightSystem; }

@@ -19,6 +19,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 import model.boss.Boss3;
 import model.player.Player;
@@ -34,6 +35,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Entities
     private Player player;
+    private long playerDeathStartNanos;
 
     // Weapons
     private Ak47 ak47;
@@ -68,14 +70,13 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void initNewGame() {
         this.currentFloor = 1;
-        createFloor();
 
         this.player = new Player();
+        this.playerDeathStartNanos = 0;
         this.ak47 = new Ak47();
         this.bat = new Bat();
         this.player.equip(ak47);
-        this.player.setX(180);
-        this.player.setY(260);
+        createFloor();
 
         if (room != null) {
             int x = (int) player.getX() + player.getWidth() + 8;
@@ -119,19 +120,29 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void update() {
         synchronized (stateLock) {
-            updateState();
+            if (!player.isDead()) {
+                updateState();
+            }
+            if (player.isDead()) {
+                if (playerDeathStartNanos == 0) {
+                    playerDeathStartNanos = System.nanoTime();
+                }
+                if (getPlayerDeathElapsedMs() >= renderer.getPlayerDeathDurationMs(player)) {
+                    endGame();
+                }
+            }
         }
+    }
+
+    private long getPlayerDeathElapsedMs() {
+        return playerDeathStartNanos == 0 ? 0
+                : TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - playerDeathStartNanos);
     }
 
     private void updateState() {
         // Cập nhật trạng thái quái vật, nhân vật di chuyển
 
         //1. Cập nhật nhân vật
-        if (player.isDead()) {
-            endGame();
-            return;
-        }
-
         if (keyH.consumeWeaponSwitchPress()) {
             toggleWeapon();
         }
@@ -163,6 +174,9 @@ public class GamePanel extends JPanel implements Runnable {
         player.move(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
             interactWithPickup();
+            if (player.isDead()) {
+                return;
+            }
         }
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
@@ -182,8 +196,8 @@ public class GamePanel extends JPanel implements Runnable {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
                 double bulletX = player.getX() + player.getWidth() / 2.0;
                 double bulletY = player.getY() + player.getHeight() / 2.0;
-                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY(),
-                        PROJECTILE_SPEED, ak47.getDamage()));
+                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY()
+                        , PROJECTILE_SPEED, ak47.getDamage()));
                 nextShotTime = now + AK47_FIRE_INTERVAL_MS;
             } else if (player.getCurrentWeapon() instanceof Bat) {
                 player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
@@ -202,7 +216,7 @@ public class GamePanel extends JPanel implements Runnable {
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
-        Direction doorDir = room.checkDoorTrigger(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        Direction doorDir = room.checkDoorTrigger(player.getMovementBounds());
         if (doorDir != null) {
             Room nextRoom = worldMap.moveTo(doorDir);
             if (nextRoom != room) {
@@ -222,6 +236,9 @@ public class GamePanel extends JPanel implements Runnable {
             room.getEnemies().removeIf(Enemy::isDead);
             for (Enemy e : room.getEnemies()) {
                 e.updateBehavior(player, room);
+                if (player.isDead()) {
+                    return;
+                }
                 // player.faceToward(e); // Currently not used
                 // player.resetFacing();
             }
@@ -241,15 +258,16 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         //5. Cap nhat chuyen floor
-        if (worldMap.isFloorCleared() && room.getTile( (int) player.getX() / Room.TILE_SIZE,
-                (int) player.getY() / Room.TILE_SIZE) == TileType.PORTAL) {
-            if (currentFloor <= 3){
-                currentFloor++ ;
-                createFloor();
-            } else {/*show winning screen*/ }
+        if (worldMap.isFloorCleared()) {
+            Rectangle bound = player.getMovementBounds();
+            if (room.getTile((bound.x + bound.width / 2) / Room.TILE_SIZE,
+                    (bound.y + bound.height / 2) / Room.TILE_SIZE)  == TileType.PORTAL) {
+                if (currentFloor < 3){
+                    currentFloor++ ;
+                    createFloor();
+                } else {/*show winning screen*/ }
+            }
         }
-
-
 
         //update light system
         renderer.getLightSystem().update(room, 0.016);
@@ -277,12 +295,22 @@ public class GamePanel extends JPanel implements Runnable {
             pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
         }
     }
-      
+
     private void createFloor() {
-        this.worldMap = mapGenerator.generateFloor(currentFloor, 8);
-        this.room = worldMap.getCurrentRoom();
-        if (this.room != null) {
-            this.room.setVisited(true);
+        projectiles.clear();
+        worldMap = mapGenerator.generateFloor(currentFloor, 8);
+        room = worldMap.getSpawnRoom();
+        renderer.loadTheme(worldMap.getTheme());
+
+        renderer.getLightSystem().setAmbientDarkness(
+                worldMap.getTheme().getAmbientDarkness());
+
+        if (room != null) {
+            room.setVisited(true);
+            Point spawnCenter = room.getCenterSpawnPosition(player.getWidth(),player.getHeight());
+            player.setX(spawnCenter.x);
+            player.setY(spawnCenter.y);
+
         }
     }
 
@@ -316,15 +344,45 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     public void removeNotify() {
-        isRunning = false;
+        if (mainFrame == null || !mainFrame.isTogglingFullscreen()) {
+            isRunning = false;
+        }
         super.removeNotify();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        synchronized (stateLock) {
-            renderer.render((Graphics2D) g, player, room, worldMap, projectiles);
+        int panelW = getWidth();
+        int panelH = getHeight();
+        if (panelW <= 0 || panelH <= 0) {
+            return;
+        }
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            if (panelW != MainGame.WINDOW_WIDTH || panelH != MainGame.WINDOW_HEIGHT) {
+                g2.setColor(Color.BLACK);
+                g2.fillRect(0, 0, panelW, panelH);
+
+                double scale = Math.min(
+                        (double) panelW / MainGame.WINDOW_WIDTH,
+                        (double) panelH / MainGame.WINDOW_HEIGHT
+                );
+                double offsetX = (panelW - MainGame.WINDOW_WIDTH * scale) / 2.0;
+                double offsetY = (panelH - MainGame.WINDOW_HEIGHT * scale) / 2.0;
+
+                g2.translate(offsetX, offsetY);
+                g2.scale(scale, scale);
+                g2.clipRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            }
+            synchronized (stateLock) {
+                renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs());
+            }
+        } finally {
+            g2.dispose();
         }
     }
 }
