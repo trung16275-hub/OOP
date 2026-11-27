@@ -80,6 +80,9 @@ public class MapGenerator {
         // Đục cửa đối xứng giữa các phòng kề nhau
         carveDoors(map);
 
+        // Áp dụng layout phòng định sẵn
+        applyRoomLayouts(map, floorLevel);
+
         // Sinh quái vật vào các phòng
         populateEnemies(map, floorLevel);
 
@@ -146,13 +149,29 @@ public class MapGenerator {
         for (Room r : map.getRooms()) {
             if (r.getRoomType() == Room.RoomType.BOSS) {
                 Boss1 boss = new Boss1();
-                boss.setX(midPxX - 30);
-                boss.setY(midPxY - 30);
+                Point bossSpawnPoint = r.getCenterSpawnPosition(boss.getWidth(),boss.getHeight());
+                boss.setX(bossSpawnPoint.x);
+                boss.setY(bossSpawnPoint.y);
                 r.addEnemy(boss);
                 r.setCleared(false);
             } else {
                 // Spawn room và các phòng còn lại không có quái
                 r.setCleared(true);
+            }
+        }
+    }
+
+    private void applyRoomLayouts(WorldMap map, int floorLevel) {
+        List<Point> candidatePickups = new ArrayList<>();
+        List<Room> pickupRooms = new ArrayList<>();
+
+        for (Room r : map.getRooms()) {
+            List<Point> anchors = RoomTemplate.applyFloor1Layout(r, rand);
+            if (r.getRoomType() == Room.RoomType.NORMAL && !anchors.isEmpty()) {
+                for (Point p : anchors) {
+                    candidatePickups.add(p);
+                    pickupRooms.add(r);
+                }
             }
         }
     }
