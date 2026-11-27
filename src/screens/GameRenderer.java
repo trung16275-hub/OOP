@@ -123,7 +123,7 @@ public class GameRenderer {
 
         renderWallAmbientOcclusion(g2, room);
 
-        renderEntitiesAndPropsYSorted(g2, room, player);
+        renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
 
         for (Enemy enemy : room.getEnemies()) {
@@ -802,7 +802,7 @@ public class GameRenderer {
         return decalCache.computeIfAbsent(path, AssetLoader::loadImage);
     }
 
-    private void renderEntitiesAndPropsYSorted(Graphics2D g2, Room room, Player player) {
+    private void renderEntitiesAndPropsYSorted(Graphics2D g2, Room room, Player player, long playerDeathElapsedMs) {
         record RenderEntry(int sortY, Runnable draw) {}
         List<RenderEntry> entries = new ArrayList<>();
 
@@ -837,9 +837,9 @@ public class GameRenderer {
             }));
         }
 
-        if (player != null && !player.isDead()) {
+        if (player != null) {
             int sortY = (int) Math.round(player.getY() + player.getHeight());
-            entries.add(new RenderEntry(sortY, () -> renderPlayer(g2, player)));
+            entries.add(new RenderEntry(sortY, () -> renderPlayer(g2, player, playerDeathElapsedMs)));
         }
 
         entries.sort(Comparator.comparingInt(RenderEntry::sortY));
