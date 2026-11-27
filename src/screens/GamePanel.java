@@ -9,6 +9,8 @@ import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
 import model.prop.AmmoPickup;
+import model.prop.BandagePickup;
+import model.prop.KevlarArmorPickup;
 import model.prop.LiquidPain;
 import model.weapon.Ak47;
 import model.weapon.Bat;
@@ -84,6 +86,10 @@ public class GamePanel extends JPanel implements Runnable {
             room.getAmmoPickups().add(new AmmoPickup(x, y));
             room.setLiquidPain(new LiquidPain((int) player.getX() + 19,
                     (int) player.getY() + player.getHeight() + 32));
+            room.getBandages().add(new BandagePickup(
+                    (int) player.getX() - 38, y));
+            room.getKevlarArmorPickups().add(new KevlarArmorPickup(
+                    (int) player.getX() + 19, (int) player.getY() - 32));
         }
 
     }
@@ -280,6 +286,21 @@ public class GamePanel extends JPanel implements Runnable {
     private void interactWithPickup() {
         Rectangle playerBounds = player.getMovementBounds();
         int index = room.findNearestAmmoPickup(playerBounds);
+        BandagePickup bandage = room.findNearestBandage(playerBounds, index);
+        KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
+        if (kevlar != null) {
+            player.addArmor(kevlar.amount());
+            room.getKevlarArmorPickups().remove(kevlar);
+            return;
+        }
+        if (bandage != null) {
+            int amount = Math.min(bandage.amount(), player.getMaxHp() - player.getHp());
+            if (amount > 0) {
+                player.heal(amount);
+                room.getBandages().remove(bandage);
+            }
+            return;
+        }
         if (room.isLiquidPainNearest(playerBounds, index)) {
             player.takeDirectDamage(LiquidPain.HP_COST);
             room.setLiquidPain(null);

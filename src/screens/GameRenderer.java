@@ -7,6 +7,8 @@ import model.Enemy;
 import model.Projectile;
 import model.prop.AmmoPickup;
 import model.prop.LiquidPain;
+import model.prop.BandagePickup;
+import model.prop.KevlarArmorPickup;
 import model.prop.Prop;
 import model.weapon.Ak47;
 import model.boss.Boss3;
@@ -121,6 +123,13 @@ public class GameRenderer {
             }
         }
 
+        for (BandagePickup pickup : room.getBandages()) {
+            renderRecoverySprite(g2, pickup.prop());
+        }
+        for (KevlarArmorPickup pickup : room.getKevlarArmorPickups()) {
+            renderRecoverySprite(g2, pickup.prop());
+        }
+
         renderWallAmbientOcclusion(g2, room);
 
         renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
@@ -145,7 +154,13 @@ public class GameRenderer {
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
             int index = room.findNearestAmmoPickup(playerBounds);
-            if (room.isLiquidPainNearest(playerBounds, index)) {
+            BandagePickup bandage = room.findNearestBandage(playerBounds, index);
+            KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
+            if (kevlar != null) {
+                renderPickupPrompt(g2, KevlarArmorPickup.DISPLAY_NAME + " · +" + kevlar.amount() + " giáp");
+            } else if (bandage != null) {
+                renderPickupPrompt(g2, BandagePickup.DISPLAY_NAME + " · +" + bandage.amount() + " HP");
+            } else if (room.isLiquidPainNearest(playerBounds, index)) {
                 renderPickupPrompt(g2, LiquidPain.DISPLAY_NAME + " · -" + LiquidPain.HP_COST + " HP");
             } else if (index >= 0) {
                 AmmoPickup pickup = room.getAmmoPickups().get(index);
@@ -183,6 +198,13 @@ public class GameRenderer {
         doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
         doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
+    }
+
+    private void renderRecoverySprite(Graphics2D g2, Prop prop) {
+        BufferedImage sprite = getCachedImage(prop.spriteKey());
+        if (sprite != null) {
+            g2.drawImage(sprite, prop.x(), prop.y(), prop.width(), prop.height(), null);
+        }
     }
 
     private void renderPickupPrompt(Graphics2D g2, String text) {
