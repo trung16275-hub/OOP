@@ -73,7 +73,7 @@ public class GameRenderer {
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
     private BufferedImage wallBotRimImage;
-    private BufferedImage doorOpenedImage;
+    private BufferedImage portalDoorImage;
     private BufferedImage doorClosedImage;
     private BufferedImage wallBorderBottomImage;
     private BufferedImage wallBorderLeftImage;
@@ -231,7 +231,11 @@ public class GameRenderer {
         wallCornerTopRightImage = rotate90Clockwise(wallCornerTopLeftImage);
         wallCornerBottomRightImage = rotate90Clockwise(wallCornerTopRightImage);
 
-        doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
+        portalDoorImage = AssetLoader.loadImage(switch (theme) {
+            case LEVEL_0_OFFICE -> "/floor1/tiles_addon/wall_elevator_door_open.png";
+            case LEVEL_2_PIPEDREAM -> path + "wall_doorway_opened.png";
+            case LEVEL_52_SCHOOL -> path + "wall_blast_door_open.png";
+        });
         doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
     }
@@ -1090,7 +1094,13 @@ public class GameRenderer {
                         renderWallTile(g2, room, x, y, px, py, tileSize);
                         break;
 
-                    case FLOOR, DOOR_OPEN:
+                    case FLOOR, DOOR_OPEN, PORTAL:
+
+                        if (type == TileType.PORTAL && portalDoorImage == null) {
+                            g2.setColor(new Color(125, 80, 180));
+                            g2.fillRect(px, py, tileSize, tileSize);
+                            break;
+                        }
 
                         if (basefloorImage != null) {
                             g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
@@ -1120,11 +1130,6 @@ public class GameRenderer {
 
                         break;
 
-                    case PORTAL:
-                        g2.setColor(new Color(125, 80, 180));
-                        g2.fillRect(px, py, tileSize, tileSize);
-                        break;
-
                     case VOID:
                         g2.setColor(Color.BLACK);
                         g2.fillRect(px, py, tileSize, tileSize);
@@ -1133,6 +1138,14 @@ public class GameRenderer {
             }
         }
         renderDecals(g2, room.getWallDecals());
+
+        // The portal spans the four center tiles set by Room.spawnPortal().
+        int centerX = room.getWidth() / 2;
+        int centerY = room.getHeight() / 2;
+        if (portalDoorImage != null && room.getTile(centerX, centerY) == TileType.PORTAL) {
+            g2.drawImage(portalDoorImage, (centerX - 1) * tileSize, (centerY - 1) * tileSize,
+                    2 * tileSize, 2 * tileSize, null);
+        }
     }
 
     // =========================
