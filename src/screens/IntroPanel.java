@@ -6,7 +6,6 @@ import javax.swing.*;
 
 public class IntroPanel extends JPanel {
     private MainGame mainFrame;
-    private final JButton fullscreenBtn;
 
     public IntroPanel(MainGame mainFrame) {
         setPreferredSize(new Dimension(MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT));
@@ -22,8 +21,6 @@ public class IntroPanel extends JPanel {
         titleLabel.setFont(new Font("Monospaced", Font.BOLD, 40));
 
         JButton startBtn = new JButton("Bắt Đầu");
-        fullscreenBtn = new JButton();
-        updateFullscreenButtonText();
         JButton exitBtn = new JButton("Thoát");
 
         // --- XỬ LÝ LOGIC CHUYỂN CẢNH (Nhiệm vụ của TV 2) ---
@@ -32,20 +29,14 @@ public class IntroPanel extends JPanel {
             mainFrame.startGame();
         });
 
-        fullscreenBtn.addActionListener(e -> {
-            mainFrame.toggleFullscreen();
-            updateFullscreenButtonText();
-        });
-
         exitBtn.addActionListener(e -> {
             System.exit(0); // Tắt chương trình
         });
 
         // --- SẮP XẾP BỐ CỤC ---
-        JPanel btnPanel = new JPanel(new GridLayout(3, 1, 15, 15));
+        JPanel btnPanel = new JPanel(new GridLayout(2, 1, 15, 15));
         btnPanel.setOpaque(false); // Trong suốt để hiển thị nền đen
         btnPanel.add(startBtn);
-        btnPanel.add(fullscreenBtn);
         btnPanel.add(exitBtn);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -55,9 +46,5 @@ public class IntroPanel extends JPanel {
 
         gbc.gridy = 1;
         add(btnPanel, gbc);
-    }
-
-    public void updateFullscreenButtonText() {
-        fullscreenBtn.setText(mainFrame.isFullscreen() ? "Cửa sổ (F11)" : "Toàn màn hình (F11)");
     }
 }

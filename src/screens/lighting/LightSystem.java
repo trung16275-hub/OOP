@@ -28,7 +28,7 @@ public class LightSystem {
         );
         this.lightG = lightMap.createGraphics();
         this.lightG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        lampFixtureImage = AssetLoader.loadImage("/floor1/props/lamp_fixture.png");
+        lampFixtureImage = AssetLoader.loadImage("/props/lamp_fixture.png");
         this.tubeLightMask = createTubeLightMask(440, 120, 36.0, 205.0);
         this.overheadLightMask = createOverheadLightMask(320, 210);
     }
@@ -211,10 +211,6 @@ public class LightSystem {
             }
         }
         return mask;
-    }
-
-    public void setAmbientDarkness(Color color) {
-        ambientDarkness = color;
     }
 
     public void dispose() {

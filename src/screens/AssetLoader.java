@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
 
-public final class AssetLoader {
+public class AssetLoader {
     public static BufferedImage loadImage(String path) {
         String cleanPath = path.startsWith("/") ? path : "/" + path;
         try (InputStream is = AssetLoader.class.getResourceAsStream(cleanPath)) {

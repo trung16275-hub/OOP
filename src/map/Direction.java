@@ -1,5 +1,8 @@
 package map;
 
+/**
+ * 4 hướng chính trong bản đồ hầm ngục và lưới phòng.
+ */
 public enum Direction {
     NORTH(0, -1),
     SOUTH(0, 1),

@@ -47,10 +47,7 @@ public class Room {
 
     private RoomType roomType;
     private final TileType[][] tiles;
-    private List<Prop> props = new ArrayList<>();
-    private final List<RoomDecal> floorDecals = new ArrayList<>();
-    private final List<RoomDecal> wallDecals = new ArrayList<>();
-
+    private List<Prop> props;
 
     private boolean cleared;
     private boolean visited;
@@ -84,8 +81,8 @@ public class Room {
         this.padY = (this.height - innerHeight) / 2;
 
         this.roomType = type;
-        this.cleared = roomType == RoomType.SPAWN;
-        this.bossLocked = roomType == RoomType.BOSS;
+        this.cleared = false;
+        this.bossLocked = roomType == RoomType.BOSS ? true : false;
 
         this.tiles = new TileType[width][height];
 
@@ -176,43 +173,32 @@ public class Room {
         }
     }
 
-
-
     public Direction checkDoorTrigger(double px, double py, int pw, int ph) {
-        return checkDoorTrigger(new Rectangle((int) Math.round(px), (int) Math.round(py), pw, ph));
-    }
-
-    public Direction checkDoorTrigger(Rectangle bounds) {
-        int px = bounds.x;
-        int py = bounds.y;
-        int pw = bounds.width;
-        int ph = bounds.height;
-
         // North Door
         if (doors.getOrDefault(Direction.NORTH, false)) {
             int doorPxX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-            if (py <= 0.6 * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
+            if (py <= 0.5 * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + TILE_SIZE) {
                 return Direction.NORTH;
             }
         }
         // South Door
         if (doors.getOrDefault(Direction.SOUTH, false)) {
             int doorPxX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-            if (py + ph >= (height - 0.6) * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + 2 * TILE_SIZE) {
+            if (py + ph >= (height - 0.5) * TILE_SIZE && px + pw > doorPxX - TILE_SIZE && px < doorPxX + TILE_SIZE) {
                 return Direction.SOUTH;
             }
         }
         // West Door
         if (doors.getOrDefault(Direction.WEST, false)) {
             int doorPxY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-            if (px <= 0.6 * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
+            if (px <= 0.5 * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
                 return Direction.WEST;
             }
         }
         // East Door
         if (doors.getOrDefault(Direction.EAST, false)) {
             int doorPxY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-            if (px + pw >= (width - 0.6) * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
+            if (px + pw >= (width - 0.5) * TILE_SIZE && py + ph > doorPxY - TILE_SIZE && py < doorPxY + 2 * TILE_SIZE) {
                 return Direction.EAST;
             }
         }
@@ -225,54 +211,28 @@ public class Room {
      */
     public Point getDoorSpawnPosition(Direction fromDir) {
         return switch (fromDir) {
-            // Came from North -> spawn at South entrance inside hallway
+            // Came from North -> spawn at South entrance on connecting floor tile (height - 2)
             case NORTH -> {
                 int southDoorX = getDoorOffset(Direction.SOUTH) * TILE_SIZE;
-                yield new Point(southDoorX - 14, (height - 3) * TILE_SIZE - 12);
+                yield new Point(southDoorX - 16, (height - 3) * TILE_SIZE);
             }
-            // Came from South -> spawn at North entrance inside hallway
+            // Came from South -> spawn at North entrance on connecting floor tile (row 1)
             case SOUTH -> {
                 int northDoorX = getDoorOffset(Direction.NORTH) * TILE_SIZE;
-                yield new Point(northDoorX - 14, TILE_SIZE + 8);
+                yield new Point(northDoorX - 16, 1 * TILE_SIZE + 25);
             }
-            // Came from West -> spawn at East entrance inside hallway
+            // Came from West -> spawn at East entrance on connecting floor tile (width - 2)
             case WEST -> {
                 int eastDoorY = getDoorOffset(Direction.EAST) * TILE_SIZE;
-                yield new Point((width - 3) * TILE_SIZE + 4, eastDoorY - 25);
+                yield new Point((width - 2) * TILE_SIZE - 30, eastDoorY);
             }
-            // Came from East -> spawn at West entrance inside hallway
+            // Came from East -> spawn at West entrance on connecting floor tile (column 1)
             case EAST -> {
                 int westDoorY = getDoorOffset(Direction.WEST) * TILE_SIZE;
-                yield new Point(TILE_SIZE + 4, westDoorY - 25);
+                yield new Point(1 * TILE_SIZE + 16, westDoorY);
             }
-
         };
     }
-    public Point getCenterSpawnPosition(int entityWidth, int entityHeight) {
-        int cx = (width * TILE_SIZE - entityWidth) / 2;
-        int cy = ((padY + 4 + (height - padY - 3)) * TILE_SIZE / 2) - entityHeight / 2;
-        return new Point(cx, cy);
-    }
-
-    public boolean isInDoorCorridor(int tx, int ty) {
-        int floorMinX = padX + 2;
-        int floorMaxX = width - padX - 3;
-        int floorMinY = padY + 4;
-        int floorMaxY = height - padY - 3;
-
-        // Keep 2-tile walkable buffer around the entire inner room perimeter
-        if (tx < floorMinX + 2 || tx > floorMaxX - 2 || ty < floorMinY + 2 || ty > floorMaxY - 2) {
-            return true;
-        }
-        return false;
-    }
-
-    public void addWallDecal(RoomDecal decal) {
-        if (decal != null) {
-            wallDecals.add(decal);
-        }
-    }
-
 
     public boolean checkCollision(Rectangle bounds) {
         int minTileX = Math.max(0, bounds.x / TILE_SIZE);
@@ -286,12 +246,6 @@ public class Room {
                     Rectangle tileRec = new Rectangle(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     if (bounds.intersects(tileRec)) return true;
                 }
-            }
-        }
-
-        for (Prop prop : props) {
-            if(prop.solid() && bounds.intersects(prop.getBounds())) {
-                return true;
             }
         }
 
@@ -361,33 +315,6 @@ public class Room {
     public void addEnemy(Enemy enemy) {
         enemies.add(enemy);
     }
-
-    public List<Prop> getProps() {
-        return props;
-    }
-
-    public void addProp(Prop prop) {
-        props.add(prop);
-    }
-
-    public RoomSize getRoomSize() {
-        return roomSize;
-    }
-
-    public void addFloorDecal(RoomDecal decal) {
-        if (decal != null) {
-            floorDecals.add(decal);
-        }
-    }
-
-    public List<RoomDecal> getWallDecals() {
-        return wallDecals;
-    }
-
-    public List<RoomDecal> getFloorDecals() {
-        return floorDecals;
-    }
-
 
     public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
 
@@ -476,5 +403,4 @@ public class Room {
     public void unlockDoor(Direction dir) {
         lockedDoors.remove(dir);
     }
-
 }
