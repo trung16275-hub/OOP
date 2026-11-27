@@ -19,7 +19,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 import model.boss.Boss3;
 import model.player.Player;
@@ -35,7 +34,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     // Entities
     private Player player;
-    private long playerDeathStartNanos;
 
     // Weapons
     private Ak47 ak47;
@@ -73,7 +71,6 @@ public class GamePanel extends JPanel implements Runnable {
         createFloor();
 
         this.player = new Player();
-        this.playerDeathStartNanos = 0;
         this.ak47 = new Ak47();
         this.bat = new Bat();
         this.player.equip(ak47);
@@ -122,29 +119,19 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void update() {
         synchronized (stateLock) {
-            if (!player.isDead()) {
-                updateState();
-            }
-            if (player.isDead()) {
-                if (playerDeathStartNanos == 0) {
-                    playerDeathStartNanos = System.nanoTime();
-                }
-                if (getPlayerDeathElapsedMs() >= renderer.getPlayerDeathDurationMs(player)) {
-                    endGame();
-                }
-            }
+            updateState();
         }
-    }
-
-    private long getPlayerDeathElapsedMs() {
-        return playerDeathStartNanos == 0 ? 0
-                : TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - playerDeathStartNanos);
     }
 
     private void updateState() {
         // Cập nhật trạng thái quái vật, nhân vật di chuyển
 
         //1. Cập nhật nhân vật
+        if (player.isDead()) {
+            endGame();
+            return;
+        }
+
         if (keyH.consumeWeaponSwitchPress()) {
             toggleWeapon();
         }
@@ -176,9 +163,6 @@ public class GamePanel extends JPanel implements Runnable {
         player.move(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
             interactWithPickup();
-            if (player.isDead()) {
-                return;
-            }
         }
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
@@ -238,9 +222,6 @@ public class GamePanel extends JPanel implements Runnable {
             room.getEnemies().removeIf(Enemy::isDead);
             for (Enemy e : room.getEnemies()) {
                 e.updateBehavior(player, room);
-                if (player.isDead()) {
-                    return;
-                }
                 // player.faceToward(e); // Currently not used
                 // player.resetFacing();
             }
@@ -343,7 +324,7 @@ public class GamePanel extends JPanel implements Runnable {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         synchronized (stateLock) {
-            renderer.render((Graphics2D) g, player, room, worldMap, projectiles, getPlayerDeathElapsedMs());
+            renderer.render((Graphics2D) g, player, room, worldMap, projectiles);
         }
     }
 }
