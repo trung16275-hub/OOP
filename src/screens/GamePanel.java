@@ -12,6 +12,7 @@ import model.Player;
 import model.Projectile;
 import model.AcidProjectile;
 
+import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss2Minion;
 import model.boss.AcidTrail;
@@ -363,7 +364,8 @@ public class GamePanel extends JPanel implements Runnable {
 
             List<Enemy> enemies = room.getEnemies();
 
-            enemies.removeIf(Enemy::isDead);
+            enemies.removeIf(enemy -> enemy.isDead()
+                    && !(enemy instanceof Boss1 boss && boss.isPlayingDeathAnimation()));
 
             // Danh sách Boss2 đã hoàn thành phân thân
             List<Boss2> bossesToSplit = new ArrayList<>();

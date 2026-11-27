@@ -34,12 +34,15 @@ public class Boss1 extends Enemy {
         IDLE,
         CHASE,
         DASH_STRIKE,
-        LUNGE_BITE
+        LUNGE_BITE,
+        HURT,
+        DEATH
     }
 
     private BossState state = BossState.IDLE;
 
     private long stateStartTime;
+    private static final long DEATH_ANIMATION_DURATION_MS = 1100;
     private long lastDashTime;
     private long lastLungeTime;
 
@@ -51,6 +54,11 @@ public class Boss1 extends Enemy {
 
     private boolean dashHit;
     private boolean lungeHit;
+
+private static final long HURT_DURATION = 320_000_000L;
+
+    private long hurtStartTime;
+    
 
     public Boss1() {
         this(DEFAULT_HITBOX_RADIUS);
@@ -70,65 +78,108 @@ public class Boss1 extends Enemy {
         setHeight(DEFAULT_HEIGHT);
     }
 
-    @Override
-    public void updateBehavior(Player player, Room room) {
+  
 
-        if (isDead()) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        if (player == null || player.isDead()) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        long now = System.nanoTime();
-        double distance = distanceTo(player);
-
-        // Ưu tiên hoàn thành skill đang chạy
-        if (state == BossState.DASH_STRIKE) {
-            updateDash(player, room, now);
-            return;
-        }
-
-        if (state == BossState.LUNGE_BITE) {
-            updateLunge(player, room, now);
-            return;
-        }
-
-        // Boss không phát hiện Player
-        if (!canDetect(player)) {
-            state = BossState.IDLE;
-            return;
-        }
-
-        // Chỉ quay hướng Player khi không thực hiện skill
-        faceToward(player);
-
-        // Skill 2: Vồ áp sát
-        if (distance <= LUNGE_TRIGGER_DISTANCE
-                && canUseLunge(now)) {
-
-            startLunge(player, now);
-            updateLunge(player, room, now);
-            return;
-        }
-
-        // Skill 1: Lao tới
-        if (distance >= DASH_MIN_RANGE
-                && distance <= DASH_MAX_RANGE
-                && canUseDash(now)) {
-
-            startDash(player, now);
-            updateDash(player, room, now);
-            return;
-        }
-
-        // Truy đuổi thông thường
-        state = BossState.CHASE;
-        chase(player, room);
+@Override
+protected void onDamaged() {
+    if (isDead()) {
+        state = BossState.DEATH;
+        stateStartTime = System.nanoTime();
+        return;
     }
+
+    state = BossState.HURT;
+    hurtStartTime = System.nanoTime();
+    stateStartTime = hurtStartTime;
+}
+
+
+  
+  
+@Override
+public void updateBehavior(Player player, Room room) {
+
+    
+long now = System.nanoTime();
+
+// Boss đã chết: không cập nhật AI nữa
+if (isDead()) {
+    if (state != BossState.DEATH) {
+        state = BossState.DEATH;
+        stateStartTime = now;
+    }
+    return;
+}
+
+// Boss đang bị thương
+if (state == BossState.HURT) {
+    if (now - hurtStartTime < HURT_DURATION) {
+        return;
+    }
+
+    // Hết animation Hurt, quay lại AI
+    if (player == null || player.isDead()) {
+        state = BossState.IDLE;
+    } else if (canDetect(player)) {
+        state = BossState.CHASE;
+    } else {
+        state = BossState.IDLE;
+    }
+}
+
+
+    // 3. Player không hợp lệ
+    if (player == null || player.isDead()) {
+        state = BossState.IDLE;
+        return;
+    }
+
+    double distance = distanceTo(player);
+
+    // 4. Ưu tiên hoàn thành skill đang chạy
+    if (state == BossState.DASH_STRIKE) {
+        updateDash(player, room, now);
+        return;
+    }
+
+    if (state == BossState.LUNGE_BITE) {
+        updateLunge(player, room, now);
+        return;
+    }
+
+    // 5. Boss không phát hiện Player
+    if (!canDetect(player)) {
+        state = BossState.IDLE;
+        return;
+    }
+
+    // 6. Chỉ quay hướng Player khi không thực hiện skill
+    faceToward(player);
+
+    // 7. Skill 2: Vồ áp sát
+    if (distance <= LUNGE_TRIGGER_DISTANCE
+            && canUseLunge(now)) {
+
+        startLunge(player, now);
+        updateLunge(player, room, now);
+        return;
+    }
+
+    // 8. Skill 1: Lao tới
+    if (distance >= DASH_MIN_RANGE
+            && distance <= DASH_MAX_RANGE
+            && canUseDash(now)) {
+
+        startDash(player, now);
+        updateDash(player, room, now);
+        return;
+    }
+
+    // 9. Truy đuổi thông thường
+    state = BossState.CHASE;
+    chase(player, room);
+}
+
 
     // =========================
     // SKILL 1: LAO TỚI
@@ -263,6 +314,12 @@ public class Boss1 extends Enemy {
             case CHASE:
                 return "run";
 
+                 case HURT:
+            return "hurt";
+
+            case DEATH:
+                return "death";
+
             case IDLE:
             default:
                 return "idle";
@@ -271,6 +328,14 @@ public class Boss1 extends Enemy {
 
     public boolean isDashing() {
         return state == BossState.DASH_STRIKE;
+    }
+
+    public long getAnimationElapsedMillis() {
+        return (System.nanoTime() - stateStartTime) / 1_000_000L;
+    }
+
+    public boolean isPlayingDeathAnimation() {
+        return state == BossState.DEATH && getAnimationElapsedMillis() < DEATH_ANIMATION_DURATION_MS;
     }
 
     public boolean isLunging() {
