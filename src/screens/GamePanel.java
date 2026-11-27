@@ -262,10 +262,13 @@ public class GamePanel extends JPanel implements Runnable {
             Rectangle bound = player.getMovementBounds();
             if (room.getTile((bound.x + bound.width / 2) / Room.TILE_SIZE,
                     (bound.y + bound.height / 2) / Room.TILE_SIZE)  == TileType.PORTAL) {
-                if (currentFloor < 3){
-                    currentFloor++ ;
+                if (currentFloor < 3) {
+                    currentFloor++;
                     createFloor();
-                } else {/*show winning screen*/ }
+                } else {
+                    winGame();
+                    return;
+                }
             }
         }
 
@@ -338,6 +341,16 @@ public class GamePanel extends JPanel implements Runnable {
         SwingUtilities.invokeLater(() -> {
             if (mainFrame.getContentPane() == this) {
                 mainFrame.showGameOver();
+            }
+        });
+    }
+
+    private void winGame() {
+        isRunning = false;
+        // Swing screen changes must run on the event dispatch thread.
+        SwingUtilities.invokeLater(() -> {
+            if (mainFrame.getContentPane() == this) {
+                mainFrame.showGameWin();
             }
         });
     }
