@@ -1,3 +1,4 @@
+
 package map;
 
 import model.Enemy;
@@ -5,6 +6,7 @@ import model.boss.Boss1;
 import model.boss.Boss2;
 import model.boss.Boss2Minion;
 import model.boss.Boss4;
+import model.creep.Stalker;
 
 import java.awt.Color;
 import java.util.Arrays;
@@ -25,14 +27,20 @@ public class MapGenerator {
         return generateFloor(floorLevel, 4);
     }
 
-    /** Giữ sơ đồ boss cũ và nối hub phía Tây tới sáu phòng creep riêng biệt. */
+    /**
+     * Giữ sơ đồ boss cũ và nối hub phía Tây tới sáu phòng creep riêng biệt.
+     */
     public WorldMap generateFloor(int floorLevel, int targetRooms) {
         WorldMap map = new WorldMap(floorLevel);
         int spawnX = 3;
         int spawnY = 3;
 
         // Giữ nguyên spawn và ba phòng boss cũ.
-        Room spawnRoom = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.SPAWN);
+        Room spawnRoom = new Room(
+                Room.DEFAULT_WIDTH,
+                Room.DEFAULT_HEIGHT,
+                Room.RoomType.SPAWN
+        );
         map.addRoom(spawnX, spawnY, spawnRoom);
 
         map.addRoom(spawnX, spawnY - 1,
@@ -46,31 +54,42 @@ public class MapGenerator {
         Room westHub = new Room(Room.RoomSize.BIG, Room.RoomType.NORMAL);
         map.addRoom(spawnX - 1, spawnY, westHub);
 
-        // Sáu phòng đích được xếp trong cụm phía Tây, không nằm phía Đông spawn.
+        // Sáu phòng đích được xếp trong cụm phía Tây.
         int[][] creepRoomGridPositions = {
-            {0, 0}, {1, 1}, {0, 2}, {0, 4}, {1, 5}, {0, 6}
+                {0, 0}, {1, 1}, {0, 2}, {0, 4}, {1, 5}, {0, 6}
         };
+
         Room[] creepRooms = new Room[creepRoomGridPositions.length];
+
         for (int i = 0; i < creepRoomGridPositions.length; i++) {
             int[] position = creepRoomGridPositions[i];
-            creepRooms[i] = new Room(Room.DEFAULT_WIDTH, Room.DEFAULT_HEIGHT, Room.RoomType.NORMAL);
+
+            creepRooms[i] = new Room(
+                    Room.DEFAULT_WIDTH,
+                    Room.DEFAULT_HEIGHT,
+                    Room.RoomType.NORMAL
+            );
+
             map.addRoom(position[0], position[1], creepRooms[i]);
         }
 
         carveDoors(map);
+
         int[] westDoorOffsets = {5, 9, 13, 17, 21, 25};
+
         for (int i = 0; i < creepRooms.length; i++) {
             map.connectRooms(
-                westHub,
-                Direction.WEST,
-                westDoorOffsets[i],
-                creepRooms[i],
-                Room.DEFAULT_HEIGHT / 2
+                    westHub,
+                    Direction.WEST,
+                    westDoorOffsets[i],
+                    creepRooms[i],
+                    Room.DEFAULT_HEIGHT / 2
             );
         }
+
         populateEnemies(map, creepRooms);
 
-        // them den
+        // Thêm đèn.
         populateLights(map);
 
         return map;
@@ -91,15 +110,20 @@ public class MapGenerator {
                         int offset = (dir == Direction.NORTH || dir == Direction.SOUTH)
                                 ? r.getWidth() / 2
                                 : r.getHeight() / 2;
+
                         r.setDoorOffset(dir, offset);
                     }
+
                     r.carveOpenPath(dir);
                 }
             }
         }
     }
 
-    /** Sinh ba boss cũ và một minion trong mỗi phòng đích phía Tây. */
+    /**
+     * Sinh ba boss cũ, một Stalker ở phòng creep đầu tiên
+     * và Boss2Minion ở năm phòng creep còn lại.
+     */
     private void populateEnemies(WorldMap map, Room[] creepRooms) {
         int centerX = (Room.DEFAULT_WIDTH / 2) * Room.TILE_SIZE;
         int centerY = (Room.DEFAULT_HEIGHT / 2) * Room.TILE_SIZE;
@@ -107,6 +131,7 @@ public class MapGenerator {
         for (Room r : map.getRooms()) {
             if (r.getRoomType() == Room.RoomType.BOSS) {
                 Enemy boss;
+
                 if (r.getGridY() == 2) {
                     boss = new Boss1();
                 } else if (r.getGridX() == 4) {
@@ -117,17 +142,37 @@ public class MapGenerator {
 
                 boss.setX(centerX - boss.getWidth() / 2.0);
                 boss.setY(centerY - boss.getHeight() / 2.0);
+
                 r.addEnemy(boss);
                 r.setCleared(false);
-            } else if (Arrays.asList(creepRooms).contains(r)) {
-                Boss2Minion creep = new Boss2Minion(
-                        centerX - 35 / 2.0,
-                        centerY - 35 / 2.0
-                );
-                r.addEnemy(creep);
-                r.setCleared(false);
+
             } else {
-                r.setCleared(true);
+                int creepRoomIndex = Arrays.asList(creepRooms).indexOf(r);
+
+                if (creepRoomIndex >= 0) {
+                    Enemy creep;
+
+                    if (creepRoomIndex == 0) {
+                        // Phòng creep đầu tiên: Stalker.
+                        creep = new Stalker();
+
+                        creep.setX(centerX - creep.getWidth() / 2.0);
+                        creep.setY(centerY - creep.getHeight() / 2.0);
+
+                    } else {
+                        // Năm phòng còn lại giữ Boss2Minion.
+                        creep = new Boss2Minion(
+                                centerX - 35 / 2.0,
+                                centerY - 35 / 2.0
+                        );
+                    }
+
+                    r.addEnemy(creep);
+                    r.setCleared(false);
+
+                } else {
+                    r.setCleared(true);
+                }
             }
         }
     }
@@ -146,6 +191,7 @@ public class MapGenerator {
 
                 int tileX = (int) tubeX / Room.TILE_SIZE;
                 int tileY = wallY / Room.TILE_SIZE;
+
                 if (r.getTile(tileX, tileY) == TileType.FLOOR
                         || r.getTile(tileX - 1, tileY) == TileType.FLOOR
                         || r.getTile(tileX + 1, tileY) == TileType.FLOOR) {

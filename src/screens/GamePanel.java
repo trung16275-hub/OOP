@@ -239,10 +239,16 @@ public class GamePanel extends JPanel implements Runnable {
             player.setAimDirection(moveX, 0);
         }
 
+
         double previousX = player.getX();
         double previousY = player.getY();
 
-        player.move(moveX, moveY, room);
+// Stalker đánh trúng: Player không thể di chuyển trong thời gian bị choáng.
+        if (player.isStunned()) {
+            player.setMoving(false);
+        } else {
+            player.move(moveX, moveY, room);
+        }
 
         double movedX = player.getX() - previousX;
         double movedY = player.getY() - previousY;
@@ -252,6 +258,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (movedX != 0) {
             player.setFacingLeft(movedX < 0);
         }
+
 
         // =========================
         // 2. TẤN CÔNG

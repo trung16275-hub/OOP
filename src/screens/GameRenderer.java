@@ -53,6 +53,11 @@ public class GameRenderer {
     private static final int BOSS2_ATTACK_FRAME_DURATION_MS = 90;
     private static final int BOSS2_BACK_BURST_FRAME_DURATION_MS = 90;
     private static final int BOSS2_HURT_FRAME_DURATION_MS = 80;
+    // Animation Stalker
+    private static final int STALKER_IDLE_FRAME_DURATION_MS = 220;
+    private static final int STALKER_RUN_FRAME_DURATION_MS = 100;
+    private static final int STALKER_ATTACK_FRAME_DURATION_MS = 90;
+    private static final int STALKER_HURT_FRAME_DURATION_MS = 80;
 
     private BufferedImage basefloorImage;
     private BufferedImage basewallImage;
@@ -111,6 +116,19 @@ public class GameRenderer {
         registerAnim("boss2", "attack", "assets/boss2/attack.png", 4);
         registerAnim("boss2", "back_burst", "assets/boss2/back_burst.png", 4);
         registerAnim("boss2", "hurt", "assets/boss2/hurt.png", 4);
+
+        // Stalker
+        registerAnim("stalker", "idle",
+                "assets/creep/stalker/stalker_idle.png", 4);
+
+        registerAnim("stalker", "run",
+                "assets/creep/stalker/stalker_run.png", 4);
+
+        registerAnim("stalker", "attack",
+                "assets/creep/stalker/stalker_attack.png", 4);
+
+        registerAnim("stalker", "hurt",
+                "assets/creep/stalker/stalker_hurt.png", 4);
 
         // Tiles
         basefloorImage = AssetLoader.loadImage("/tiles/tile_floor_backrooms.png");
@@ -691,6 +709,32 @@ public class GameRenderer {
 
                         default:
                             frameDuration = BOSS2_IDLE_FRAME_DURATION_MS;
+                            break;
+                    }
+                }
+
+                // Animation Stalker
+                else if ("stalker".equals(key)) {
+
+                    switch (state) {
+                        case "idle":
+                            frameDuration = STALKER_IDLE_FRAME_DURATION_MS;
+                            break;
+
+                        case "run":
+                            frameDuration = STALKER_RUN_FRAME_DURATION_MS;
+                            break;
+
+                        case "attack":
+                            frameDuration = STALKER_ATTACK_FRAME_DURATION_MS;
+                            break;
+
+                        case "hurt":
+                            frameDuration = STALKER_HURT_FRAME_DURATION_MS;
+                            break;
+
+                        default:
+                            frameDuration = STALKER_IDLE_FRAME_DURATION_MS;
                             break;
                     }
                 }
