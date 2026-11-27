@@ -464,7 +464,11 @@ public class GameRenderer {
 
                     Room room = worldMap.getRoom(gx, gy);
 
-                    if (room == null || !room.isVisited()) {
+                    if (room == null) {
+                        continue;
+                    }
+
+                    if (!room.isVisited() && !worldMap.hasVisitedNeighbor(gx, gy)) {
                         continue;
                     }
 
@@ -491,11 +495,6 @@ public class GameRenderer {
                         mini.fillOval(x + 3, y + 3, cellSize - 6, cellSize - 6);
                     }
 
-                    if (room.getRoomType() != Room.RoomType.BOSS
-                            && !room.getEnemies().isEmpty()) {
-                        mini.setColor(new Color(220, 80, 220));
-                        mini.fillOval(x + 5, y + 5, cellSize - 10, cellSize - 10);
-                    }
                 }
             }
 
