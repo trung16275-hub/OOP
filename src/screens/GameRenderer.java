@@ -5,13 +5,12 @@ import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
-import model.prop.AmmoPickup;
-import model.prop.LiquidPain;
-import model.prop.BandagePickup;
-import model.prop.KevlarArmorPickup;
-import model.prop.Prop;
+import model.pickup.Pickup;
+import model.prop.RoomProp;
 import model.weapon.Ak47;
 import model.boss.Boss3;
+import model.boss.Boss4;
+import model.RoomEffect;
 import model.player.Player;
 import screens.lighting.*;
 
@@ -42,7 +41,7 @@ public class GameRenderer {
     private BufferedImage basewallImage;
     private BufferedImage wallTopRimImage;
     private BufferedImage wallBotRimImage;
-    private BufferedImage doorOpenedImage;
+    private BufferedImage portalDoorImage;
     private BufferedImage doorClosedImage;
     private BufferedImage wallBorderBottomImage;
     private BufferedImage wallBorderLeftImage;
@@ -56,8 +55,6 @@ public class GameRenderer {
     private BufferedImage heartImage;
     private BufferedImage bulletImage;
     private BufferedImage armorImage;
-    private final BufferedImage rifleAmmoImage = AssetLoader.loadImage(AmmoPickup.SPRITE_PATH);
-    private final BufferedImage liquidPainImage = AssetLoader.loadImage(LiquidPain.SPRITE_PATH);
     private BufferedImage floorWearPatch;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
@@ -92,6 +89,12 @@ public class GameRenderer {
 
     void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                 List<Projectile> projectiles, long playerDeathElapsedMs) {
+        render(g2, player, room, worldMap, projectiles, playerDeathElapsedMs, List.of(), List.of());
+    }
+
+    void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
+                List<Projectile> projectiles, long playerDeathElapsedMs,
+                List<Projectile> enemyProjectiles, List<RoomEffect> roomEffects) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -111,29 +114,17 @@ public class GameRenderer {
         // 3. Render room & entities
         renderRoom(g2, room);
         renderDecals(g2, room.getFloorDecals());
+        renderRoomEffects(g2, roomEffects);
 
-        if (room.getLiquidPain() != null && liquidPainImage != null) {
-            Prop prop = room.getLiquidPain().prop();
-            g2.drawImage(liquidPainImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
-        }
-        if (rifleAmmoImage != null) {
-            for (AmmoPickup pickup : room.getAmmoPickups()) {
-                Prop prop = pickup.prop();
-                g2.drawImage(rifleAmmoImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
-            }
-        }
-
-        for (BandagePickup pickup : room.getBandages()) {
-            renderRecoverySprite(g2, pickup.prop());
-        }
-        for (KevlarArmorPickup pickup : room.getKevlarArmorPickups()) {
-            renderRecoverySprite(g2, pickup.prop());
+        for (Pickup pickup : room.getPickups()) {
+            renderPickupSprite(g2, pickup.prop());
         }
 
         renderWallAmbientOcclusion(g2, room);
 
         renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
+        renderEnemyProjectiles(g2, enemyProjectiles);
 
         if (player != null && !player.isDead()) {
             renderPlayerHitboxes(g2, player);
@@ -144,7 +135,8 @@ public class GameRenderer {
         lightSystem.render(g2, player, room, camX, camY);
         g2.translate(-camX, -camY);
         for (Enemy enemy : room.getEnemies()) {
-            if (enemy != null && !enemy.isDead()) {
+            if (enemy != null && !enemy.isDead()
+                    && !(enemy instanceof Boss4 boss4 && boss4.isSubmergedInWall())) {
                 renderDetectionRange(g2, enemy, enemy.getDetectionRange(),
                         new Color(0, 255, 0, 22), new Color(0, 255, 0, 190), camX, camY);
                 renderHitbox(g2, enemy);
@@ -153,21 +145,14 @@ public class GameRenderer {
         g2.translate(camX, camY);
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
-            int index = room.findNearestAmmoPickup(playerBounds);
             String noteId = room.findNearbyEnemyNote(playerBounds);
-            BandagePickup bandage = room.findNearestBandage(playerBounds, index);
-            KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
             if (noteId != null && EnemyNote.find(noteId) != null) {
                 renderPickupPrompt(g2, "Đọc hồ sơ");
-            } else if (kevlar != null) {
-                renderPickupPrompt(g2, KevlarArmorPickup.DISPLAY_NAME + " · +" + kevlar.amount() + " giáp");
-            } else if (bandage != null) {
-                renderPickupPrompt(g2, BandagePickup.DISPLAY_NAME + " · +" + bandage.amount() + " HP");
-            } else if (room.isLiquidPainNearest(playerBounds, index)) {
-                renderPickupPrompt(g2, LiquidPain.DISPLAY_NAME + " · -" + LiquidPain.HP_COST + " HP");
-            } else if (index >= 0) {
-                AmmoPickup pickup = room.getAmmoPickups().get(index);
-                renderPickupPrompt(g2, AmmoPickup.DISPLAY_NAME + " · " + pickup.rounds() + " viên");
+            } else {
+                Pickup pickup = room.findNearestPickup(playerBounds);
+                if (pickup != null) {
+                    renderPickupPrompt(g2, pickup.prompt());
+                }
             }
         }
 
@@ -198,12 +183,16 @@ public class GameRenderer {
         wallCornerTopRightImage = rotate90Clockwise(wallCornerTopLeftImage);
         wallCornerBottomRightImage = rotate90Clockwise(wallCornerTopRightImage);
 
-        doorOpenedImage = AssetLoader.loadImage(path + "wall_doorway_opened.png");
+        portalDoorImage = AssetLoader.loadImage(switch (theme) {
+            case LEVEL_0_OFFICE -> "/floor1/tiles_addon/wall_elevator_door_open.png";
+            case LEVEL_2_PIPEDREAM -> path + "wall_doorway_opened.png";
+            case LEVEL_52_SCHOOL -> path + "wall_blast_door_open.png";
+        });
         doorClosedImage = AssetLoader.loadImage(path + "wall_doorway_closed.png");
 
     }
 
-    private void renderRecoverySprite(Graphics2D g2, Prop prop) {
+    private void renderPickupSprite(Graphics2D g2, RoomProp prop) {
         BufferedImage sprite = getCachedImage(prop.spriteKey());
         if (sprite != null) {
             g2.drawImage(sprite, prop.x(), prop.y(), prop.width(), prop.height(), null);
@@ -533,8 +522,44 @@ public class GameRenderer {
 
     }
 
-    private void renderEnemy(Graphics2D g2, Enemy enemy) {
+    private void renderEnemyProjectiles(Graphics2D g2, List<Projectile> enemyProjectiles) {
+        if (enemyProjectiles == null) return;
+        for (Projectile projectile : enemyProjectiles) {
+            if (projectile == null || !projectile.isActive()) continue;
+            Rectangle b = projectile.getBounds();
+            if (projectile.getKind() == Projectile.Kind.AK47_BULLET) {
+                g2.setColor(new Color(255, 220, 90));
+                g2.fillOval(b.x, b.y, b.width, b.height);
+                continue;
+            }
+            Graphics2D ag = (Graphics2D) g2.create();
+            try {
+                ag.setColor(new Color(50, 255, 50, 70));
+                ag.fillOval(b.x - 5, b.y - 5, b.width + 10, b.height + 10);
+                ag.setColor(new Color(80, 220, 30));
+                ag.fillOval(b.x, b.y, b.width, b.height);
+                ag.setColor(new Color(190, 255, 80));
+                ag.fillOval(b.x + 3, b.y + 3, Math.max(2, b.width - 6), Math.max(2, b.height - 6));
+            } finally {
+                ag.dispose();
+            }
+        }
+    }
 
+    private void renderRoomEffects(Graphics2D g2, List<RoomEffect> roomEffects) {
+        if (roomEffects == null) return;
+        for (RoomEffect effect : roomEffects) {
+            if (effect == null || effect.isExpired()) continue;
+            Graphics2D graphics = (Graphics2D) g2.create();
+            try {
+                effect.render(graphics);
+            } finally {
+                graphics.dispose();
+            }
+        }
+    }
+
+    private void renderEnemy(Graphics2D g2, Enemy enemy) {
         int x = (int) enemy.getX();
         int y = (int) enemy.getY();
         int w = enemy.getWidth();
@@ -545,20 +570,22 @@ public class GameRenderer {
         int shadowH = Math.max(8, Math.round(shadowW * 0.35f));
         renderContactShadow(g2, x + w / 2, y + h - 3, shadowW, shadowH);
 
-    if (key != null) {
-        BufferedImage[] frames = animations.getFrames(key + "." + enemy.getAnimState());
-        if (frames != null && frames.length > 0) {
-            int frameIndex = (int) ((System.currentTimeMillis() / 100) % frames.length);
-            if(enemy.getFacingX() >= 0) {
-                g2.drawImage(frames[frameIndex], x, y, w, h, null);
-            } else {
-                // Lật ảnh theo chiều ngang
-                g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+        if (key != null) {
+            String state = enemy.getAnimState();
+            BufferedImage[] frames = animations.getFrames(key + "." + state);
+            if (frames == null) {
+                frames = animations.getFrames(key + ".idle");
             }
-            return;
-
+            if (frames != null && frames.length > 0) {
+                int frameIndex = enemy.resolveAnimFrameIndex(state, frames.length);
+                if (enemy.getFacingX() >= 0) {
+                    g2.drawImage(frames[frameIndex], x, y, w, h, null);
+                } else {
+                    g2.drawImage(frames[frameIndex], x + w, y, -w, h, null);
+                }
+                return;
+            }
         }
-    }
         // Vẽ thân Enemy (khối đỏ)
         g2.setColor(new Color(231, 76, 60));
         g2.fillOval(x, y, w, h);
@@ -671,7 +698,12 @@ public class GameRenderer {
                 switch (type) {
                     case WALL -> renderWallTile(g2, room, x, y, px, py, tileSize);
 
-                    case FLOOR, DOOR_OPEN -> {
+                    case FLOOR, DOOR_OPEN, PORTAL -> {
+                        if (type == TileType.PORTAL && portalDoorImage == null) {
+                            g2.setColor(new Color(125, 80, 180));
+                            g2.fillRect(px, py, tileSize, tileSize);
+                            break;
+                        }
                         if (basefloorImage != null) {
                             g2.drawImage(basefloorImage, px, py, tileSize, tileSize, null);
                             renderFloorVariation(g2, room, x, y, px, py, tileSize);
@@ -692,6 +724,14 @@ public class GameRenderer {
             }
         }
         renderDecals(g2, room.getWallDecals());
+
+        // The portal spans the four center tiles set by Room.spawnPortal().
+        int centerX = room.getWidth() / 2;
+        int centerY = room.getHeight() / 2;
+        if (portalDoorImage != null && room.getTile(centerX, centerY) == TileType.PORTAL) {
+            g2.drawImage(portalDoorImage, (centerX - 1) * tileSize, (centerY - 1) * tileSize,
+                    2 * tileSize, 2 * tileSize, null);
+        }
     }
         private void renderBoss3Lasers(Graphics2D g2, Boss3 boss) {
         Stroke oldStroke = g2.getStroke();
@@ -900,7 +940,7 @@ public class GameRenderer {
         record RenderEntry(int sortY, Runnable draw) {}
         List<RenderEntry> entries = new ArrayList<>();
 
-        for (Prop prop : room.getProps()) {
+        for (RoomProp prop : room.getProps()) {
             BufferedImage sprite = getCachedImage(prop.spriteKey());
             entries.add(new RenderEntry(prop.y() + prop.height(), () -> {
                 int shadowW = Math.round(prop.width() * 0.9f);
@@ -916,7 +956,7 @@ public class GameRenderer {
         }
 
         for (Enemy enemy : room.getEnemies()) {
-            if (enemy == null || enemy.isDead()) {
+            if (enemy == null || enemy.isRemovable()) {
                 continue;
             }
             int sortY = (int) Math.round(enemy.getY() + enemy.getHeight());
@@ -924,7 +964,17 @@ public class GameRenderer {
                 if (enemy instanceof Boss3 boss3 && boss3.isFiringLaser()) {
                     renderBoss3Lasers(g2, boss3);
                 }
-                renderEnemy(g2, enemy);
+                if (enemy instanceof Boss4 boss4) {
+                    renderBoss4SafeZone(g2, boss4);
+                    if (boss4.isSubmergedInWall()) {
+                        renderBoss4WallShadow(g2, boss4);
+                    } else {
+                        renderEnemy(g2, boss4);
+                    }
+                    renderBoss4Arm(g2, boss4);
+                } else {
+                    renderEnemy(g2, enemy);
+                }
                 if (enemy instanceof Boss3 boss3 && boss3.isHealing()) {
                     renderBoss3Healing(g2, boss3);
                 }
@@ -940,6 +990,46 @@ public class GameRenderer {
         for (RenderEntry entry : entries) {
             entry.draw().run();
         }
+    }
+
+    private void renderBoss4SafeZone(Graphics2D g2, Boss4 b4) {
+        if (!b4.isSafeZoneActive()) return;
+        Color oldColor = g2.getColor();
+        int r = (int) b4.getSafeZoneRadius();
+        g2.setColor(new Color(100, 200, 255, 55));
+        g2.fillOval((int) b4.getSafeZoneX() - r, (int) b4.getSafeZoneY() - r, r * 2, r * 2);
+        g2.setColor(oldColor);
+    }
+
+    private void renderBoss4WallShadow(Graphics2D g2, Boss4 b4) {
+        Color oldColor = g2.getColor();
+        int cx = (int) b4.getCenterX();
+        int cy = (int) b4.getCenterY();
+        int r = 24 + (int) (Math.sin(System.currentTimeMillis() / 120.0) * 5);
+        g2.setColor(new Color(15, 10, 25, 150));
+        g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+        g2.setColor(new Color(90, 20, 40, 180));
+        g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+        g2.setColor(oldColor);
+    }
+
+    private void renderBoss4Arm(Graphics2D g2, Boss4 b4) {
+        if (!b4.isArmActive()) return;
+        Stroke oldStroke = g2.getStroke();
+        Color oldColor = g2.getColor();
+        int sx = (int) b4.getArmStartX();
+        int sy = (int) b4.getArmStartY();
+        int ex = (int) b4.getArmEndX();
+        int ey = (int) b4.getArmEndY();
+        g2.setColor(new Color(140, 40, 60, 180));
+        g2.setStroke(new BasicStroke(12f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.drawLine(sx, sy, ex, ey);
+        g2.setColor(new Color(25, 20, 35));
+        g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.drawLine(sx, sy, ex, ey);
+        g2.fillOval(ex - 10, ey - 10, 20, 20);
+        g2.setStroke(oldStroke);
+        g2.setColor(oldColor);
     }
 
     private void drawDecalImage(Graphics2D g2, BufferedImage img, RoomDecal decal) {

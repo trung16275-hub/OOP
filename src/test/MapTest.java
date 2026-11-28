@@ -19,10 +19,10 @@ public class MapTest {
 
     private static void testRoomCreation() {
         Room room = new Room(Room.RoomSize.SCREEN, Room.RoomType.SPAWN);
-        assert room.getWidth() == 30 : "Chiều rộng phòng phải là 30";
-        assert room.getHeight() == 20 : "Chiều cao phòng phải là 20";
+        assert room.getWidth() == 32 : "Chiều rộng phòng phải là 32";
+        assert room.getHeight() == 18 : "Chiều cao phòng phải là 18";
         assert room.getTile(0, 0) == TileType.WALL : "Góc (0, 0) phải là tường";
-        assert room.getTile(15, 10) == TileType.FLOOR : "Tâm phòng phải là sàn";
+        assert room.getTile(16, 9) == TileType.FLOOR : "Tâm phòng phải là sàn";
         assert room.isCleared() : "Phòng SPAWN phải được cleared mặc định";
         System.out.println("✓ testRoomCreation: OK");
     }
@@ -34,22 +34,20 @@ public class MapTest {
 
         assert room.hasDoor(Direction.NORTH) : "Phải có cửa Bắc";
         assert room.hasDoor(Direction.SOUTH) : "Phải có cửa Nam";
-        assert room.getTile(14, 0) == TileType.DOOR_CLOSED : "Cửa Bắc đóng phải là DOOR_CLOSED";
-        assert room.getTile(14, 19) == TileType.DOOR_OPEN : "Cửa Nam mở phải là DOOR_OPEN";
+        assert room.getTile(16, 0) == TileType.DOOR_CLOSED : "Cửa Bắc đóng phải là DOOR_CLOSED";
+        assert room.getTile(16, 17) == TileType.DOOR_OPEN : "Cửa Nam mở phải là DOOR_OPEN";
 
         room.openDoors();
-        assert room.getTile(14, 0) == TileType.DOOR_OPEN : "Sau openDoors(), cửa Bắc phải mở";
+        assert room.getTile(16, 0) == TileType.DOOR_OPEN : "Sau openDoors(), cửa Bắc phải mở";
         System.out.println("✓ testDoorCarving: OK");
     }
 
     private static void testProceduralFloorGeneration() {
-        MapGenerator generator = new MapGenerator(12345L);
-        WorldMap map = generator.generateFloor(1, 8);
-
-        assert map.getRooms().size() == 8 : "Số phòng sinh ra phải bằng 8";
-        assert map.getSpawnRoom() != null : "Phải có phòng SPAWN";
-        assert map.getSpawnRoom().getGridX() == 4 && map.getSpawnRoom().getGridY() == 4 : "SPAWN phải ở (4, 4)";
-        System.out.println("✓ testProceduralFloorGeneration: OK (Đã sinh " + map.getRooms().size() + " phòng, ");
+        WorldMap map = new MapGenerator(12345L).generateFloor(1, 8);
+        assert map.getRooms().size() == 8 : "Procedural floor should contain eight rooms";
+        assert map.getSpawnRoom() != null : "Procedural floor should contain a spawn room";
+        assert map.getBossRoom() != null : "Procedural floor should contain a boss room";
+        System.out.println("✓ testProceduralFloorGeneration: OK");
     }
 
     private static void testDoorSymmetry() {

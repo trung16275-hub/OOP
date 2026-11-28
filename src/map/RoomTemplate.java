@@ -1,6 +1,6 @@
 package map;
 
-import model.prop.Prop;
+import model.prop.RoomProp;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -12,7 +12,7 @@ import java.util.Random;
  * Premade tactical room templates for Floor 1 ("The Lobby") with mirroring,
  * door-corridor protection, and non-blocking office clutter decals.
  * . — Open floor
- * # — Solid interior pillar / cubicle block (TileType.WALL or solid Prop depending on style)
+ * # — Solid interior pillar / cubicle block (TileType.WALL or solid RoomProp depending on style)
  * D — Solid Office Desk (desk_wood_front.png, 64×36 solid cover)
  * C — Solid Filing Cabinet (cabinet_tall_4drawer.png / cabinet_short_2drawer.png)
  * H / V — Cubicle Partition (prop_cubicle_partition_h.png / _v.png)
@@ -202,7 +202,7 @@ public final class RoomTemplate {
                     continue;
                 }
 
-                Prop prop = createFloor1Prop(ch, tx, ty, rand);
+                RoomProp prop = createFloor1Prop(ch, tx, ty, rand);
                 if (prop != null && canPlaceSolidProp(room, prop)) {
                     room.addProp(prop);
                 }
@@ -219,7 +219,7 @@ public final class RoomTemplate {
         int floorMinY = room.getPadY() + 4;
 
         // Place corner potted plant / water cooler safely clear of door corridors
-        Prop plant = new Prop("/floor1/props_addon/prop_potted_dead_plant.png",
+        RoomProp plant = new RoomProp("/floor1/props_addon/prop_potted_dead_plant.png",
                 (floorMinX + 2) * Room.TILE_SIZE,
                 (floorMinY + 2) * Room.TILE_SIZE,
                 28, 38, true);
@@ -228,7 +228,7 @@ public final class RoomTemplate {
         }
 
         if (rand.nextBoolean()) {
-            Prop cooler = new Prop("/floor1/props_addon/prop_water_cooler_intact.png",
+            RoomProp cooler = new RoomProp("/floor1/props_addon/prop_water_cooler_intact.png",
                     (floorMaxX - 2) * Room.TILE_SIZE,
                     (floorMinY + 2) * Room.TILE_SIZE,
                     24, 48, true);
@@ -238,24 +238,24 @@ public final class RoomTemplate {
         }
     }
 
-    private static Prop createFloor1Prop(char token, int tx, int ty, Random rand) {
+    private static RoomProp createFloor1Prop(char token, int tx, int ty, Random rand) {
         int px = tx * Room.TILE_SIZE;
         int py = ty * Room.TILE_SIZE;
         return switch (token) {
-            case 'D' -> new Prop("/floor1/props/desk_wood_front.png", px - 10, py - 4, 86, 60, true);
+            case 'D' -> new RoomProp("/floor1/props/desk_wood_front.png", px - 10, py - 4, 86, 60, true);
             case 'C' -> rand.nextBoolean()
-                    ? new Prop("/floor1/props/cabinet_tall_4drawer.png", px + 2, py - 18, 36, 62, true)
-                    : new Prop("/floor1/props/cabinet_short_2drawer.png", px + 1, py - 4, 28, 36, true);
-            case 'H' -> new Prop("/floor1/props_addon/prop_cubicle_partition_h.png", px - 10, py - 4, 96, 60, true);
-            case 'V' -> new Prop("/floor1/props_addon/prop_cubicle_partition_v.png", px + 2, py - 18, 48, 80, true);
-            case 'B' -> new Prop("/floor1/props_addon/prop_cardboard_boxes_stacked.png", px - 4, py - 4, 48, 44, true);
-            case 'W' -> new Prop("/floor1/props_addon/prop_water_cooler_intact.png", px + 4, py - 16, 36, 60, true);
-            case 'M' -> new Prop("/floor1/props_addon/prop_vending_machine_on.png", px - 3, py - 20, 60, 80, true);
+                    ? new RoomProp("/floor1/props/cabinet_tall_4drawer.png", px + 2, py - 18, 36, 62, true)
+                    : new RoomProp("/floor1/props/cabinet_short_2drawer.png", px + 1, py - 4, 28, 36, true);
+            case 'H' -> new RoomProp("/floor1/props_addon/prop_cubicle_partition_h.png", px - 10, py - 4, 96, 60, true);
+            case 'V' -> new RoomProp("/floor1/props_addon/prop_cubicle_partition_v.png", px + 2, py - 18, 48, 80, true);
+            case 'B' -> new RoomProp("/floor1/props_addon/prop_cardboard_boxes_stacked.png", px - 4, py - 4, 48, 44, true);
+            case 'W' -> new RoomProp("/floor1/props_addon/prop_water_cooler_intact.png", px + 4, py - 16, 36, 60, true);
+            case 'M' -> new RoomProp("/floor1/props_addon/prop_vending_machine_on.png", px - 3, py - 20, 60, 80, true);
             default -> null;
         };
     }
 
-    private static boolean canPlaceSolidProp(Room room, Prop candidate) {
+    private static boolean canPlaceSolidProp(Room room, RoomProp candidate) {
         Rectangle bounds = candidate.getBounds();
         if (room.checkCollision(bounds)) {
             return false;

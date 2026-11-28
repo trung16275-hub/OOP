@@ -4,6 +4,7 @@ package model;
 
 import map.Room;
 import java.awt.Rectangle;
+import java.util.function.Consumer;
 
 public abstract class Combatant {
     private String name;
@@ -19,6 +20,35 @@ public abstract class Combatant {
     private double facingX;
     private double facingY;
     private double hitboxRadius = -1;
+    private Action pendingAction;
+    private long pendingCooldownNanos;
+    private long actionCooldownNanos;
+    private long lastActionNanos;
+
+    @FunctionalInterface
+    public interface Action {
+        boolean execute(Room room, Consumer<Projectile> spawnProjectile);
+    }
+
+    protected final boolean requestAction(long cooldownNanos, Action action) {
+        if (isDead() || pendingAction != null
+                || (actionCooldownNanos > 0 && System.nanoTime() - lastActionNanos < actionCooldownNanos)) {
+            return false;
+        }
+        pendingAction = action;
+        pendingCooldownNanos = cooldownNanos;
+        return true;
+    }
+
+    public final void updateAction(Room room, Consumer<Projectile> spawnProjectile) {
+        Action action = pendingAction;
+        long cooldownNanos = pendingCooldownNanos;
+        pendingAction = null;
+        if (action != null && !isDead() && action.execute(room, spawnProjectile)) {
+            lastActionNanos = System.nanoTime();
+            actionCooldownNanos = cooldownNanos;
+        }
+    }
 
     public Combatant (String name, int maxHp, int speed) {
         this.name = name;
@@ -87,6 +117,25 @@ public abstract class Combatant {
         return facingY;
     }
 
+    public void setFacingX(double facingX) {
+        this.facingX = facingX > 0 ? 1 : (facingX < 0 ? -1 : 0);
+    }
+
+    public double getCenterX() {
+        return x + width / 2.0;
+    }
+
+    public double getCenterY() {
+        return y + height / 2.0;
+    }
+
+    public double distanceTo(Combatant other) {
+        if (other == null) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return Math.hypot(other.getCenterX() - getCenterX(), other.getCenterY() - getCenterY());
+    }
+
     public double getHitboxRadius() {
         return hitboxRadius >= 0 ? hitboxRadius : Math.min(width, height) / 2.0;
     }
@@ -131,9 +180,22 @@ public abstract class Combatant {
     }
 
     public void takeDamage(int dmg) {
-        if(dmg <= 0) return ;
-        this.hp = Math.max(0, this.hp - dmg);
+    if (dmg <= 0 || isDead()) {
+        return;
     }
+
+    int oldHp = this.hp;
+    this.hp = Math.max(0, this.hp - dmg);
+
+    if (this.hp < oldHp) {
+        onDamaged();
+    }
+}
+
+protected void onDamaged() {
+    // Mặc định không làm gì.
+    // Boss có thể override để xử lý animation Hurt/Death.
+}
 
     public boolean isDead() {
         return hp<=0;

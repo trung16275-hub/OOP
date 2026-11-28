@@ -1,7 +1,10 @@
 package map;
 
 import model.Enemy;
-import model.prop.*;
+import model.prop.RoomProp;
+import model.pickup.Pickup;
+import model.player.Player;
+import model.weapon.Weapon;
 import screens.lighting.*;
 
 import java.awt.*;
@@ -47,7 +50,7 @@ public class Room {
 
     private RoomType roomType;
     private final TileType[][] tiles;
-    private List<Prop> props = new ArrayList<>();
+    private List<RoomProp> props = new ArrayList<>();
     private final List<RoomDecal> floorDecals = new ArrayList<>();
     private final List<RoomDecal> wallDecals = new ArrayList<>();
 
@@ -57,10 +60,7 @@ public class Room {
     private boolean bossLocked;
 
     private final List<Enemy> enemies = new ArrayList<>();
-    private final List<AmmoPickup> ammoPickups = new ArrayList<>();
-    private final List<BandagePickup> bandages = new ArrayList<>();
-    private final List<KevlarArmorPickup> kevlarArmorPickups = new ArrayList<>();
-    private LiquidPain liquidPain;
+    private final List<Pickup> pickups = new ArrayList<>();
     private final Map<Direction, Boolean> doors = new EnumMap<>(Direction.class);
     private final Set<Direction> lockedDoors = EnumSet.noneOf(Direction.class);
 
@@ -291,7 +291,7 @@ public class Room {
             }
         }
 
-        for (Prop prop : props) {
+        for (RoomProp prop : props) {
             if(prop.solid() && bounds.intersects(prop.getBounds())) {
                 return true;
             }
@@ -364,11 +364,11 @@ public class Room {
         enemies.add(enemy);
     }
 
-    public List<Prop> getProps() {
+    public List<RoomProp> getProps() {
         return props;
     }
 
-    public void addProp(Prop prop) {
+    public void addProp(RoomProp prop) {
         props.add(prop);
     }
 
@@ -391,62 +391,33 @@ public class Room {
     }
 
 
-    public List<AmmoPickup> getAmmoPickups() { return ammoPickups; }
-
-    public List<BandagePickup> getBandages() { return bandages; }
-
-    public List<KevlarArmorPickup> getKevlarArmorPickups() { return kevlarArmorPickups; }
-
-    public BandagePickup findNearestBandage(Rectangle bounds, int ammoIndex) {
-        return findCloserPickup(bounds, bandages, BandagePickup::prop,
-                currentPickupDistance(bounds, ammoIndex));
+    public List<Pickup> getPickups() {
+        return pickups;
     }
 
-    public KevlarArmorPickup findNearestKevlarArmor(Rectangle bounds, int ammoIndex, BandagePickup bandage) {
-        double distance = bandage == null ? currentPickupDistance(bounds, ammoIndex)
-                : pickupDistance(bounds, bandage.prop().getBounds());
-        return findCloserPickup(bounds, kevlarArmorPickups, KevlarArmorPickup::prop, distance);
+    public Pickup findNearestPickup(Rectangle playerBounds) {
+        int index = findNearestPickupIndex(playerBounds);
+        return index < 0 ? null : pickups.get(index);
     }
 
-    private double currentPickupDistance(Rectangle bounds, int ammoIndex) {
-        if (isLiquidPainNearest(bounds, ammoIndex)) {
-            return pickupDistance(bounds, liquidPain.prop().getBounds());
+    public void collectNearestPickup(Player player, List<Weapon> weapons) {
+        int index = findNearestPickupIndex(player.getMovementBounds());
+        if (index < 0) {
+            return;
         }
-        return ammoIndex < 0 ? Double.POSITIVE_INFINITY
-                : pickupDistance(bounds, ammoPickups.get(ammoIndex).prop().getBounds());
-    }
-
-    private <T> T findCloserPickup(Rectangle bounds, List<T> pickups,
-                                  java.util.function.Function<T, Prop> getProp, double nearestDistance) {
-        T nearest = null;
-        for (T pickup : pickups) {
-            double distance = pickupDistance(bounds, getProp.apply(pickup).getBounds());
-            if (distance <= AmmoPickup.PICKUP_RANGE_PIXELS && distance < nearestDistance) {
-                nearestDistance = distance;
-                nearest = pickup;
-            }
+        Pickup remaining = pickups.get(index).collect(player, weapons);
+        if (remaining == null) {
+            pickups.remove(index);
+        } else {
+            pickups.set(index, remaining);
         }
-        return nearest;
     }
 
-    public LiquidPain getLiquidPain() { return liquidPain; }
-    public void setLiquidPain(LiquidPain liquidPain) { this.liquidPain = liquidPain; }
-
-    public boolean isLiquidPainNearest(Rectangle playerBounds, int nearestAmmoIndex) {
-        if (liquidPain == null) {
-            return false;
-        }
-        double distance = pickupDistance(playerBounds, liquidPain.prop().getBounds());
-        return distance <= AmmoPickup.PICKUP_RANGE_PIXELS
-                && (nearestAmmoIndex < 0 || distance < pickupDistance(
-                        playerBounds, ammoPickups.get(nearestAmmoIndex).prop().getBounds()));
-    }
-
-    public int findNearestAmmoPickup(Rectangle playerBounds) {
+    private int findNearestPickupIndex(Rectangle playerBounds) {
         int nearest = -1;
-        double nearestDistance = AmmoPickup.PICKUP_RANGE_PIXELS;
-        for (int i = 0; i < ammoPickups.size(); i++) {
-            double distance = pickupDistance(playerBounds, ammoPickups.get(i).prop().getBounds());
+        double nearestDistance = Pickup.PICKUP_RANGE_PIXELS;
+        for (int i = 0; i < pickups.size(); i++) {
+            double distance = pickupDistance(playerBounds, pickups.get(i).prop().getBounds());
             if (distance <= nearestDistance && (nearest == -1 || distance < nearestDistance)) {
                 nearestDistance = distance;
                 nearest = i;

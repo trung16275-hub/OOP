@@ -1,6 +1,7 @@
 package screens;
 
 import game.MainGame;
+import game.StartingLoadout;
 import map.Direction;
 import map.MapGenerator;
 import map.Room;
@@ -8,12 +9,8 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
-import model.prop.AmmoPickup;
-import model.prop.BandagePickup;
-import model.prop.KevlarArmorPickup;
-import model.prop.LiquidPain;
-import model.weapon.Ak47;
-import model.weapon.Bat;
+import model.RoomEffect;
+import model.weapon.Weapon;
 import screens.input.KeyHandler;
 import screens.lighting.*;
 
@@ -23,13 +20,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
-import model.boss.Boss3;
 import model.player.Player;
 public class GamePanel extends JPanel implements Runnable {
-    private static final long AK47_FIRE_INTERVAL_MS = 180;
-    private static final long BAT_ATTACK_INTERVAL_MS = 450;
-    private static final int PLAYER_ATTACK_ANIMATION_MS = 320;
-
     private MainGame mainFrame;
     private Thread gameThread;
     private volatile boolean isRunning;
@@ -40,11 +32,10 @@ public class GamePanel extends JPanel implements Runnable {
     private long playerDeathStartNanos;
 
     // Weapons
-    private Ak47 ak47;
-    private Bat bat;
-    private long nextShotTime;
+    private List<Weapon> weapons;
     private final List<Projectile> projectiles = new ArrayList<>();
-    private static final double PROJECTILE_SPEED = 12.0;
+    private final List<Projectile> enemyProjectiles = new ArrayList<>();
+    private final List<RoomEffect> roomEffects = new ArrayList<>();
 
     // Map System
     private MapGenerator mapGenerator;
@@ -72,36 +63,30 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void initNewGame() {
+        clearRoomProjectilesAndEffects();
         this.currentFloor = 1;
         this.openNote = null;
 
         this.player = new Player();
         this.playerDeathStartNanos = 0;
-        this.ak47 = new Ak47();
-        this.bat = new Bat();
-        this.player.equip(ak47);
+        this.weapons = StartingLoadout.createWeapons();
+        if (!weapons.isEmpty()) {
+            this.player.equip(weapons.get(0));
+        }
         createFloor();
 
         if (room != null) {
-            int x = (int) player.getX() + player.getWidth() + 8;
-            int y = (int) player.getY() + player.getHeight() - 30;
-            room.getAmmoPickups().add(new AmmoPickup(x, y));
-            room.setLiquidPain(new LiquidPain((int) player.getX() + 19,
-                    (int) player.getY() + player.getHeight() + 32));
-            room.getBandages().add(new BandagePickup(
-                    (int) player.getX() - 38, y));
-            room.getKevlarArmorPickups().add(new KevlarArmorPickup(
-                    (int) player.getX() + 19, (int) player.getY() - 32));
+            room.getPickups().addAll(StartingLoadout.createSpawnPickups(player));
         }
 
     }
 
     private void toggleWeapon() {
-        if (player.getCurrentWeapon() instanceof Ak47) {
-            player.equip(bat);
-        } else {
-            player.equip(ak47);
+        if (weapons.size() < 2) {
+            return;
         }
+        int currentIndex = weapons.indexOf(player.getCurrentWeapon());
+        player.equip(weapons.get((currentIndex + 1) % weapons.size()));
         player.stopAttackAnimation();
     }
 
@@ -182,14 +167,9 @@ public class GamePanel extends JPanel implements Runnable {
             player.startDash(moveX, moveY);
         }
 
-        boolean dashing = player.isDashing();
-        if (dashing) {
-            moveX = player.getDashDirectionX() * Player.DASH_SPEED_MULTIPLIER;
-            moveY = player.getDashDirectionY() * Player.DASH_SPEED_MULTIPLIER;
-        }
         double previousX = player.getX();
         double previousY = player.getY();
-        player.move(moveX, moveY, room);
+        player.updateMovement(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
             String noteId = room.findNearbyEnemyNote(player.getMovementBounds());
             if (noteId != null) {
@@ -198,7 +178,7 @@ public class GamePanel extends JPanel implements Runnable {
                     return;
                 }
             }
-            interactWithPickup();
+            room.collectNearestPickup(player, weapons);
             if (player.isDead()) {
                 return;
             }
@@ -213,31 +193,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         // Fire input is processed independently of movement collision, so touching a wall does not block shooting.
-        long now = System.currentTimeMillis();
-        if (player.isDashing()) {
+        if (player.isDashing() || player.isMovementLocked()) {
             player.stopAttackAnimation();
-        } else if (keyH.spacePressed && now >= nextShotTime) {
-            if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
-                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                double bulletX = player.getX() + player.getWidth() / 2.0;
-                double bulletY = player.getY() + player.getHeight() / 2.0;
-                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY()
-                        , PROJECTILE_SPEED, ak47.getDamage()));
-                nextShotTime = now + AK47_FIRE_INTERVAL_MS;
-            } else if (player.getCurrentWeapon() instanceof Bat) {
-                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                for (Enemy e : room.getEnemies()) {
-                    if (e != null && !e.isDead()
-                            && player.isWithinHitbox(e)) {
-                        player.attack(e);
-                    }
-                }
-                nextShotTime = now + BAT_ATTACK_INTERVAL_MS;
-            } else {
-                player.stopAttackAnimation();
-            }
+        } else if (keyH.spacePressed) {
+            player.requestWeaponAttack();
         }
 
+        player.updateAction(room, projectiles::add);
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
@@ -250,24 +212,39 @@ public class GamePanel extends JPanel implements Runnable {
                 Point spawnPos = nextRoom.getDoorSpawnPosition(doorDir);
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
-                projectiles.clear();
+                clearRoomProjectilesAndEffects();
+                room.getEnemies().forEach(Enemy::onRoomEntered);
             }
         }
 
 
         //3. Cập nhật Enemy
+        if (room.getEnemies() != null) {
+            List<Enemy> enemies = room.getEnemies();
+            enemies.removeIf(Enemy::isRemovable);
 
-        if (room.getEnemies()!=null) {
-            room.getEnemies().removeIf(Enemy::isDead);
-            for (Enemy e : room.getEnemies()) {
+            List<Enemy> enemiesToReplace = new ArrayList<>();
+            for (Enemy e : enemies) {
                 e.updateBehavior(player, room);
                 if (player.isDead()) {
                     return;
                 }
-                // player.faceToward(e); // Currently not used
-                // player.resetFacing();
+                e.updateAction(room, enemyProjectiles::add);
+                if (e.shouldReplace()) {
+                    enemiesToReplace.add(e);
+                } else {
+                    e.updateRoomEffects(roomEffects::add);
+                }
+            }
+
+            for (Enemy enemy : enemiesToReplace) {
+                enemies.remove(enemy);
+                enemies.addAll(enemy.createReplacements(room));
             }
         }
+
+        updateEnemyProjectiles();
+        updateRoomEffects();
 
         //4. Cap nhat phong
         if (room != null) {
@@ -302,45 +279,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
-    private void interactWithPickup() {
-        Rectangle playerBounds = player.getMovementBounds();
-        int index = room.findNearestAmmoPickup(playerBounds);
-        BandagePickup bandage = room.findNearestBandage(playerBounds, index);
-        KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
-        if (kevlar != null) {
-            player.addArmor(kevlar.amount());
-            room.getKevlarArmorPickups().remove(kevlar);
-            return;
-        }
-        if (bandage != null) {
-            int amount = Math.min(bandage.amount(), player.getMaxHp() - player.getHp());
-            if (amount > 0) {
-                player.heal(amount);
-                room.getBandages().remove(bandage);
-            }
-            return;
-        }
-        if (room.isLiquidPainNearest(playerBounds, index)) {
-            player.takeDirectDamage(LiquidPain.HP_COST);
-            room.setLiquidPain(null);
-            return;
-        }
-        if (index < 0) {
-            return;
-        }
-
-        List<AmmoPickup> pickups = room.getAmmoPickups();
-        AmmoPickup pickup = pickups.get(index);
-        int added = ak47.addAmmo(pickup.rounds());
-        if (added == pickup.rounds()) {
-            pickups.remove(index);
-        } else if (added > 0) {
-            pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
-        }
-    }
-
     private void createFloor() {
-        projectiles.clear();
+        clearRoomProjectilesAndEffects();
         worldMap = mapGenerator.generateFloor(currentFloor, 8);
         room = worldMap.getSpawnRoom();
         renderer.loadTheme(worldMap.getTheme());
@@ -357,13 +297,50 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
+    private void clearRoomProjectilesAndEffects() {
+        projectiles.clear();
+        enemyProjectiles.clear();
+        roomEffects.clear();
+        if (player != null) {
+            player.getMovementEffects().clear();
+        }
+    }
+
+    private void updateEnemyProjectiles() {
+        Iterator<Projectile> iterator = enemyProjectiles.iterator();
+        while (iterator.hasNext()) {
+            Projectile projectile = iterator.next();
+            projectile.update(room);
+            if (projectile.hits(player)) {
+                projectile.hitPlayer(player);
+            }
+            if (!projectile.isActive()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private void updateRoomEffects() {
+        Iterator<RoomEffect> iterator = roomEffects.iterator();
+        while (iterator.hasNext()) {
+            RoomEffect effect = iterator.next();
+            effect.update(player);
+            if (effect.isExpired()) {
+                iterator.remove();
+            }
+        }
+    }
+
     private void updateProjectiles() {
+        if (room == null || room.getEnemies() == null) {
+            return;
+        }
         Iterator<Projectile> iterator = projectiles.iterator();
         while (iterator.hasNext()) {
             Projectile projectile = iterator.next();
             projectile.update(room);
             for (Enemy e : room.getEnemies()) {
-                if (projectile.isActive() && projectile.hits(e)) {
+                if (e != null && !e.isDead() && projectile.isActive() && projectile.hits(e)) {
                     e.takeDamage(projectile.getDamage());
                     projectile.deactivate();
                     break;
@@ -432,7 +409,8 @@ public class GamePanel extends JPanel implements Runnable {
                         RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             }
             synchronized (stateLock) {
-                renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs());
+                renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs(),
+                        enemyProjectiles, roomEffects);
                 if (openNote != null) {
                     renderer.renderEnemyNote(g2, openNote);
                 }

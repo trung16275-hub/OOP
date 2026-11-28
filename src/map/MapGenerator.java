@@ -2,7 +2,7 @@ package map;
 
 import model.Enemy;
 import model.boss.Boss1;
-import model.boss.Boss2;
+import model.boss.boss2.Boss2;
 import model.boss.Boss3;
 import screens.lighting.*;
 
@@ -148,7 +148,12 @@ public class MapGenerator {
 
         for (Room r : map.getRooms()) {
             if (r.getRoomType() == Room.RoomType.BOSS) {
-                Boss1 boss = new Boss1();
+                Enemy boss = switch (floorLevel) {
+                    case 1 -> new Boss1();
+                    case 2 -> new Boss2();
+                    case 3 -> new Boss3();
+                    default -> throw new IllegalArgumentException("Unsupported floor: " + floorLevel);
+                };
                 Point bossSpawnPoint = r.getCenterSpawnPosition(boss.getWidth(),boss.getHeight());
                 boss.setX(bossSpawnPoint.x);
                 boss.setY(bossSpawnPoint.y);

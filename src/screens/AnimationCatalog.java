@@ -103,14 +103,26 @@ public final class AnimationCatalog {
         if (frameCount <= 0) {
             throw new IllegalArgumentException("frame count must be positive");
         }
+        boolean zeroIndexed = assetExists(pathPrefix + "_0.png");
         BufferedImage[] frames = new BufferedImage[frameCount];
         for (int i = 0; i < frameCount; i++) {
-            frames[i] = AssetLoader.loadImage(pathPrefix + "_" + i + ".png");
+            String path = zeroIndexed
+                    ? pathPrefix + "_" + i + ".png"
+                    : String.format("%s_%02d.png", pathPrefix, i + 1);
+            frames[i] = AssetLoader.loadImage(path);
             if (frames[i] == null) {
                 return null;
             }
         }
         return frames;
+    }
+
+    private boolean assetExists(String path) {
+        String resourcePath = path.startsWith("/") ? path : "/" + path;
+        if (AnimationCatalog.class.getResource(resourcePath) != null) {
+            return true;
+        }
+        return new File("assets", path.startsWith("/") ? path.substring(1) : path).isFile();
     }
 
     private BufferedImage[] loadSpriteSheet(String path, int frameCount) {

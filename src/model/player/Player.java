@@ -1,5 +1,7 @@
 package model.player;
 
+import map.Room;
+
 import model.Combatant;
 import model.Enemy;
 import model.weapon.Weapon;
@@ -24,6 +26,9 @@ public class Player extends Combatant {
     private int armor = DEFAULT_ARMOR;
     private Weapon currentWeapon;
     private boolean moving;
+    private boolean grabbed;
+    private long stunEndTimeNanos;
+    private final MovementEffects movementEffects = new MovementEffects();
     private boolean facingLeft;
     private long attackAnimationStartTime;
     private long hurtAnimationStartTime;
@@ -117,7 +122,7 @@ public class Player extends Combatant {
 
     public boolean startDash(double directionX, double directionY) {
         long now = System.currentTimeMillis();
-        if (isDead() || now < nextDashAvailableTime) {
+        if (isDead() || isMovementLocked() || now < nextDashAvailableTime) {
             return false;
         }
 
@@ -143,7 +148,7 @@ public class Player extends Combatant {
     }
 
     public boolean isDashing() {
-        return System.currentTimeMillis() < dashEndTime;
+        return !isMovementLocked() && System.currentTimeMillis() < dashEndTime;
     }
 
     public double getDashCooldownProgress() {
@@ -185,6 +190,42 @@ public class Player extends Combatant {
         attackAnimationStartTime = 0;
     }
 
+    public void applyStun(long durationMs) {
+        if (durationMs > 0 && !isDead()) {
+            stunEndTimeNanos = Math.max(stunEndTimeNanos, System.nanoTime() + durationMs * 1_000_000L);
+            dashEndTime = 0;
+            stopAttackAnimation();
+        }
+    }
+
+    public void updateMovement(double moveX, double moveY, Room room) {
+        if (isMovementLocked()) {
+            move(0, 0, room);
+        } else if (isDashing()) {
+            move(getDashDirectionX() * DASH_SPEED_MULTIPLIER,
+                    getDashDirectionY() * DASH_SPEED_MULTIPLIER, room);
+        } else {
+            double multiplier = movementEffects.getSpeedMultiplier();
+            move(moveX * multiplier, moveY * multiplier, room);
+        }
+    }
+
+    public boolean isMovementLocked() {
+        return grabbed || System.nanoTime() < stunEndTimeNanos;
+    }
+
+    public boolean isGrabbed() {
+        return grabbed;
+    }
+
+    public void setGrabbed(boolean grabbed) {
+        this.grabbed = grabbed;
+        if (grabbed) {
+            dashEndTime = 0;
+            stopAttackAnimation();
+        }
+    }
+
     public int getArmor() {
         return armor;
     }
@@ -209,6 +250,25 @@ public class Player extends Combatant {
     public void equip(Weapon weapon) {
         this.currentWeapon = weapon;
         System.out.println("Đã trang bị: " + weapon.getName());
+    }
+
+    public MovementEffects getMovementEffects() {
+        return movementEffects;
+    }
+
+    public void requestWeaponAttack() {
+        Weapon weapon = currentWeapon;
+        if (weapon != null) {
+            requestAction(weapon.getAttackCooldownNanos(), (room, spawnProjectile) -> {
+                boolean attacked = weapon.tryAttack(this, room, spawnProjectile);
+                if (attacked) {
+                    playAttackAnimation(320);
+                } else {
+                    stopAttackAnimation();
+                }
+                return attacked;
+            });
+        }
     }
 
     @Override
