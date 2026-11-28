@@ -15,9 +15,9 @@ import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import screens.GamePanel;
-import screens.GameOverPanel;
-import screens.GameWinPanel;
-import screens.IntroPanel;
+import screens.panels.GameOverPanel;
+import screens.panels.GameWinPanel;
+import screens.panels.IntroPanel;
 
 public class MainGame extends JFrame {
     public static final int WINDOW_WIDTH = 1024;

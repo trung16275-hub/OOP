@@ -1,4 +1,4 @@
-package screens;
+package screens.panels;
 
 import game.MainGame;
 import java.awt.Color;

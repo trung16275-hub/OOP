@@ -1,6 +1,8 @@
-package screens;
+package screens.panels;
 
 import game.MainGame;
+import screens.AssetLoader;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
