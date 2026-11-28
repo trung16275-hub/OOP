@@ -1,6 +1,7 @@
 package screens;
 
 import game.MainGame;
+import game.StartingLoadout;
 import map.Direction;
 import map.MapGenerator;
 import map.Room;
@@ -8,34 +9,19 @@ import map.TileType;
 import map.WorldMap;
 import model.Enemy;
 import model.Projectile;
-import model.boss.boss2.AcidTrail;
-import model.boss.boss2.Boss2;
-import model.boss.boss2.Boss2Minion;
-import model.creep.Duck;
-import model.prop.AmmoPickup;
-import model.prop.BandagePickup;
-import model.prop.KevlarArmorPickup;
-import model.prop.LiquidPain;
-import model.weapon.Ak47;
-import model.weapon.Bat;
+import model.RoomEffect;
+import model.weapon.Weapon;
 import screens.input.KeyHandler;
 import screens.lighting.*;
 
 import java.awt.*;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 import model.player.Player;
 public class GamePanel extends JPanel implements Runnable {
-    private static final long AK47_FIRE_INTERVAL_MS = 180;
-    private static final long BAT_ATTACK_INTERVAL_MS = 450;
-    private static final int PLAYER_ATTACK_ANIMATION_MS = 320;
-
     private MainGame mainFrame;
     private Thread gameThread;
     private volatile boolean isRunning;
@@ -46,17 +32,10 @@ public class GamePanel extends JPanel implements Runnable {
     private long playerDeathStartNanos;
 
     // Weapons
-    private Ak47 ak47;
-    private Bat bat;
-    private long nextShotTime;
+    private List<Weapon> weapons;
     private final List<Projectile> projectiles = new ArrayList<>();
-    private final List<Projectile> acidProjectiles = new ArrayList<>();
-    private final List<AcidTrail> acidTrails = new ArrayList<>();
-    private final Map<Boss2Minion, Point2D.Double> lastTrailPositions = new HashMap<>();
-    private static final double PROJECTILE_SPEED = 12.0;
-    private static final long SLOW_DURATION_NANOS = 2_000_000_000L;
-    private static final double SLOW_MULTIPLIER = 0.5;
-    private long slowEffectEndTimeNanos;
+    private final List<Projectile> enemyProjectiles = new ArrayList<>();
+    private final List<RoomEffect> roomEffects = new ArrayList<>();
 
     // Map System
     private MapGenerator mapGenerator;
@@ -90,31 +69,24 @@ public class GamePanel extends JPanel implements Runnable {
 
         this.player = new Player();
         this.playerDeathStartNanos = 0;
-        this.ak47 = new Ak47();
-        this.bat = new Bat();
-        this.player.equip(ak47);
+        this.weapons = StartingLoadout.createWeapons();
+        if (!weapons.isEmpty()) {
+            this.player.equip(weapons.get(0));
+        }
         createFloor();
 
         if (room != null) {
-            int x = (int) player.getX() + player.getWidth() + 8;
-            int y = (int) player.getY() + player.getHeight() - 30;
-            room.getAmmoPickups().add(new AmmoPickup(x, y));
-            room.setLiquidPain(new LiquidPain((int) player.getX() + 19,
-                    (int) player.getY() + player.getHeight() + 32));
-            room.getBandages().add(new BandagePickup(
-                    (int) player.getX() - 38, y));
-            room.getKevlarArmorPickups().add(new KevlarArmorPickup(
-                    (int) player.getX() + 19, (int) player.getY() - 32));
+            room.getPickups().addAll(StartingLoadout.createSpawnPickups(player));
         }
 
     }
 
     private void toggleWeapon() {
-        if (player.getCurrentWeapon() instanceof Ak47) {
-            player.equip(bat);
-        } else {
-            player.equip(ak47);
+        if (weapons.size() < 2) {
+            return;
         }
+        int currentIndex = weapons.indexOf(player.getCurrentWeapon());
+        player.equip(weapons.get((currentIndex + 1) % weapons.size()));
         player.stopAttackAnimation();
     }
 
@@ -195,23 +167,9 @@ public class GamePanel extends JPanel implements Runnable {
             player.startDash(moveX, moveY);
         }
 
-        if (System.nanoTime() < slowEffectEndTimeNanos) {
-            moveX *= SLOW_MULTIPLIER;
-            moveY *= SLOW_MULTIPLIER;
-        }
-
-        boolean dashing = player.isDashing();
-        if (dashing) {
-            moveX = player.getDashDirectionX() * Player.DASH_SPEED_MULTIPLIER;
-            moveY = player.getDashDirectionY() * Player.DASH_SPEED_MULTIPLIER;
-        }
-        if (player.isMovementLocked()) {
-            moveX = 0;
-            moveY = 0;
-        }
         double previousX = player.getX();
         double previousY = player.getY();
-        player.move(moveX, moveY, room);
+        player.updateMovement(moveX, moveY, room);
         if (keyH.consumePickupPress()) {
             String noteId = room.findNearbyEnemyNote(player.getMovementBounds());
             if (noteId != null) {
@@ -220,7 +178,7 @@ public class GamePanel extends JPanel implements Runnable {
                     return;
                 }
             }
-            interactWithPickup();
+            room.collectNearestPickup(player, weapons);
             if (player.isDead()) {
                 return;
             }
@@ -235,31 +193,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         // Fire input is processed independently of movement collision, so touching a wall does not block shooting.
-        long now = System.currentTimeMillis();
         if (player.isDashing() || player.isMovementLocked()) {
             player.stopAttackAnimation();
-        } else if (keyH.spacePressed && now >= nextShotTime) {
-            if (player.getCurrentWeapon() instanceof Ak47 ak47 && ak47.consumeAmmo()) {
-                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                double bulletX = player.getX() + player.getWidth() / 2.0;
-                double bulletY = player.getY() + player.getHeight() / 2.0;
-                projectiles.add(new Projectile(bulletX, bulletY, player.getAimX(), player.getAimY()
-                        , PROJECTILE_SPEED, ak47.getDamage()));
-                nextShotTime = now + AK47_FIRE_INTERVAL_MS;
-            } else if (player.getCurrentWeapon() instanceof Bat) {
-                player.playAttackAnimation(PLAYER_ATTACK_ANIMATION_MS);
-                for (Enemy e : room.getEnemies()) {
-                    if (e != null && !e.isDead()
-                            && player.isWithinHitbox(e)) {
-                        player.attack(e);
-                    }
-                }
-                nextShotTime = now + BAT_ATTACK_INTERVAL_MS;
-            } else {
-                player.stopAttackAnimation();
-            }
+        } else if (keyH.spacePressed) {
+            player.requestWeaponAttack();
         }
 
+        player.updateAction(room, projectiles::add);
         updateProjectiles();
 
         // 2. Kiểm tra chuyển phòng
@@ -273,6 +213,7 @@ public class GamePanel extends JPanel implements Runnable {
                 player.setX(spawnPos.x);
                 player.setY(spawnPos.y);
                 clearRoomProjectilesAndEffects();
+                room.getEnemies().forEach(Enemy::onRoomEntered);
             }
         }
 
@@ -282,54 +223,28 @@ public class GamePanel extends JPanel implements Runnable {
             List<Enemy> enemies = room.getEnemies();
             enemies.removeIf(Enemy::isRemovable);
 
-            List<Boss2> bossesToSplit = new ArrayList<>();
-            List<Duck> ducksToSplit = new ArrayList<>();
+            List<Enemy> enemiesToReplace = new ArrayList<>();
             for (Enemy e : enemies) {
                 e.updateBehavior(player, room);
                 if (player.isDead()) {
                     return;
                 }
-                if (e instanceof Boss2 boss2) {
-                    if (boss2.consumeAcidAttackRequest()) {
-                        double dx = player.getCenterX() - boss2.getCenterX();
-                        double dy = player.getCenterY() - boss2.getCenterY();
-                        if (dx != 0 || dy != 0) {
-                            acidProjectiles.add(new Projectile(
-                                    boss2.getCenterX(), boss2.getCenterY(), dx, dy,
-                                    Boss2.ACID_PROJECTILE_SPEED, boss2.getAcidDamage(),
-                                    Boss2.ACID_PROJECTILE_SIZE));
-                        }
-                    }
-                    if (boss2.isSplitAnimationFinished()) {
-                        bossesToSplit.add(boss2);
-                    }
-                } else if (e instanceof Duck duck && duck.isSplitAnimationFinished()) {
-                    ducksToSplit.add(duck);
-                } else if (e instanceof Boss2Minion minion && !minion.isDead()) {
-                    updateMinionTrail(minion);
+                e.updateAction(room, enemyProjectiles::add);
+                if (e.shouldReplace()) {
+                    enemiesToReplace.add(e);
+                } else {
+                    e.updateRoomEffects(roomEffects::add);
                 }
             }
 
-            for (Boss2 boss2 : bossesToSplit) {
-                double bossX = boss2.getX();
-                double bossY = boss2.getY();
-                enemies.remove(boss2);
-                Boss2Minion m1 = new Boss2Minion(bossX - 20, bossY + 15);
-                Boss2Minion m2 = new Boss2Minion(bossX + 55, bossY + 15);
-                enemies.add(m1);
-                enemies.add(m2);
-                lastTrailPositions.put(m1, new Point2D.Double(m1.getX(), m1.getY()));
-                lastTrailPositions.put(m2, new Point2D.Double(m2.getX(), m2.getY()));
+            for (Enemy enemy : enemiesToReplace) {
+                enemies.remove(enemy);
+                enemies.addAll(enemy.createReplacements(room));
             }
-            for (Duck duck : ducksToSplit) {
-                enemies.remove(duck);
-                enemies.addAll(duck.createSplitClones(room));
-            }
-            lastTrailPositions.keySet().removeIf(minion -> !enemies.contains(minion));
         }
 
-        updateAcidProjectiles();
-        updateAcidTrails();
+        updateEnemyProjectiles();
+        updateRoomEffects();
 
         //4. Cap nhat phong
         if (room != null) {
@@ -364,43 +279,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     }
 
-    private void interactWithPickup() {
-        Rectangle playerBounds = player.getMovementBounds();
-        int index = room.findNearestAmmoPickup(playerBounds);
-        BandagePickup bandage = room.findNearestBandage(playerBounds, index);
-        KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
-        if (kevlar != null) {
-            player.addArmor(kevlar.amount());
-            room.getKevlarArmorPickups().remove(kevlar);
-            return;
-        }
-        if (bandage != null) {
-            int amount = Math.min(bandage.amount(), player.getMaxHp() - player.getHp());
-            if (amount > 0) {
-                player.heal(amount);
-                room.getBandages().remove(bandage);
-            }
-            return;
-        }
-        if (room.isLiquidPainNearest(playerBounds, index)) {
-            player.takeDirectDamage(LiquidPain.HP_COST);
-            room.setLiquidPain(null);
-            return;
-        }
-        if (index < 0) {
-            return;
-        }
-
-        List<AmmoPickup> pickups = room.getAmmoPickups();
-        AmmoPickup pickup = pickups.get(index);
-        int added = ak47.addAmmo(pickup.rounds());
-        if (added == pickup.rounds()) {
-            pickups.remove(index);
-        } else if (added > 0) {
-            pickups.set(index, new AmmoPickup(pickup.prop(), pickup.rounds() - added));
-        }
-    }
-
     private void createFloor() {
         clearRoomProjectilesAndEffects();
         worldMap = mapGenerator.generateFloor(currentFloor, 8);
@@ -421,56 +299,33 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void clearRoomProjectilesAndEffects() {
         projectiles.clear();
-        acidProjectiles.clear();
-        acidTrails.clear();
-        lastTrailPositions.clear();
-        slowEffectEndTimeNanos = 0L;
-    }
-
-    private void updateMinionTrail(Boss2Minion minion) {
-        Point2D.Double lastPos = lastTrailPositions.get(minion);
-        if (lastPos == null) {
-            lastTrailPositions.put(minion, new Point2D.Double(minion.getX(), minion.getY()));
-            return;
-        }
-        if (Math.hypot(minion.getX() - lastPos.x, minion.getY() - lastPos.y) >= 20) {
-            acidTrails.add(new AcidTrail(
-                    lastPos.x + minion.getWidth() / 2.0,
-                    lastPos.y + minion.getHeight() / 2.0));
-            lastTrailPositions.put(minion, new Point2D.Double(minion.getX(), minion.getY()));
+        enemyProjectiles.clear();
+        roomEffects.clear();
+        if (player != null) {
+            player.getMovementEffects().clear();
         }
     }
 
-    private void updateAcidProjectiles() {
-        Iterator<Projectile> iterator = acidProjectiles.iterator();
+    private void updateEnemyProjectiles() {
+        Iterator<Projectile> iterator = enemyProjectiles.iterator();
         while (iterator.hasNext()) {
-            Projectile acid = iterator.next();
-            acid.update(room);
-            if (acid.isActive() && acid.hits(player)) {
-                player.takeDamage(acid.getDamage());
-                slowEffectEndTimeNanos = System.nanoTime() + SLOW_DURATION_NANOS;
-                acid.deactivate();
+            Projectile projectile = iterator.next();
+            projectile.update(room);
+            if (projectile.hits(player)) {
+                projectile.hitPlayer(player);
             }
-            if (!acid.isActive()) {
+            if (!projectile.isActive()) {
                 iterator.remove();
             }
         }
     }
 
-    private void updateAcidTrails() {
-        Iterator<AcidTrail> iterator = acidTrails.iterator();
-        Rectangle playerBounds = new Rectangle(
-                (int) Math.floor(player.getX()),
-                (int) Math.floor(player.getY()),
-                player.getWidth(),
-                player.getHeight());
+    private void updateRoomEffects() {
+        Iterator<RoomEffect> iterator = roomEffects.iterator();
         while (iterator.hasNext()) {
-            AcidTrail trail = iterator.next();
-            trail.update(player);
-            if (trail.getBounds().intersects(playerBounds)) {
-                slowEffectEndTimeNanos = System.nanoTime() + SLOW_DURATION_NANOS;
-            }
-            if (trail.isExpired()) {
+            RoomEffect effect = iterator.next();
+            effect.update(player);
+            if (effect.isExpired()) {
                 iterator.remove();
             }
         }
@@ -555,7 +410,7 @@ public class GamePanel extends JPanel implements Runnable {
             }
             synchronized (stateLock) {
                 renderer.render(g2, player, room, worldMap, projectiles, getPlayerDeathElapsedMs(),
-                        acidProjectiles, acidTrails);
+                        enemyProjectiles, roomEffects);
                 if (openNote != null) {
                     renderer.renderEnemyNote(g2, openNote);
                 }

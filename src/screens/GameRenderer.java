@@ -5,15 +5,12 @@ import map.*;
 import model.Combatant;
 import model.Enemy;
 import model.Projectile;
-import model.prop.AmmoPickup;
-import model.prop.LiquidPain;
-import model.prop.BandagePickup;
-import model.prop.KevlarArmorPickup;
-import model.prop.Prop;
+import model.pickup.Pickup;
+import model.prop.RoomProp;
 import model.weapon.Ak47;
 import model.boss.Boss3;
 import model.boss.Boss4;
-import model.boss.boss2.AcidTrail;
+import model.RoomEffect;
 import model.player.Player;
 import screens.lighting.*;
 
@@ -58,8 +55,6 @@ public class GameRenderer {
     private BufferedImage heartImage;
     private BufferedImage bulletImage;
     private BufferedImage armorImage;
-    private final BufferedImage rifleAmmoImage = AssetLoader.loadImage(AmmoPickup.SPRITE_PATH);
-    private final BufferedImage liquidPainImage = AssetLoader.loadImage(LiquidPain.SPRITE_PATH);
     private BufferedImage floorWearPatch;
     private int lastAk47Ammo = 30;
     private int lastAk47MagazineSize = 30;
@@ -99,7 +94,7 @@ public class GameRenderer {
 
     void render(Graphics2D g2, Player player, Room room, WorldMap worldMap,
                 List<Projectile> projectiles, long playerDeathElapsedMs,
-                List<Projectile> acidProjectiles, List<AcidTrail> acidTrails) {
+                List<Projectile> enemyProjectiles, List<RoomEffect> roomEffects) {
         // 1. Fill entire screen with the abyss/void color BEFORE camera translation
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, MainGame.WINDOW_WIDTH, MainGame.WINDOW_HEIGHT);
@@ -119,31 +114,17 @@ public class GameRenderer {
         // 3. Render room & entities
         renderRoom(g2, room);
         renderDecals(g2, room.getFloorDecals());
-        renderAcidTrails(g2, acidTrails);
+        renderRoomEffects(g2, roomEffects);
 
-        if (room.getLiquidPain() != null && liquidPainImage != null) {
-            Prop prop = room.getLiquidPain().prop();
-            g2.drawImage(liquidPainImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
-        }
-        if (rifleAmmoImage != null) {
-            for (AmmoPickup pickup : room.getAmmoPickups()) {
-                Prop prop = pickup.prop();
-                g2.drawImage(rifleAmmoImage, prop.x(), prop.y(), prop.width(), prop.height(), null);
-            }
-        }
-
-        for (BandagePickup pickup : room.getBandages()) {
-            renderRecoverySprite(g2, pickup.prop());
-        }
-        for (KevlarArmorPickup pickup : room.getKevlarArmorPickups()) {
-            renderRecoverySprite(g2, pickup.prop());
+        for (Pickup pickup : room.getPickups()) {
+            renderPickupSprite(g2, pickup.prop());
         }
 
         renderWallAmbientOcclusion(g2, room);
 
         renderEntitiesAndPropsYSorted(g2, room, player, playerDeathElapsedMs);
         renderProjectiles(g2, projectiles);
-        renderAcidProjectiles(g2, acidProjectiles);
+        renderEnemyProjectiles(g2, enemyProjectiles);
 
         if (player != null && !player.isDead()) {
             renderPlayerHitboxes(g2, player);
@@ -164,21 +145,14 @@ public class GameRenderer {
         g2.translate(camX, camY);
         if (player != null && !player.isDead()) {
             Rectangle playerBounds = player.getMovementBounds();
-            int index = room.findNearestAmmoPickup(playerBounds);
             String noteId = room.findNearbyEnemyNote(playerBounds);
-            BandagePickup bandage = room.findNearestBandage(playerBounds, index);
-            KevlarArmorPickup kevlar = room.findNearestKevlarArmor(playerBounds, index, bandage);
             if (noteId != null && EnemyNote.find(noteId) != null) {
                 renderPickupPrompt(g2, "Đọc hồ sơ");
-            } else if (kevlar != null) {
-                renderPickupPrompt(g2, KevlarArmorPickup.DISPLAY_NAME + " · +" + kevlar.amount() + " giáp");
-            } else if (bandage != null) {
-                renderPickupPrompt(g2, BandagePickup.DISPLAY_NAME + " · +" + bandage.amount() + " HP");
-            } else if (room.isLiquidPainNearest(playerBounds, index)) {
-                renderPickupPrompt(g2, LiquidPain.DISPLAY_NAME + " · -" + LiquidPain.HP_COST + " HP");
-            } else if (index >= 0) {
-                AmmoPickup pickup = room.getAmmoPickups().get(index);
-                renderPickupPrompt(g2, AmmoPickup.DISPLAY_NAME + " · " + pickup.rounds() + " viên");
+            } else {
+                Pickup pickup = room.findNearestPickup(playerBounds);
+                if (pickup != null) {
+                    renderPickupPrompt(g2, pickup.prompt());
+                }
             }
         }
 
@@ -218,7 +192,7 @@ public class GameRenderer {
 
     }
 
-    private void renderRecoverySprite(Graphics2D g2, Prop prop) {
+    private void renderPickupSprite(Graphics2D g2, RoomProp prop) {
         BufferedImage sprite = getCachedImage(prop.spriteKey());
         if (sprite != null) {
             g2.drawImage(sprite, prop.x(), prop.y(), prop.width(), prop.height(), null);
@@ -548,11 +522,16 @@ public class GameRenderer {
 
     }
 
-    private void renderAcidProjectiles(Graphics2D g2, List<Projectile> acidProjectiles) {
-        if (acidProjectiles == null) return;
-        for (Projectile acid : acidProjectiles) {
-            if (acid == null || !acid.isActive()) continue;
-            Rectangle b = acid.getBounds();
+    private void renderEnemyProjectiles(Graphics2D g2, List<Projectile> enemyProjectiles) {
+        if (enemyProjectiles == null) return;
+        for (Projectile projectile : enemyProjectiles) {
+            if (projectile == null || !projectile.isActive()) continue;
+            Rectangle b = projectile.getBounds();
+            if (projectile.getKind() == Projectile.Kind.AK47_BULLET) {
+                g2.setColor(new Color(255, 220, 90));
+                g2.fillOval(b.x, b.y, b.width, b.height);
+                continue;
+            }
             Graphics2D ag = (Graphics2D) g2.create();
             try {
                 ag.setColor(new Color(50, 255, 50, 70));
@@ -567,21 +546,14 @@ public class GameRenderer {
         }
     }
 
-    private void renderAcidTrails(Graphics2D g2, List<AcidTrail> acidTrails) {
-        if (acidTrails == null) return;
-        for (AcidTrail trail : acidTrails) {
-            if (trail == null || trail.isExpired()) continue;
-            Rectangle b = trail.getBounds();
-            Graphics2D ag = (Graphics2D) g2.create();
+    private void renderRoomEffects(Graphics2D g2, List<RoomEffect> roomEffects) {
+        for (RoomEffect effect : roomEffects) {
+            if (effect.isExpired()) continue;
+            Graphics2D graphics = (Graphics2D) g2.create();
             try {
-                ag.setColor(new Color(50, 255, 30, 35));
-                ag.fillOval(b.x - 5, b.y - 5, b.width + 10, b.height + 10);
-                ag.setColor(new Color(80, 220, 30, 150));
-                ag.fillOval(b.x, b.y, b.width, b.height);
-                ag.setColor(new Color(170, 255, 60, 180));
-                ag.fillOval(b.x + 8, b.y + 8, b.width - 16, b.height - 16);
+                effect.render(graphics);
             } finally {
-                ag.dispose();
+                graphics.dispose();
             }
         }
     }
@@ -967,7 +939,7 @@ public class GameRenderer {
         record RenderEntry(int sortY, Runnable draw) {}
         List<RenderEntry> entries = new ArrayList<>();
 
-        for (Prop prop : room.getProps()) {
+        for (RoomProp prop : room.getProps()) {
             BufferedImage sprite = getCachedImage(prop.spriteKey());
             entries.add(new RenderEntry(prop.y() + prop.height(), () -> {
                 int shadowW = Math.round(prop.width() * 0.9f);

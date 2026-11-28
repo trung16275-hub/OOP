@@ -4,6 +4,7 @@ package model;
 
 import map.Room;
 import java.awt.Rectangle;
+import java.util.function.Consumer;
 
 public abstract class Combatant {
     private String name;
@@ -19,6 +20,35 @@ public abstract class Combatant {
     private double facingX;
     private double facingY;
     private double hitboxRadius = -1;
+    private Action pendingAction;
+    private long pendingCooldownNanos;
+    private long actionCooldownNanos;
+    private long lastActionNanos;
+
+    @FunctionalInterface
+    public interface Action {
+        boolean execute(Room room, Consumer<Projectile> spawnProjectile);
+    }
+
+    protected final boolean requestAction(long cooldownNanos, Action action) {
+        if (isDead() || pendingAction != null
+                || (actionCooldownNanos > 0 && System.nanoTime() - lastActionNanos < actionCooldownNanos)) {
+            return false;
+        }
+        pendingAction = action;
+        pendingCooldownNanos = cooldownNanos;
+        return true;
+    }
+
+    public final void updateAction(Room room, Consumer<Projectile> spawnProjectile) {
+        Action action = pendingAction;
+        long cooldownNanos = pendingCooldownNanos;
+        pendingAction = null;
+        if (action != null && !isDead() && action.execute(room, spawnProjectile)) {
+            lastActionNanos = System.nanoTime();
+            actionCooldownNanos = cooldownNanos;
+        }
+    }
 
     public Combatant (String name, int maxHp, int speed) {
         this.name = name;

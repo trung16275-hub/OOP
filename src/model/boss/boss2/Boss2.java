@@ -2,8 +2,10 @@
 package model.boss.boss2;
 
 import model.Enemy;
+import model.Projectile;
 import model.player.Player;
 import map.Room;
+import java.util.List;
 
 public class Boss2 extends Enemy {
 
@@ -26,9 +28,6 @@ public class Boss2 extends Enemy {
 
     private static final int ACID_DAMAGE = 12;
     private static final long ACID_COOLDOWN = 2_800_000_000L;
-
-    private long lastAcidAttack;
-    private boolean acidAttackRequested;
 
     private static final long ATTACK_ANIMATION_DURATION = 450_000_000L;
     private long attackAnimationEnd;
@@ -167,11 +166,15 @@ public class Boss2 extends Enemy {
                 moving = false;
             }
 
-            if (now - lastAcidAttack >= ACID_COOLDOWN) {
-
-                acidAttackRequested = true;
-                lastAcidAttack = now;
-
+            if (requestAction(ACID_COOLDOWN, (currentRoom, spawnProjectile) -> {
+                double dx = player.getCenterX() - getCenterX();
+                double dy = player.getCenterY() - getCenterY();
+                if (dx != 0 || dy != 0) {
+                    spawnProjectile.accept(new Projectile(getCenterX(), getCenterY(), dx, dy,
+                            ACID_PROJECTILE_SPEED, getAcidDamage(), ACID_PROJECTILE_SIZE, Projectile.Kind.ACID));
+                }
+                return true;
+            })) {
                 attackAnimationEnd = now + ATTACK_ANIMATION_DURATION;
             }
 
@@ -217,16 +220,6 @@ public class Boss2 extends Enemy {
     // HỖ TRỢ GAMEPANEL
     // =========================
 
-    public boolean consumeAcidAttackRequest() {
-
-        if (!acidAttackRequested) {
-            return false;
-        }
-
-        acidAttackRequested = false;
-        return true;
-    }
-
     public int getAcidDamage() {
         return ACID_DAMAGE;
     }
@@ -257,6 +250,17 @@ public class Boss2 extends Enemy {
     public boolean isSplitAnimationFinished() {
         return splitTriggered
                 && System.nanoTime() >= splitAnimationEnd;
+    }
+
+    @Override
+    public boolean shouldReplace() {
+        return isSplitAnimationFinished();
+    }
+
+    @Override
+    public List<Boss2Minion> createReplacements(Room room) {
+        return List.of(new Boss2Minion(getX() - 20, getY() + 15),
+                new Boss2Minion(getX() + 55, getY() + 15));
     }
 
     // =========================

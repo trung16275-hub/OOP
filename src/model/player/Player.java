@@ -1,5 +1,7 @@
 package model.player;
 
+import map.Room;
+
 import model.Combatant;
 import model.Enemy;
 import model.weapon.Weapon;
@@ -26,6 +28,7 @@ public class Player extends Combatant {
     private boolean moving;
     private boolean grabbed;
     private long stunEndTimeNanos;
+    private final MovementEffects movementEffects = new MovementEffects();
     private boolean facingLeft;
     private long attackAnimationStartTime;
     private long hurtAnimationStartTime;
@@ -195,6 +198,18 @@ public class Player extends Combatant {
         }
     }
 
+    public void updateMovement(double moveX, double moveY, Room room) {
+        if (isMovementLocked()) {
+            move(0, 0, room);
+        } else if (isDashing()) {
+            move(getDashDirectionX() * DASH_SPEED_MULTIPLIER,
+                    getDashDirectionY() * DASH_SPEED_MULTIPLIER, room);
+        } else {
+            double multiplier = movementEffects.getSpeedMultiplier();
+            move(moveX * multiplier, moveY * multiplier, room);
+        }
+    }
+
     public boolean isMovementLocked() {
         return grabbed || System.nanoTime() < stunEndTimeNanos;
     }
@@ -235,6 +250,25 @@ public class Player extends Combatant {
     public void equip(Weapon weapon) {
         this.currentWeapon = weapon;
         System.out.println("Đã trang bị: " + weapon.getName());
+    }
+
+    public MovementEffects getMovementEffects() {
+        return movementEffects;
+    }
+
+    public void requestWeaponAttack() {
+        Weapon weapon = currentWeapon;
+        if (weapon != null) {
+            requestAction(weapon.getAttackCooldownNanos(), (room, spawnProjectile) -> {
+                boolean attacked = weapon.tryAttack(this, room, spawnProjectile);
+                if (attacked) {
+                    playAttackAnimation(320);
+                } else {
+                    stopAttackAnimation();
+                }
+                return attacked;
+            });
+        }
     }
 
     @Override

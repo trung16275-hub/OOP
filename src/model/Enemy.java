@@ -2,6 +2,8 @@ package model;
 
 import map.Room;
 import model.player.Player;
+import java.util.List;
+import java.util.function.Consumer;
 
 // File: src/enemy/Enemy.java
 public abstract class Enemy extends Combatant {
@@ -135,5 +137,19 @@ public abstract class Enemy extends Combatant {
     // Trả về true khi Enemy đã chết và hoàn tất mọi hoạt ảnh chết/phân thân để có thể xóa khỏi phòng.
     public boolean isRemovable() {
         return isDead();
+    }
+
+    public boolean shouldReplace() {
+        return false;
+    }
+
+    public void onRoomEntered() {
+    }
+
+    public void updateRoomEffects(Consumer<RoomEffect> spawnEffect) {
+    }
+
+    public List<? extends Enemy> createReplacements(Room room) {
+        return List.of();
     }
 }

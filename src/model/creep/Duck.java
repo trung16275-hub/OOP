@@ -142,6 +142,16 @@ public class Duck extends Enemy {
         return splitAnimationFinished && !hasSplit;
     }
 
+    @Override
+    public boolean shouldReplace() {
+        return isSplitAnimationFinished();
+    }
+
+    @Override
+    public List<Duck> createReplacements(Room room) {
+        return createSplitClones(room);
+    }
+
     public List<Duck> createSplitClones(Room room) {
         hasSplit = true;
         List<Duck> clones = new ArrayList<>();

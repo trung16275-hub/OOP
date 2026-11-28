@@ -2,8 +2,11 @@
 package model.boss.boss2;
 
 import model.Enemy;
+import model.RoomEffect;
 import model.player.Player;
 import map.Room;
+import java.awt.geom.Point2D;
+import java.util.function.Consumer;
 
 public class Boss2Minion extends Enemy {
 
@@ -18,6 +21,7 @@ public class Boss2Minion extends Enemy {
     private static final int HEIGHT = 35;
 
     private boolean moving;
+    private Point2D.Double lastTrailPosition;
 
     public Boss2Minion(double x, double y) {
         super(
@@ -33,6 +37,26 @@ public class Boss2Minion extends Enemy {
         setY(y);
         setWidth(WIDTH);
         setHeight(HEIGHT);
+        lastTrailPosition = new Point2D.Double(x, y);
+    }
+
+    @Override
+    public void onRoomEntered() {
+        lastTrailPosition = null;
+    }
+
+    @Override
+    public void updateRoomEffects(Consumer<RoomEffect> spawnEffect) {
+        if (isDead()) {
+            return;
+        }
+        if (lastTrailPosition == null) {
+            lastTrailPosition = new Point2D.Double(getX(), getY());
+        } else if (lastTrailPosition.distance(getX(), getY()) >= 20) {
+            spawnEffect.accept(new AcidTrail(lastTrailPosition.x + getWidth() / 2.0,
+                    lastTrailPosition.y + getHeight() / 2.0));
+            lastTrailPosition.setLocation(getX(), getY());
+        }
     }
 
     @Override

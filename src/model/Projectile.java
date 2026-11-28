@@ -1,11 +1,31 @@
 package model;
 
 import map.Room;
+import model.player.Player;
 
 import java.awt.Rectangle;
 
 /** A straight-moving projectile that is consumed by a target combatant or a wall. */
 public class Projectile {
+    public enum Kind {
+        AK47_BULLET(1.0, 0),
+        ACID(0.5, 2_000_000_000L);
+
+        private final double slowMultiplier;
+        private final long slowDurationNanos;
+
+        Kind(double slowMultiplier, long slowDurationNanos) {
+            this.slowMultiplier = slowMultiplier;
+            this.slowDurationNanos = slowDurationNanos;
+        }
+
+        private void applyHitEffect(Player target) {
+            if (slowDurationNanos > 0) {
+                target.getMovementEffects().applySlow(this, slowMultiplier, slowDurationNanos);
+            }
+        }
+    }
+
     private static final int DEFAULT_SIZE = 8;
     private static final double MAX_COLLISION_STEP = 2.0;
 
@@ -16,6 +36,7 @@ public class Projectile {
     private final double speed;
     private final int damage;
     private final int size;
+    private final Kind kind;
     private boolean active = true;
 
     public Projectile(double x, double y, double directionX, double directionY, double speed, int damage) {
@@ -23,6 +44,11 @@ public class Projectile {
     }
 
     public Projectile(double x, double y, double directionX, double directionY, double speed, int damage, int size) {
+        this(x, y, directionX, directionY, speed, damage, size, Kind.AK47_BULLET);
+    }
+
+    public Projectile(double x, double y, double directionX, double directionY, double speed,
+                      int damage, int size, Kind kind) {
         double length = Math.hypot(directionX, directionY);
         if (!Double.isFinite(length) || length == 0) {
             throw new IllegalArgumentException("Projectile direction must be finite and non-zero.");
@@ -38,6 +64,7 @@ public class Projectile {
         this.speed = speed;
         this.damage = damage;
         this.size = size;
+        this.kind = kind;
     }
 
     /** Advances along a straight line and deactivates on wall contact. */
@@ -74,6 +101,12 @@ public class Projectile {
                         target.getWidth(), target.getHeight()));
     }
 
+    public void hitPlayer(Player target) {
+        target.takeDamage(damage);
+        kind.applyHitEffect(target);
+        deactivate();
+    }
+
     public Rectangle getBounds() {
         return new Rectangle((int) Math.round(x - size / 2.0),
                 (int) Math.round(y - size / 2.0), size, size);
@@ -89,6 +122,10 @@ public class Projectile {
 
     public int getDamage() {
         return damage;
+    }
+
+    public Kind getKind() {
+        return kind;
     }
 
     public boolean isActive() {
