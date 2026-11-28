@@ -547,8 +547,9 @@ public class GameRenderer {
     }
 
     private void renderRoomEffects(Graphics2D g2, List<RoomEffect> roomEffects) {
+        if (roomEffects == null) return;
         for (RoomEffect effect : roomEffects) {
-            if (effect.isExpired()) continue;
+            if (effect == null || effect.isExpired()) continue;
             Graphics2D graphics = (Graphics2D) g2.create();
             try {
                 effect.render(graphics);

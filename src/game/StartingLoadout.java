@@ -1,5 +1,6 @@
 package game;
 
+import java.util.ArrayList;
 import java.util.List;
 import model.player.Player;
 import model.pickup.AmmoPickup;
@@ -17,7 +18,7 @@ public final class StartingLoadout {
 
     /** The first weapon is equipped when a new game starts. */
     public static List<Weapon> createWeapons() {
-        return List.of(new Ak47(), new Bat());
+        return new ArrayList<>(List.of(new Ak47(), new Bat()));
     }
 
     public static List<Pickup> createSpawnPickups(Player player) {

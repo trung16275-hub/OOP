@@ -32,13 +32,13 @@ public class AcidTrail implements RoomEffect {
 
     @Override
     public void update(Player player) {
-        if (player == null || !getBounds().intersects(getPlayerBounds(player))) {
+        if (player == null || player.isDead() || isExpired()) {
+            return;
+        }
+        if (!getBounds().intersects(getPlayerBounds(player))) {
             return;
         }
         player.getMovementEffects().applySlow(AcidTrail.class, 0.5, 2_000_000_000L);
-        if (player.isDead() || isExpired()) {
-            return;
-        }
 
         long now = System.nanoTime();
 

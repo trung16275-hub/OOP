@@ -259,8 +259,22 @@ public class Boss2 extends Enemy {
 
     @Override
     public List<Boss2Minion> createReplacements(Room room) {
-        return List.of(new Boss2Minion(getX() - 20, getY() + 15),
-                new Boss2Minion(getX() + 55, getY() + 15));
+        return List.of(
+                createMinionAt(room, getX() - 20, getY() + 15),
+                createMinionAt(room, getX() + 55, getY() + 15)
+        );
+    }
+
+    private Boss2Minion createMinionAt(Room room, double spawnX, double spawnY) {
+        Boss2Minion minion = new Boss2Minion(spawnX, spawnY);
+        if (room != null && room.checkCollision(new java.awt.Rectangle(
+                (int) Math.round(spawnX), (int) Math.round(spawnY),
+                minion.getWidth(), minion.getHeight()))) {
+            double fallbackX = getCenterX() - minion.getWidth() / 2.0;
+            double fallbackY = getCenterY() - minion.getHeight() / 2.0;
+            return new Boss2Minion(fallbackX, fallbackY);
+        }
+        return minion;
     }
 
     // =========================
